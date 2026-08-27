@@ -36,9 +36,9 @@ export default function Today({ cfHandle }) {
   }, [])
 
   useEffect(() => {
-    if (!cfHandle) return
     setCf(null)
     setCfError('')
+    if (!cfHandle) return
     fetch(`/api/cf?handle=${encodeURIComponent(cfHandle)}`)
       .then((r) => r.json())
       .then((j) => (j.error ? setCfError(j.error) : setCf(j)))
