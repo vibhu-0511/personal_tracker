@@ -1,6 +1,6 @@
 # Forge — Phase 1 Design
 
-**Date:** 2026-08-28
+**Date:** 2026-08-28 (revised)
 **Status:** Approved for planning
 **Working name:** Forge
 
@@ -8,132 +8,137 @@
 
 Forge is a personal web app: a **daily deliberate-practice loop for a software engineer**.
 Sharpen (coding + puzzles) → reflect (notes) → learn (LLM tutor agents). It runs as a
-web app you open on your iPhone (Add to Home Screen), backed by a tiny serverless proxy.
+web app opened on an iPhone via Add to Home Screen, backed by a tiny serverless proxy.
 
 This document specs **Phase 1 only** — the dashboard spine. Later phases (quant engine,
 RSS digest agents) get their own spec → plan → build cycles.
 
 ## Goals
 
-- One screen that tells me what to practice today, adapted to my real skill level.
-- Codeforces problems near my rating, with already-solved ones hidden.
+- One screen that says what to practice today, adapted to my real Codeforces rating.
+- Codeforces problems near my rating, with already-solved ones excluded.
 - The Lichess daily puzzle.
-- Local, searchable daily notes that can attach to a problem/tag.
-- A config-driven agent runtime with three tutor agents (math/chess coach,
-  geopolitics concepts, AI architecture concepts).
+- Local, searchable daily notes, optionally tagged to a problem.
+- A config-driven agent runtime with three seeded tutor agents.
 - Deployable to a free URL, reachable from my iPhone.
 
 ## Non-Goals (Phase 1)
 
-- Quant question engine — Phase 2.
-- RSS digest agents ("newsletter summary", "what's new in AI") — Phase 3. Source decided: **public RSS feeds**.
-- Spaced-repetition scheduling UI — the data seam exists, the UI does not.
-- Accounts, multi-device sync, native app.
+- Quant question engine — Phase 2 (LLM-generated, reuses `/api/agent` unchanged).
+- RSS digest agents — Phase 3. Content source decided: **public RSS feeds**.
+- Spaced-repetition scheduling UI — the `progress` data seam exists, the UI does not.
+- In-app agent authoring UI — agents are a bundled JSON file in Phase 1.
+- Accounts, multi-device sync, native app, chess board rendering.
+
+## Revisions from first draft
+
+Six corrections, each with its reason:
+
+1. **Server-side filtering, not client-side.** `problemset.problems` is ~10k problems
+   (multi-MB) and `user.status` is a user's entire submission history. Shipping those to
+   a phone is unacceptable. The proxy now does the fetch + join + filter and returns
+   ~20 problems.
+2. **One `/api/cf` route, not two.** The server needs both payloads to compute a result,
+   so splitting them just doubles round trips and failure modes.
+3. **No chess board component.** `api/puzzle/daily` gives a puzzle id; we link out to
+   `lichess.org/training/{id}`. Lichess's own board is better than anything we'd build,
+   and this deletes a whole dependency.
+4. **"Least-practiced tag", not "weakest tag".** On day one there is no failure data, so
+   "weakest" is meaningless. Tag *coverage* is computable immediately from solved history.
+5. **No agent editor UI.** Bundled `agents.json` is the single source of truth. Adding an
+   agent is a JSON edit + redeploy — a fine authoring surface for one engineer, and it
+   removes a store, a migration problem, and a screen.
+6. **One dev command.** The same handler files are mounted into the Vite dev server by a
+   small plugin, so `npm run dev` runs frontend and API together with no second server
+   and no Vercel CLI login.
 
 ## Architecture
 
-Three constraints force a thin backend; the rest is local-first.
+Two constraints force a thin backend; everything else stays local.
 
-- **CORS** blocks the browser from directly reading the Codeforces API, Lichess, and (later) RSS feeds.
-- **API key safety** — the LLM key must never ship in browser code.
+- **CORS** blocks the browser from reading the Codeforces API directly.
+- **Key safety** — the LLM key must never reach browser code.
 
 ```
 iPhone / browser
       │
-   [ React SPA (Vite) ]  ── notes & progress in IndexedDB (localForage)
+   [ React SPA (Vite) ]  ── notes + progress in IndexedDB (localForage)
       │  fetch
-   [ Serverless proxy ]  ── holds LLM key (env var)
+   [ Serverless proxy ]  ── holds GROQ_API_KEY (env var)
       │
-   ├─ Codeforces API   (problems, my rating, solved history)
-   ├─ Lichess API      (daily puzzle)
-   └─ LLM API (Groq)   (agent replies)
+   ├─ Codeforces API   (problems + rating + solved history, joined server-side)
+   ├─ Lichess API      (daily puzzle metadata)
+   └─ Groq API         (agent replies, non-streaming)
 ```
 
-- **Frontend:** Vite + React SPA. Tabs: Today / Notes / Agents.
-- **Backend:** serverless functions (Vercel free tier). Just a proxy — no DB, no auth.
-- **Storage:** browser IndexedDB via `localForage`. Notes, practice progress, agent
-  configs (seeded from a bundled default, editable), and settings (CF handle) live here.
-- **Dev:** localhost; **Prod:** deploy to Vercel, open the URL on the iPhone.
+- **Frontend:** Vite + React SPA. Tabs are component state — no router.
+- **Backend:** Vercel serverless functions in `/api`. Pure proxy — no DB, no auth.
+- **Storage:** IndexedDB via `localForage`. Settings, notes, progress.
+- **Runtime deps:** `react`, `react-dom`, `localforage`. Nothing else.
 
-## Serverless proxy routes
+## Proxy routes
 
-| Route | Proxies to | Notes |
-|---|---|---|
-| `GET /api/cf/problems` | `codeforces.com/api/problemset.problems` | cached in memory per cold start |
-| `GET /api/cf/user?handle=` | `.../user.info`, `.../user.rating`, `.../user.status` | returns rating + solved-problem id set |
-| `GET /api/puzzle/daily` | `lichess.org/api/puzzle/daily` | passthrough |
-| `POST /api/agent` | Groq chat completions | body `{ agentId, messages }`; key from env |
+| Route | Behavior |
+|---|---|
+| `GET /api/health` | `{ ok: true }` — proves the dev middleware and deploy wiring work |
+| `GET /api/cf?handle=` | Fetches problemset + user.info + user.status; returns `{ rating, problems[], tagCounts }` (~20 problems) |
+| `GET /api/puzzle` | Lichess daily → `{ id, rating, themes[], url }` |
+| `POST /api/agent` | `{ systemPrompt, messages }` → Groq → `{ reply }`. Key from env, non-streaming |
 
-The proxy adds no business logic beyond shaping/caching responses and injecting the key.
+Non-streaming is deliberate: Groq runs ~280 tok/s, so a reply lands fast enough that
+streaming's added complexity is not worth it.
+
+## Core logic
+
+`pickProblems(problems, rating, solvedIds, limit)` — pure, unit-tested:
+- keep problems with a `rating` within ±200 of the user's rating
+- drop any whose id (`${contestId}${index}`) is in `solvedIds`
+- sort by rating ascending, return `limit`
+- unrated user (no `rating` field) → default band centered on 1200
 
 ## Data model (IndexedDB)
 
-- **settings**: `{ cfHandle, llmModel }`
-- **notes**: `{ id, createdAt, body, tags[], linkedProblemId? }`
-- **progress**: `{ problemId, status: 'solved'|'skipped'|'attempted', tags[], updatedAt }`
-  — Codeforces solved history seeds this; local actions extend it. This is the seam
-  spaced-repetition and weakness-detection plug into later.
-- **agentConfigs**: `{ id, name, systemPrompt }` — seeded from a bundled default JSON,
-  editable in the UI.
+- **settings**: `{ cfHandle }`
+- **notes**: `{ id, createdAt, body, tags[] }`
+- **progress**: `{ problemId, status: 'solved'|'skipped', tags[], updatedAt }` — the seam
+  spaced repetition and weakness detection read from in Phase 2.
 
-## Components
+## Screens
 
-### Today tab
-- Fetches my CF rating + solved set (via proxy), pulls `problemset.problems`, filters to
-  `rating ± 200`, removes solved, shows a handful.
-- Shows the Lichess daily puzzle (embedded board link + prompt).
-- A one-line honest metric: today's solved/skipped and current weakest tag (from `progress`).
-- Marking a problem solved/skipped writes to `progress`.
+**Today** — problem list (adaptive, from `/api/cf`), daily puzzle card (links to Lichess),
+one honest metric line: today's solved count + least-practiced tag. Marking a problem
+solved/skipped writes `progress`.
 
-### Notes tab
-- Create/edit/delete daily notes. Full-text filter over `notes`.
-- Optional tag(s) and optional link to a problem id.
+**Notes** — create / edit / delete, substring filter, optional tags.
 
-### Agents tab
-- List of agent configs. Pick one → chat view.
-- Chat calls `POST /api/agent` with the agent's `systemPrompt` + message history.
-- Config editor: add/edit an agent's name and system prompt (writes to `agentConfigs`).
+**Agents** — pick from bundled `agents.json`, chat. Three seeded tutors: math &
+puzzle-tricks coach, geopolitics concepts, AI architecture concepts.
 
 ## Agent runtime
 
-Single function, config-driven:
-
 ```
-run(agentConfig, messages) -> reply
-  POST /api/agent { agentId, systemPrompt, messages }
+POST /api/agent { systemPrompt, messages } -> { reply }
 ```
 
-Agents are data, not code. Three seeded configs ship in a bundled `agents.default.json`:
-math/chess/puzzle-tricks coach, geopolitics-concepts tutor, AI-architecture tutor.
-Adding a fourth agent = adding a JSON entry. Phase 3 digest agents reuse `run` unchanged,
-passing retrieved RSS text as an extra context message.
+Agents are data, not code. Phase 3 digest agents reuse this route unchanged, passing
+retrieved RSS text as an extra context message.
 
 ## Error handling
 
-- Proxy failures (CF/Lichess/LLM down or rate-limited) surface a clear inline message per
-  panel; the rest of the dashboard still renders. No silent failures.
-- Missing/invalid CF handle → Today tab prompts to set it in settings rather than erroring.
-- IndexedDB unavailable (private mode edge) → app warns that data won't persist.
-- LLM key missing on the server → `/api/agent` returns a clear 500 the UI shows as
-  "agent not configured", not a blank chat.
+- Any proxy failure renders an inline error in that panel only; other panels still work.
+- Missing/unknown CF handle → Today prompts to set it rather than erroring.
+- Missing `GROQ_API_KEY` → `/api/agent` returns 500 with a clear message the chat shows
+  as "agent not configured", not a blank reply.
+- IndexedDB unavailable (private mode) → banner warning that data will not persist.
 
 ## Testing
 
-- Agent runtime: one runnable check that `run` builds the correct request payload from a
-  config + messages (assert-based, no framework).
-- CF adaptive filter: a pure function `pickProblems(problems, rating, solvedSet)` with a
-  small unit test — the money logic (rating band + solved exclusion).
-- Proxy routes: manual smoke via curl documented in README; no e2e harness in Phase 1.
-
-## Deferred seams (so later phases don't require rework)
-
-- `progress` store already records per-problem tags + status → spaced repetition &
-  weakness detection read from it.
-- `run(agentConfig, messages)` already accepts arbitrary messages → RSS context injects
-  with no signature change.
-- `agentConfigs` is data → new agents need no code.
+- `pickProblems` — unit tests via `node --test` (zero deps): rating band, solved
+  exclusion, unrated fallback, limit.
+- `/api/health` — proves dev middleware + deploy wiring.
+- Other routes — manual curl smoke, documented in README.
 
 ## Open items
 
-- **LLM provider default:** Groq (free, fast). Gemini is a drop-in alt if Groq limits bite.
-- **Project/repo name:** "Forge" placeholder; rename before first deploy if desired.
+- **LLM model:** default `llama-3.3-70b-versatile` (Groq, free tier, verified current
+  2026-08-28), overridable via `GROQ_MODEL` env var.
