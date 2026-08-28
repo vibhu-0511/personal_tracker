@@ -510,6 +510,57 @@ select { cursor: pointer; }
   margin-bottom: 10px;
 }
 
+/* ── Expense Tracker ── */
+.expense-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.expense-cat-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.expense-cat-btn:hover { border-color: var(--border-light); }
+.expense-cat-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.expense-fab {
+  position: fixed;
+  bottom: 80px;
+  right: max(16px, calc((100vw - 640px) / 2 + 16px));
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent-solid);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 300;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  transition: all 0.2s;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.expense-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(37, 99, 235, 0.5); }
+.expense-fab:active { transform: scale(0.95); }
+
 /* ── Transitions ── */
 .fade-in {
   animation: fadeIn 0.25s ease-out;

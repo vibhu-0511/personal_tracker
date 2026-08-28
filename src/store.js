@@ -35,3 +35,10 @@ export async function markProblem(problemId, status, tags) {
   await db.setItem('progress', progress)
   return progress
 }
+
+export async function getExpenses() {
+  return (await db.getItem('expenses')) || []
+}
+export async function saveExpenses(expenses) {
+  await db.setItem('expenses', expenses)
+}
