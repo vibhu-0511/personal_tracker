@@ -2,6 +2,7 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const DEFAULT_MODEL = 'llama-3.3-70b-versatile'
 
 export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
   const key = process.env.GROQ_API_KEY
   if (!key) {
     return res.status(500).json({ error: 'agent not configured: GROQ_API_KEY is missing' })

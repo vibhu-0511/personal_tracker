@@ -10,6 +10,7 @@ function apiDevPlugin() {
 
         const url = new URL(req.url, 'http://localhost')
         const name = url.pathname.slice('/api/'.length)
+        if (name.includes('..')) return res.writeHead(400).end()
 
         req.query = Object.fromEntries(url.searchParams)
         res.status = (code) => {
