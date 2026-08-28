@@ -50,59 +50,106 @@ export default function Today({ cfHandle }) {
   }
 
   const weak = cf ? leastPracticedTag(cf.tagCounts) : null
+  const todayCount = solvedToday(progress)
 
   return (
-    <div>
-      <div className="card">
-        <strong>Solved today: {solvedToday(progress)}</strong>
-        {cf && (
-          <div className="muted">
-            Rating {cf.rating ?? 'unrated'} · least-practiced: {weak[0]} ({weak[1]} solved)
+    <div className="fade-in">
+      {/* Stats row */}
+      <div className="stat-row">
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: todayCount > 0 ? 'var(--success)' : 'var(--text-tertiary)' }}>
+            {todayCount}
           </div>
-        )}
+          <div className="stat-label">Solved today</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: 'var(--accent)' }}>
+            {cf ? (cf.rating ?? '—') : '—'}
+          </div>
+          <div className="stat-label">CF Rating</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ color: 'var(--warn)', fontSize: 16 }}>
+            {weak ? weak[0] : '—'}
+          </div>
+          <div className="stat-label">Least practiced</div>
+        </div>
       </div>
 
-      <div className="card">
-        <strong>Daily puzzle</strong>
-        {puzzleError && <div className="err">Could not load puzzle: {puzzleError}</div>}
-        {!puzzle && !puzzleError && <div className="muted">Loading…</div>}
-        {puzzle && (
-          <div>
-            <div className="muted">
+      {/* Daily puzzle */}
+      {puzzleError && <div className="banner-warn">Puzzle: {puzzleError}</div>}
+      {!puzzle && !puzzleError && (
+        <div className="loading">
+          <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
+          Loading daily puzzle...
+        </div>
+      )}
+      {puzzle && (
+        <div className="puzzle-card">
+          <div className="puzzle-icon">♟️</div>
+          <div style={{ flex: 1 }}>
+            <a className="puzzle-link" href={puzzle.url} target="_blank" rel="noreferrer">
+              Daily Puzzle
+            </a>
+            <div className="meta">
               Rating {puzzle.rating} · {puzzle.themes.slice(0, 3).join(', ')}
             </div>
-            <a href={puzzle.url} target="_blank" rel="noreferrer">
-              Solve on Lichess →
-            </a>
           </div>
-        )}
+          <span className="meta" style={{ fontSize: 20 }}>→</span>
+        </div>
+      )}
+
+      {/* Problems */}
+      <div className="section-header">
+        <span className="section-title">
+          {cf ? `${cf.problems.length} problems for you` : 'Problems'}
+        </span>
       </div>
 
-      <strong>Problems for you</strong>
       {!cfHandle && (
-        <div className="card muted">Set your Codeforces handle in Settings to see problems.</div>
+        <div className="empty-state">
+          <div className="empty-icon">🎯</div>
+          <div className="empty-text">Set your Codeforces handle in Settings to see adaptive problems.</div>
+        </div>
       )}
-      {cfError && <div className="card err">Could not load problems: {cfError}</div>}
-      {cfHandle && !cf && !cfError && <div className="card muted">Loading…</div>}
-      {cf &&
-        cf.problems.map((p) => {
-          const state = progress[p.id]
-          return (
-            <div className="card" key={p.id}>
-              <a href={p.url} target="_blank" rel="noreferrer">
-                {p.name}
-              </a>
-              <div className="muted">
-                {p.rating} · {p.tags.slice(0, 3).join(', ')}
+      {cfError && <div className="banner-warn">{cfError}</div>}
+      {cfHandle && !cf && !cfError && (
+        <div className="loading">
+          <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
+          Fetching problems...
+        </div>
+      )}
+      {cf && cf.problems.map((p) => {
+        const state = progress[p.id]
+        return (
+          <div className="card" key={p.id}>
+            <div className="problem-card">
+              <div className="problem-info">
+                <a className="problem-name" href={p.url} target="_blank" rel="noreferrer">
+                  {p.name}
+                </a>
+                <div className="meta" style={{ marginTop: 2 }}>
+                  {p.rating}
+                  <span style={{ margin: '0 4px', opacity: 0.3 }}>·</span>
+                  {p.tags.slice(0, 3).map((t) => (
+                    <span className="chip chip-muted" key={t} style={{ marginRight: 4 }}>{t}</span>
+                  ))}
+                </div>
               </div>
-              <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button className="act" onClick={() => mark(p, 'solved')}>Solved</button>
-                <button className="act" onClick={() => mark(p, 'skipped')}>Skip</button>
-                {state && <span className="muted">{state.status}</span>}
+              <div className="problem-actions">
+                {state ? (
+                  <span className={`status-badge ${state.status}`}>{state.status}</span>
+                ) : (
+                  <>
+                    <button className="btn btn-success btn-sm" onClick={() => mark(p, 'solved')}>✓</button>
+                    <button className="btn btn-sm" onClick={() => mark(p, 'skipped')}>Skip</button>
+                  </>
+                )}
               </div>
             </div>
-          )
-        })}
+          </div>
+        )
+      })}
     </div>
   )
 }

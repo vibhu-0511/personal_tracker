@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import agents from '../agents.json'
+
+const AGENT_ICONS = { tricks: '🧮', geopolitics: '🌍', 'ai-arch': '🧠' }
 
 export default function Agents() {
   const [agent, setAgent] = useState(agents[0])
@@ -7,6 +9,11 @@ export default function Agents() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const bottomRef = useRef(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, busy])
 
   function switchAgent(id) {
     setAgent(agents.find((a) => a.id === id))
@@ -38,35 +45,68 @@ export default function Agents() {
     }
   }
 
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      send()
+    }
+  }
+
   return (
-    <div>
-      <div className="card">
-        <select value={agent.id} onChange={(e) => switchAgent(e.target.value)}>
-          {agents.map((a) => (
-            <option key={a.id} value={a.id}>{a.name}</option>
-          ))}
-        </select>
+    <div className="fade-in">
+      {/* Agent selector pills */}
+      <div className="agent-bar">
+        {agents.map((a) => (
+          <button
+            key={a.id}
+            className={`agent-pill${a.id === agent.id ? ' active' : ''}`}
+            onClick={() => switchAgent(a.id)}
+          >
+            <span className="agent-pill-icon">{AGENT_ICONS[a.id] || '💡'}</span>
+            {a.name}
+          </button>
+        ))}
       </div>
 
-      {messages.map((m, i) => (
-        <div className="card" key={i}>
-          <div className="muted">{m.role === 'user' ? 'You' : agent.name}</div>
-          <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+      {/* Chat messages */}
+      {messages.length === 0 && !busy && (
+        <div className="empty-state" style={{ padding: '48px 16px' }}>
+          <div className="empty-icon">{AGENT_ICONS[agent.id] || '💡'}</div>
+          <div className="empty-text">
+            Ask {agent.name} anything.<br />
+            <span className="meta">Powered by Groq LLM</span>
+          </div>
         </div>
-      ))}
+      )}
 
-      {busy && <div className="card muted">Thinking…</div>}
-      {error && <div className="card err">{error}</div>}
+      <div className="chat-messages">
+        {messages.map((m, i) => (
+          <div className={`chat-bubble ${m.role}`} key={i}>
+            {m.content}
+          </div>
+        ))}
+        {busy && (
+          <div className="chat-bubble assistant">
+            <div className="loading" style={{ padding: 0 }}>
+              <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
+            </div>
+          </div>
+        )}
+        {error && <div className="banner-warn" style={{ fontSize: 13 }}>{error}</div>}
+        <div ref={bottomRef} />
+      </div>
 
-      <div className="card">
+      {/* Input */}
+      <div className="chat-input-row">
         <textarea
-          rows={3}
+          rows={1}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={`Ask ${agent.name}…`}
+          onKeyDown={handleKeyDown}
+          placeholder={`Ask ${agent.name}...`}
         />
-        <button className="act" style={{ marginTop: 8 }} onClick={send} disabled={busy}>
-          Send
+        <button className="send-btn" onClick={send} disabled={busy || !input.trim()}>
+          ↑
         </button>
       </div>
     </div>

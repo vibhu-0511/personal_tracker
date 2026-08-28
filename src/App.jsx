@@ -4,7 +4,11 @@ import Today from './tabs/Today.jsx'
 import Notes from './tabs/Notes.jsx'
 import Agents from './tabs/Agents.jsx'
 
-const TABS = ['Today', 'Notes', 'Agents']
+const TABS = [
+  { id: 'Today', icon: '⚡', label: 'Today' },
+  { id: 'Notes', icon: '📝', label: 'Notes' },
+  { id: 'Agents', icon: '🤖', label: 'Agents' },
+]
 
 export default function App() {
   const [tab, setTab] = useState('Today')
@@ -30,46 +34,63 @@ export default function App() {
   }
 
   return (
-    <div className="wrap">
-      <h1 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Forge
-        <button className="act" onClick={() => setShowSettings((v) => !v)}>
-          Settings
+    <div className="app">
+      <header className="app-header">
+        <span className="app-title">{'🔥'} Forge</span>
+        <button
+          className="gear-btn"
+          onClick={() => setShowSettings((v) => !v)}
+          aria-label="Settings"
+        >
+          {'⚙️'}
         </button>
-      </h1>
+      </header>
 
       {!storageOk && (
-        <div className="card err">
-          Storage is unavailable — notes and progress will not persist in this browser.
+        <div className="banner-warn">
+          Storage unavailable — notes and progress won't persist in this browser.
         </div>
       )}
 
       {showSettings && (
-        <div className="card">
-          <label className="muted" htmlFor="cf">Codeforces handle</label>
+        <div className="card settings-panel" style={{ marginBottom: 12 }}>
+          <div className="h3" style={{ marginBottom: 10 }}>Settings</div>
+          <label className="meta" htmlFor="cf">Codeforces handle</label>
           <input
             id="cf"
             value={draftHandle}
             onChange={(e) => setDraftHandle(e.target.value)}
             placeholder="your_cf_handle"
+            style={{ marginTop: 4 }}
+            onKeyDown={(e) => e.key === 'Enter' && save()}
           />
-          <button className="act" style={{ marginTop: 10 }} onClick={save}>
-            Save
-          </button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button className="btn btn-primary btn-sm" onClick={save}>Save</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowSettings(false)}>Cancel</button>
+          </div>
         </div>
       )}
 
-      <div className="tabs">
-        {TABS.map((t) => (
-          <button key={t} className={t === tab ? 'active' : ''} onClick={() => setTab(t)}>
-            {t}
-          </button>
-        ))}
-      </div>
+      <main className="content">
+        {tab === 'Today' && <Today cfHandle={cfHandle} />}
+        {tab === 'Notes' && <Notes />}
+        {tab === 'Agents' && <Agents />}
+      </main>
 
-      {tab === 'Today' && <Today cfHandle={cfHandle} />}
-      {tab === 'Notes' && <Notes />}
-      {tab === 'Agents' && <Agents />}
+      <nav className="tab-bar">
+        <div className="tab-bar-inner">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              className={`tab-btn${t.id === tab ? ' active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              <span className="tab-icon">{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </nav>
     </div>
   )
 }
