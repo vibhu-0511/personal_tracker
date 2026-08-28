@@ -23,16 +23,10 @@ function solvedToday(progress) {
 export default function Today({ cfHandle }) {
   const [cf, setCf] = useState(null)
   const [cfError, setCfError] = useState('')
-  const [puzzle, setPuzzle] = useState(null)
-  const [puzzleError, setPuzzleError] = useState('')
   const [progress, setProgress] = useState({})
 
   useEffect(() => {
     getProgress().then(setProgress)
-    fetch('/api/puzzle')
-      .then((r) => r.json())
-      .then((j) => (j.error ? setPuzzleError(j.error) : setPuzzle(j)))
-      .catch((e) => setPuzzleError(e.message))
   }, [])
 
   useEffect(() => {
@@ -75,29 +69,6 @@ export default function Today({ cfHandle }) {
           <div className="stat-label">Least practiced</div>
         </div>
       </div>
-
-      {/* Daily puzzle */}
-      {puzzleError && <div className="banner-warn">Puzzle: {puzzleError}</div>}
-      {!puzzle && !puzzleError && (
-        <div className="loading">
-          <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
-          Loading daily puzzle...
-        </div>
-      )}
-      {puzzle && (
-        <div className="puzzle-card">
-          <div className="puzzle-icon">♟️</div>
-          <div style={{ flex: 1 }}>
-            <a className="puzzle-link" href={puzzle.url} target="_blank" rel="noreferrer">
-              Daily Puzzle
-            </a>
-            <div className="meta">
-              Rating {puzzle.rating} · {puzzle.themes.slice(0, 3).join(', ')}
-            </div>
-          </div>
-          <span className="meta" style={{ fontSize: 20 }}>→</span>
-        </div>
-      )}
 
       {/* Problems */}
       <div className="section-header">
