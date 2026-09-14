@@ -105,3 +105,10 @@ export async function getHabits() {
 export async function saveHabits(habits) {
   await db.setItem('habits', habits)
 }
+
+export async function getMoodLog() {
+  return (await db.getItem('moodLog')) || []
+}
+export async function saveMoodLog(log) {
+  await db.setItem('moodLog', log)
+}

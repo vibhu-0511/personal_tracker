@@ -155,6 +155,94 @@ export function crossedMilestone(prevBest, newBest) {
   return crossed.length ? crossed[crossed.length - 1] : null
 }
 
+// ── Growth: continuous stats + titles + emotion tracking ──
+// See forge/IDEAS.md for the design discussion behind these.
+
+export const DOMAINS = [
+  { id: 'physical', label: '💪 Physical' },
+  { id: 'logical', label: '🧠 Logical' },
+  { id: 'emotional', label: '❤️ Emotional' },
+  { id: 'financial', label: '💰 Financial' },
+  { id: 'other', label: '✨ Other' },
+]
+
+const POINTS_PER_CHECKIN = 2
+const STAT_CAP = 100
+
+function domainOf(habit) {
+  return DOMAINS.some((d) => d.id === habit.domain) ? habit.domain : 'other'
+}
+
+export function computeStats(habits) {
+  const stats = { physical: 0, logical: 0, emotional: 0, financial: 0, other: 0 }
+  for (const h of habits) {
+    stats[domainOf(h)] += new Set(h.checkins).size * POINTS_PER_CHECKIN
+  }
+  for (const k in stats) stats[k] = Math.min(STAT_CAP, stats[k])
+  return stats
+}
+
+const TITLE_LABELS = {
+  physical: { 25: 'Getting Moving', 50: 'In Shape', 75: 'Athlete', 100: 'Peak Physical' },
+  logical: { 25: 'Curious Mind', 50: 'Sharp Thinker', 75: 'Strategist', 100: 'Mastermind' },
+  emotional: { 25: 'Finding Balance', 50: 'Steady Heart', 75: 'Emotionally Grounded', 100: 'Zen Master' },
+  financial: { 25: 'Budget Aware', 50: 'Money Smart', 75: 'Disciplined Saver', 100: 'Wealth Builder' },
+  other: { 25: 'Well-Rounded', 50: 'Renaissance', 75: 'Polymath', 100: 'Jack of All Trades' },
+}
+
+export const TITLES = DOMAINS.flatMap((d) =>
+  [25, 50, 75, 100].map((at) => ({ domain: d.id, at, label: TITLE_LABELS[d.id][at] }))
+)
+
+export function unlockedTitles(stats) {
+  return TITLES.filter((t) => stats[t.domain] >= t.at)
+}
+
+const MOOD_TO_VALENCE = { sick: 0, sad: 25, waiting: 50, happy: 100 }
+
+export const MANUAL_MOODS = [
+  { value: 0, emoji: '😢' },
+  { value: 25, emoji: '😕' },
+  { value: 50, emoji: '😐' },
+  { value: 75, emoji: '🙂' },
+  { value: 100, emoji: '😄' },
+]
+
+export function derivedValence(habits, today) {
+  if (habits.length === 0) return null
+  const total = habits.reduce((sum, h) => sum + MOOD_TO_VALENCE[petState(h, today).mood], 0)
+  return Math.round(total / habits.length)
+}
+
+export function ensureTodayEntry(log, habits, today) {
+  const key = dateKey(today)
+  if (log.some((e) => e.date === key)) return log
+  const v = derivedValence(habits, today)
+  if (v === null) return log
+  return [...log, { date: key, valence: v, source: 'derived' }]
+}
+
+export function logManualMood(log, today, valence) {
+  const key = dateKey(today)
+  return [...log.filter((e) => e.date !== key), { date: key, valence, source: 'logged' }]
+}
+
+export function emotionSummary(log, today) {
+  const cutoff = dayNum(dateKey(today)) - 29
+  const recent = log.filter((e) => dayNum(e.date) >= cutoff).sort((a, b) => dayNum(a.date) - dayNum(b.date))
+  if (recent.length === 0) return { days: 0, consistency: 0, avgValence: null, trend: null, entries: [] }
+
+  const avg = (arr) => arr.reduce((s, e) => s + e.valence, 0) / arr.length
+  const consistency = Math.round((recent.length / 30) * 100)
+  const avgValence = Math.round(avg(recent))
+  const mid = Math.floor(recent.length / 2)
+  const firstHalf = recent.slice(0, mid)
+  const secondHalf = recent.slice(mid)
+  const trend = firstHalf.length && secondHalf.length ? Math.round(avg(secondHalf) - avg(firstHalf)) : 0
+
+  return { days: recent.length, consistency, avgValence, trend, entries: recent }
+}
+
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
 // ponytail: hand-rolled parser for a handful of English phrases (today/tomorrow/weekday,

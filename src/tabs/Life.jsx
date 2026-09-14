@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'motion/react'
-import { getTasks, saveTasks, getReminders, saveReminders, getHabits, saveHabits } from '../store.js'
+import {
+  getTasks, saveTasks, getReminders, saveReminders, getHabits, saveHabits, getMoodLog, saveMoodLog,
+} from '../store.js'
 import {
   dateKey,
   streaks,
@@ -10,6 +12,14 @@ import {
   parseQuick,
   crossedMilestone,
   CATEGORY_LABELS,
+  DOMAINS,
+  computeStats,
+  TITLES,
+  unlockedTitles,
+  MANUAL_MOODS,
+  ensureTodayEntry,
+  logManualMood,
+  emotionSummary,
 } from '../life/logic.js'
 import Notes from './Notes.jsx'
 
@@ -17,6 +27,7 @@ const VIEWS = [
   { id: 'tasks', icon: '✅', label: 'Tasks' },
   { id: 'reminders', icon: '⏰', label: 'Reminders' },
   { id: 'habits', icon: '🐾', label: 'Habits' },
+  { id: 'growth', icon: '🌟', label: 'Growth' },
   { id: 'notes', icon: '📝', label: 'Notes' },
 ]
 
@@ -32,13 +43,25 @@ export default function Life() {
   const [tasks, setTasks] = useState([])
   const [reminders, setReminders] = useState([])
   const [habits, setHabits] = useState([])
+  const [moodLog, setMoodLog] = useState([])
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
     getTasks().then(setTasks)
     getReminders().then(setReminders)
     getHabits().then(setHabits)
+    getMoodLog().then(setMoodLog)
   }, [])
+
+  // Auto-derive today's mood entry from habit behavior, once, unless already logged.
+  useEffect(() => {
+    const next = ensureTodayEntry(moodLog, habits, now)
+    if (next !== moodLog) {
+      setMoodLog(next)
+      saveMoodLog(next)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habits, now])
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
@@ -65,6 +88,10 @@ export default function Life() {
   async function updateHabits(next) {
     setHabits(next)
     await saveHabits(next)
+  }
+  async function updateMoodLog(next) {
+    setMoodLog(next)
+    await saveMoodLog(next)
   }
 
   const walletTotal = useMemo(
@@ -108,6 +135,9 @@ export default function Life() {
         {view === 'tasks' && <TasksView tasks={tasks} onUpdate={updateTasks} now={now} />}
         {view === 'reminders' && <RemindersView reminders={reminders} onUpdate={updateReminders} now={now} />}
         {view === 'habits' && <HabitsView habits={habits} onUpdate={updateHabits} now={now} />}
+        {view === 'growth' && (
+          <GrowthView habits={habits} moodLog={moodLog} onMoodLog={updateMoodLog} now={now} />
+        )}
         {view === 'notes' && <Notes />}
       </div>
     </MotionConfig>
@@ -373,14 +403,16 @@ function HabitsView({ habits, onUpdate, now }) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState('exercise')
   const [species, setSpecies] = useState(SPECIES[0])
+  const [domain, setDomain] = useState('other')
   const [coinFlash, setCoinFlash] = useState({}) // habitId -> amount, for the floating +₹ animation
 
   function addHabit() {
     const n = name.trim()
     if (!n) return
-    const habit = { id: String(Date.now()), name: n, category, species, createdAt: Date.now(), checkins: [] }
+    const habit = { id: String(Date.now()), name: n, category, species, domain, createdAt: Date.now(), checkins: [] }
     onUpdate([...habits, habit])
     setName('')
+    setDomain('other')
     setShowAdd(false)
   }
 
@@ -499,6 +531,18 @@ function HabitsView({ habits, onUpdate, now }) {
               </button>
             ))}
           </div>
+          <div className="meta" style={{ marginTop: 10, marginBottom: 4 }}>Grows which stat?</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {DOMAINS.map((d) => (
+              <button
+                key={d.id}
+                className={`agent-pill${domain === d.id ? ' active' : ''}`}
+                onClick={() => setDomain(d.id)}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button className="btn btn-primary btn-sm" onClick={addHabit} disabled={!name.trim()}>
               Adopt
@@ -513,6 +557,101 @@ function HabitsView({ habits, onUpdate, now }) {
           + New habit
         </button>
       )}
+    </div>
+  )
+}
+
+function GrowthView({ habits, moodLog, onMoodLog, now }) {
+  const stats = computeStats(habits)
+  const titles = unlockedTitles(stats)
+  const summary = emotionSummary(moodLog, now)
+  const todayKey = dateKey(now)
+  const todayEntry = moodLog.find((e) => e.date === todayKey)
+
+  function pickMood(value) {
+    onMoodLog(logManualMood(moodLog, now, value))
+  }
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 12 }}>
+        <div className="h3" style={{ marginBottom: 10 }}>Growth</div>
+        {DOMAINS.map((d) => (
+          <div key={d.id} style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+              <span>{d.label}</span>
+              <span className="meta">{stats[d.id]}</span>
+            </div>
+            <div className="habit-health-bar">
+              <div className="habit-health-fill" style={{ width: `${stats[d.id]}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card" style={{ marginBottom: 12 }}>
+        <div className="h3" style={{ marginBottom: 10 }}>Titles</div>
+        {DOMAINS.map((d) => (
+          <div key={d.id} style={{ marginBottom: 8 }}>
+            <div className="meta" style={{ marginBottom: 4 }}>{d.label}</div>
+            <div className="habit-traits">
+              {TITLES.filter((t) => t.domain === d.id).map((t) => {
+                const unlocked = titles.includes(t)
+                return (
+                  <span key={t.at} className={`habit-trait${unlocked ? ' unlocked' : ''}`}>
+                    {unlocked ? '✓ ' : '🔒 '}{t.label}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="h3" style={{ marginBottom: 4 }}>How are you feeling today?</div>
+        <div className="meta" style={{ marginBottom: 10 }}>
+          {todayEntry?.source === 'logged' ? 'Logged' : "Guessed from today's check-ins — tap to correct it"}
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          {MANUAL_MOODS.map((m) => (
+            <button
+              key={m.value}
+              className={`theme-swatch${todayEntry?.valence === m.value ? ' active' : ''}`}
+              style={{ fontSize: 20, background: 'var(--surface-raised)', flex: 1 }}
+              onClick={() => pickMood(m.value)}
+            >
+              {m.emoji}
+            </button>
+          ))}
+        </div>
+
+        {summary.days === 0 ? (
+          <div className="meta">No mood history yet — check back after a few days.</div>
+        ) : (
+          <>
+            <div className="meta">Last {summary.days} day{summary.days > 1 ? 's' : ''}</div>
+            <div style={{ display: 'flex', gap: 4, margin: '8px 0' }}>
+              {summary.entries.map((e) => (
+                <div
+                  key={e.date}
+                  title={`${e.date}: ${e.valence}`}
+                  style={{
+                    flex: 1,
+                    height: 20,
+                    borderRadius: 3,
+                    background: `hsl(${(e.valence / 100) * 120}, 55%, 45%)`,
+                  }}
+                />
+              ))}
+            </div>
+            <div className="meta">
+              {summary.consistency}% of days logged · avg mood {summary.avgValence}/100 ·{' '}
+              {summary.trend > 0 ? '↗ trending up' : summary.trend < 0 ? '↘ trending down' : '→ steady'}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

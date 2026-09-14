@@ -130,3 +130,52 @@ the hard way.
   tree per user, or per habit, or per pet?
 - If social/dueling ships, what's the minimum backend needed (a lightweight shared
   DB + simple auth, vs. a full multiplayer service)?
+
+### Refinement (2026-09-14, same day): growth as a personality, not a flat list
+
+Clarified motive: the 200 "skills" aren't meant as one flat streak-gated list — the
+goal is to grow a rounded personality across real dimensions (physical, logical,
+emotional, financial, and others), the way a child develops many facets at once, not
+one stat.
+
+**Why this is a stronger foundation than the original framing:** the domains map
+almost exactly onto tabs Forge already has, so growth becomes a readout of real
+activity instead of an invented list:
+- Physical → the Exercise habit category
+- Logical → Code (Codeforces) + Exams tabs
+- Financial → Money (Expenses) + Invest tabs
+- Emotional → meditation/journaling habit categories, and overlaps directly with the
+  "emotion tracking → 3D pet" idea above — **these two should be one system, not two.**
+- "Other ways" → reading, sleep, water, custom habits, Puzzles, Agents
+
+**Still open / pushed back on, not yet resolved:**
+- **200 is still probably too many**, even split across ~5 domains (40/domain is a
+  huge authoring load for one person). Worth reconsidering whether *discrete
+  unlockable skills* is the right shape at all — a "grow like a child" metaphor may
+  fit **continuous stats** (Physical: 62, Logical: 41, Emotional: 78, rising with
+  real activity) better than a 200-node skill tree, and is far less content to build.
+  Not decided either way yet.
+
+**PvP theft — decided, with mitigations (2026-09-14):**
+The user considered the loss-aversion/farming/cheating risks raised above and chose
+to keep theft-on-win rather than the safer "winner gets a bonus, loser loses nothing"
+alternative. Confirmed mitigations to keep this from spiraling:
+- **Bounded steal**: a single fight can move at most **one skill/stat point**, never
+  a whole domain or a full wipe.
+- **Tier-matched fights**: players can only fight others in a similar skill/level
+  range, specifically to stop strong players farming beginners.
+
+**Still unresolved even with those mitigations:**
+- Nothing yet stops one player from repeatedly re-fighting the *same*
+  similarly-tiered opponent to grind steals — may need a per-opponent cooldown or
+  diminishing returns.
+- Should any domain be exempt from theft? Emotional-domain data traces back to real
+  mood/mental-health-adjacent tracking — worth considering whether that domain (as
+  opposed to, say, physical or financial) should be un-stealable even if others
+  aren't.
+- Discrete skill-tree vs. continuous-stat question above is unresolved and changes
+  what "one point" even means mechanically.
+- Multiplayer infrastructure (accounts, backend, matchmaking) is still the hard
+  prerequisite for any of this and hasn't been scoped.
+
+**Explicit reminder from the user: capture only, do not start building.**
