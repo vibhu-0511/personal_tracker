@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { getExpenses, saveExpenses, getBudgets, saveBudgets, getGoals, saveGoals } from '../store.js'
+import {
+  getExpenses, saveExpenses, getBudgets, saveBudgets, getGoals, saveGoals, getLoans, saveLoans,
+} from '../store.js'
+import { LOAN_ACTIONS, computeLoanBalances } from '../money/logic.js'
 
 const CATEGORIES = [
   { id: 'food', emoji: '🍔', label: 'Food' },
@@ -91,7 +94,16 @@ export default function Expenses() {
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [note, setNote] = useState('')
+  const [person, setPerson] = useState('')
   const [editId, setEditId] = useState(null)
+
+  const [loans, setLoans] = useState([])
+  const [showLoanForm, setShowLoanForm] = useState(false)
+  const [loanPerson, setLoanPerson] = useState('')
+  const [loanAmount, setLoanAmount] = useState('')
+  const [loanDirection, setLoanDirection] = useState('lent')
+  const [loanNote, setLoanNote] = useState('')
+  const [expandedPerson, setExpandedPerson] = useState(null)
 
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
@@ -110,6 +122,7 @@ export default function Expenses() {
     getExpenses().then(setExpenses)
     getBudgets().then(setBudgets)
     getGoals().then(setGoals)
+    getLoans().then(setLoans)
   }, [])
 
   async function persistExpenses(next) {
@@ -123,6 +136,10 @@ export default function Expenses() {
   async function persistGoals(next) {
     setGoals(next)
     await saveGoals(next)
+  }
+  async function persistLoans(next) {
+    setLoans(next)
+    await saveLoans(next)
   }
 
   function prevMonth() {
@@ -144,6 +161,7 @@ export default function Expenses() {
     setAmount('')
     setCategory('')
     setNote('')
+    setPerson('')
     setEditId(null)
     setTxnType(type)
     setShowAdd(true)
@@ -153,6 +171,7 @@ export default function Expenses() {
     setAmount(String(e.amount))
     setCategory(e.category)
     setNote(e.note || '')
+    setPerson(e.person || '')
     setEditId(e.id)
     setTxnType(e.type || 'expense')
     setShowAdd(true)
@@ -163,15 +182,21 @@ export default function Expenses() {
     if (!val || val <= 0) return
     if (txnType === 'expense' && !category) return
     const cat = txnType === 'income' ? 'income' : category
+    const withPerson = person.trim() || undefined
     if (editId) {
       await persistExpenses(
         expenses.map((e) =>
-          e.id === editId ? { ...e, amount: val, category: cat, note: note.trim(), type: txnType } : e
+          e.id === editId
+            ? { ...e, amount: val, category: cat, note: note.trim(), type: txnType, person: withPerson }
+            : e
         )
       )
     } else {
       await persistExpenses([
-        { id: Date.now(), amount: val, category: cat, note: note.trim(), date: Date.now(), type: txnType },
+        {
+          id: Date.now(), amount: val, category: cat, note: note.trim(), date: Date.now(),
+          type: txnType, person: withPerson,
+        },
         ...expenses,
       ])
     }
@@ -180,6 +205,25 @@ export default function Expenses() {
 
   async function handleDelete(id) {
     await persistExpenses(expenses.filter((e) => e.id !== id))
+  }
+
+  function addLoan() {
+    const val = parseFloat(loanAmount)
+    const who = loanPerson.trim()
+    if (!val || val <= 0 || !who) return
+    persistLoans([
+      { id: Date.now(), person: who, amount: val, direction: loanDirection, note: loanNote.trim(), date: Date.now() },
+      ...loans,
+    ])
+    setLoanPerson('')
+    setLoanAmount('')
+    setLoanNote('')
+    setLoanDirection('lent')
+    setShowLoanForm(false)
+  }
+
+  function deleteLoanEntry(id) {
+    persistLoans(loans.filter((l) => l.id !== id))
   }
 
   function saveBudgetFor(catId) {
@@ -244,15 +288,26 @@ export default function Expenses() {
     .filter((e) =>
       typeFilter === 'all' ? true : typeFilter === 'income' ? e.type === 'income' : e.type !== 'income'
     )
-    .filter(
-      (e) =>
-        !search ||
-        (e.note || '').toLowerCase().includes(search.toLowerCase()) ||
-        (CAT_MAP[e.category]?.label || '').toLowerCase().includes(search.toLowerCase())
-    )
+    .filter((e) => {
+      if (!search) return true
+      const q = search.toLowerCase()
+      return (
+        (e.note || '').toLowerCase().includes(q) ||
+        (e.person || '').toLowerCase().includes(q) ||
+        (CAT_MAP[e.category]?.label || '').toLowerCase().includes(q)
+      )
+    })
   const groups = groupByDate(filteredTxns)
 
   const totalBudget = Object.values(budgets).reduce((s, v) => s + v, 0)
+
+  const personSuggestions = [...new Set(expenses.map((e) => e.person).filter(Boolean))]
+  const loanPeopleSuggestions = [...new Set(loans.map((l) => l.person))]
+  const loanBalances = computeLoanBalances(loans)
+  const owedToYou = Object.entries(loanBalances).filter(([, b]) => b > 0.5).sort((a, b) => b[1] - a[1])
+  const youOwe = Object.entries(loanBalances).filter(([, b]) => b < -0.5).sort((a, b) => a[1] - b[1])
+  const totalOwedToYou = owedToYou.reduce((s, [, b]) => s + b, 0)
+  const totalYouOwe = youOwe.reduce((s, [, b]) => s + Math.abs(b), 0)
 
   return (
     <div className="fade-in">
@@ -263,6 +318,7 @@ export default function Expenses() {
           ['txns', '📋', 'Txns'],
           ['budget', '📐', 'Budget'],
           ['goals', '🎯', 'Goals'],
+          ['loans', '🤝', 'Loans'],
         ].map(([id, icon, label]) => (
           <button
             key={id}
@@ -507,9 +563,11 @@ export default function Expenses() {
                             {isIncome ? '+' : '-'}₹{e.amount.toLocaleString('en-IN')}
                           </span>
                         </div>
-                        {e.note && !isIncome && (
+                        {(e.note || e.person) && !isIncome && (
                           <div className="meta" style={{ fontSize: 12, marginTop: 1 }}>
                             {e.note}
+                            {e.note && e.person && ' · '}
+                            {e.person && `with ${e.person}`}
                           </div>
                         )}
                       </div>
@@ -818,6 +876,148 @@ export default function Expenses() {
         </>
       )}
 
+      {/* ─── LOANS ─── */}
+      {view === 'loans' && (
+        <>
+          <div className="stat-row" style={{ marginBottom: 14 }}>
+            <div className="stat-card">
+              <div className="stat-value" style={{ fontSize: 20, color: 'var(--success)' }}>
+                {totalOwedToYou > 0 ? `₹${totalOwedToYou.toLocaleString('en-IN')}` : '—'}
+              </div>
+              <div className="stat-label">Owed to you</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value" style={{ fontSize: 20, color: 'var(--danger)' }}>
+                {totalYouOwe > 0 ? `₹${totalYouOwe.toLocaleString('en-IN')}` : '—'}
+              </div>
+              <div className="stat-label">You owe</div>
+            </div>
+          </div>
+
+          <button
+            className="btn btn-primary btn-sm"
+            style={{ width: '100%', marginBottom: 14 }}
+            onClick={() => setShowLoanForm(true)}
+          >
+            + Log a loan
+          </button>
+
+          {owedToYou.length === 0 && youOwe.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon">🤝</div>
+              <div className="empty-text">No loans tracked yet. Not counted in your expenses/income.</div>
+            </div>
+          )}
+
+          {owedToYou.length > 0 && (
+            <>
+              <div className="section-header">
+                <span className="section-title">Owes you</span>
+              </div>
+              {owedToYou.map(([who, balance]) => (
+                <LoanPersonCard
+                  key={who}
+                  person={who}
+                  balance={balance}
+                  loans={loans.filter((l) => l.person === who)}
+                  expanded={expandedPerson === who}
+                  onToggle={() => setExpandedPerson(expandedPerson === who ? null : who)}
+                  onDelete={deleteLoanEntry}
+                />
+              ))}
+            </>
+          )}
+
+          {youOwe.length > 0 && (
+            <>
+              <div className="section-header" style={{ marginTop: 6 }}>
+                <span className="section-title">You owe</span>
+              </div>
+              {youOwe.map(([who, balance]) => (
+                <LoanPersonCard
+                  key={who}
+                  person={who}
+                  balance={balance}
+                  loans={loans.filter((l) => l.person === who)}
+                  expanded={expandedPerson === who}
+                  onToggle={() => setExpandedPerson(expandedPerson === who ? null : who)}
+                  onDelete={deleteLoanEntry}
+                />
+              ))}
+            </>
+          )}
+        </>
+      )}
+
+      {/* ─── LOG A LOAN (bottom sheet) ─── */}
+      {showLoanForm && (
+        <>
+          <div className="money-backdrop" onClick={() => setShowLoanForm(false)} />
+          <div className="money-sheet">
+            <div className="h3" style={{ marginBottom: 10 }}>Log a Loan</div>
+
+            <input
+              list="loan-person-suggestions"
+              placeholder="Person (e.g. Raj)"
+              value={loanPerson}
+              onChange={(e) => setLoanPerson(e.target.value)}
+              autoFocus
+              style={{ marginBottom: 10 }}
+            />
+            <datalist id="loan-person-suggestions">
+              {loanPeopleSuggestions.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="Amount (₹)"
+              value={loanAmount}
+              onChange={(e) => setLoanAmount(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addLoan()}
+              style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', marginBottom: 10 }}
+            />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
+              {LOAN_ACTIONS.map((a) => (
+                <button
+                  key={a.id}
+                  className={`chip${loanDirection === a.id ? '' : ' chip-muted'}`}
+                  style={{ cursor: 'pointer', border: 'none', padding: 8, textAlign: 'center' }}
+                  onClick={() => setLoanDirection(a.id)}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+
+            <input
+              placeholder="Note (optional)"
+              value={loanNote}
+              onChange={(e) => setLoanNote(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addLoan()}
+              style={{ fontSize: 13 }}
+            />
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ flex: 1 }}
+                onClick={addLoan}
+                disabled={!loanPerson.trim() || !loanAmount || parseFloat(loanAmount) <= 0}
+              >
+                + Log
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowLoanForm(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* ─── ADD FORM (bottom sheet) ─── */}
       {showAdd && (
         <>
@@ -889,6 +1089,20 @@ export default function Expenses() {
               style={{ marginTop: 10, fontSize: 13 }}
             />
 
+            <input
+              list="person-suggestions"
+              placeholder={txnType === 'income' ? 'Received from (optional)' : 'With (optional, e.g. Raj)'}
+              value={person}
+              onChange={(e) => setPerson(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              style={{ marginTop: 8, fontSize: 13 }}
+            />
+            <datalist id="person-suggestions">
+              {personSuggestions.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button
                 className="btn btn-primary btn-sm"
@@ -912,10 +1126,59 @@ export default function Expenses() {
       )}
 
       {/* FAB */}
-      {!showAdd && (
+      {!showAdd && !showLoanForm && view !== 'loans' && (
         <button className="expense-fab" onClick={() => openAdd()}>
           +
         </button>
+      )}
+    </div>
+  )
+}
+
+function LoanPersonCard({ person, balance, loans, expanded, onToggle, onDelete }) {
+  const owesYou = balance > 0
+  const sorted = [...loans].sort((a, b) => b.date - a.date)
+  return (
+    <div className="card" style={{ marginBottom: 8, padding: 0 }}>
+      <button className="exam-section-header" onClick={onToggle}>
+        <div style={{ flex: 1, textAlign: 'left' }}>
+          <div className="h3">{person}</div>
+          <div className="meta" style={{ fontSize: 12 }}>
+            {sorted.length} entr{sorted.length === 1 ? 'y' : 'ies'}
+          </div>
+        </div>
+        <span style={{ fontWeight: 700, color: owesYou ? 'var(--success)' : 'var(--danger)', marginRight: 8 }}>
+          ₹{Math.abs(balance).toLocaleString('en-IN')}
+        </span>
+        <span className="exam-section-arrow">{expanded ? '▲' : '▼'}</span>
+      </button>
+      {expanded && (
+        <div style={{ padding: '0 16px 12px' }}>
+          {sorted.map((l) => {
+            const action = LOAN_ACTIONS.find((a) => a.id === l.direction)
+            return (
+              <div
+                key={l.id}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)' }}
+              >
+                <div>
+                  <div style={{ fontSize: 13 }}>{action?.label || l.direction}</div>
+                  <div className="meta" style={{ fontSize: 11 }}>
+                    {formatDate(l.date)}{l.note ? ` · ${l.note}` : ''}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 600, color: action?.sign > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                    {action?.sign > 0 ? '+' : '-'}₹{l.amount.toLocaleString('en-IN')}
+                  </span>
+                  <button className="btn btn-danger-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => onDelete(l.id)}>
+                    ×
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       )}
     </div>
   )

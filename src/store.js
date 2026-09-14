@@ -112,3 +112,10 @@ export async function getMoodLog() {
 export async function saveMoodLog(log) {
   await db.setItem('moodLog', log)
 }
+
+export async function getLoans() {
+  return (await db.getItem('loans')) || []
+}
+export async function saveLoans(loans) {
+  await db.setItem('loans', loans)
+}
