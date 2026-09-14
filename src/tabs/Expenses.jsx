@@ -11,7 +11,7 @@ const CATEGORIES = [
   { id: 'bills', emoji: '📱', label: 'Bills' },
   { id: 'entertainment', emoji: '🎮', label: 'Fun' },
   { id: 'health', emoji: '💊', label: 'Health' },
-  { id: 'education', emoji: '📚', label: 'Education' },
+  { id: 'education', emoji: '💸', label: 'P2P' },
   { id: 'groceries', emoji: '🛒', label: 'Groceries' },
   { id: 'coffee', emoji: '☕', label: 'Coffee' },
   { id: 'subscriptions', emoji: '🔄', label: 'Subs' },
