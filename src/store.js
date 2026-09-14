@@ -13,7 +13,7 @@ export async function storageAvailable() {
 }
 
 export async function getSettings() {
-  return (await db.getItem('settings')) || { cfHandle: 'step_bro' }
+  return { cfHandle: 'step_bro', theme: 'ocean', ...(await db.getItem('settings')) }
 }
 export async function saveSettings(settings) {
   await db.setItem('settings', settings)
@@ -69,4 +69,39 @@ export async function getExamNotes() {
 }
 export async function saveExamNotes(notes) {
   await db.setItem('examNotes', notes)
+}
+
+export async function getInvestProgress() {
+  return (await db.getItem('investProgress')) || { done: {}, quiz: {}, tasks: {}, current: null }
+}
+export async function saveInvestProgress(progress) {
+  await db.setItem('investProgress', progress)
+}
+
+export async function getWatchlist() {
+  return (await db.getItem('watchlist')) || []
+}
+export async function saveWatchlist(watchlist) {
+  await db.setItem('watchlist', watchlist)
+}
+
+export async function getTasks() {
+  return (await db.getItem('tasks')) || []
+}
+export async function saveTasks(tasks) {
+  await db.setItem('tasks', tasks)
+}
+
+export async function getReminders() {
+  return (await db.getItem('reminders')) || []
+}
+export async function saveReminders(reminders) {
+  await db.setItem('reminders', reminders)
+}
+
+export async function getHabits() {
+  return (await db.getItem('habits')) || []
+}
+export async function saveHabits(habits) {
+  await db.setItem('habits', habits)
 }

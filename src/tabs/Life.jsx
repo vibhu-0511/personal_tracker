@@ -1,0 +1,518 @@
+import { useEffect, useMemo, useState } from 'react'
+import { motion, AnimatePresence, MotionConfig } from 'motion/react'
+import { getTasks, saveTasks, getReminders, saveReminders, getHabits, saveHabits } from '../store.js'
+import {
+  dateKey,
+  streaks,
+  multiplier,
+  earnings,
+  petState,
+  parseQuick,
+  crossedMilestone,
+  CATEGORY_LABELS,
+} from '../life/logic.js'
+import Notes from './Notes.jsx'
+
+const VIEWS = [
+  { id: 'tasks', icon: '✅', label: 'Tasks' },
+  { id: 'reminders', icon: '⏰', label: 'Reminders' },
+  { id: 'habits', icon: '🐾', label: 'Habits' },
+  { id: 'notes', icon: '📝', label: 'Notes' },
+]
+
+const SPECIES = ['🐶', '🐱', '🐰', '🦊', '🐼', '🐧', '🐉']
+
+async function fireConfetti() {
+  const confetti = (await import('canvas-confetti')).default
+  confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 }, disableForReducedMotion: true })
+}
+
+export default function Life() {
+  const [view, setView] = useState('tasks')
+  const [tasks, setTasks] = useState([])
+  const [reminders, setReminders] = useState([])
+  const [habits, setHabits] = useState([])
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    getTasks().then(setTasks)
+    getReminders().then(setReminders)
+    getHabits().then(setHabits)
+  }, [])
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    if (!navigator.setAppBadge) return
+    const dueTasks = tasks.filter((t) => !t.done && t.due && t.due <= dateKey(now)).length
+    const dueReminders = reminders.filter((r) => !r.done && r.at <= now.getTime()).length
+    const n = dueTasks + dueReminders
+    if (n > 0) navigator.setAppBadge(n).catch(() => {})
+    else navigator.clearAppBadge?.().catch(() => {})
+  }, [tasks, reminders, now])
+
+  async function updateTasks(next) {
+    setTasks(next)
+    await saveTasks(next)
+  }
+  async function updateReminders(next) {
+    setReminders(next)
+    await saveReminders(next)
+  }
+  async function updateHabits(next) {
+    setHabits(next)
+    await saveHabits(next)
+  }
+
+  const walletTotal = useMemo(
+    () => habits.reduce((sum, h) => sum + earnings(h, now).total, 0),
+    [habits, now]
+  )
+  const tasksDueToday = tasks.filter((t) => !t.done && t.due === dateKey(now)).length
+  const remindersDue = reminders.filter((r) => !r.done && r.at <= now.getTime()).length
+
+  return (
+    <MotionConfig reducedMotion="user">
+      <div className="fade-in">
+        <div className="life-stats">
+          <div className="life-stat life-total-wallet">
+            <div className="life-stat-value">₹{Math.round(walletTotal)}</div>
+            <div className="life-stat-label">Wallet</div>
+          </div>
+          <div className="life-stat">
+            <div className="life-stat-value">{tasksDueToday}</div>
+            <div className="life-stat-label">Due today</div>
+          </div>
+          <div className="life-stat">
+            <div className="life-stat-value">{remindersDue}</div>
+            <div className="life-stat-label">Reminders</div>
+          </div>
+        </div>
+
+        <div className="agent-bar">
+          {VIEWS.map((v) => (
+            <button
+              key={v.id}
+              className={`agent-pill${view === v.id ? ' active' : ''}`}
+              onClick={() => setView(v.id)}
+            >
+              <span className="agent-pill-icon">{v.icon}</span>
+              {v.label}
+            </button>
+          ))}
+        </div>
+
+        {view === 'tasks' && <TasksView tasks={tasks} onUpdate={updateTasks} now={now} />}
+        {view === 'reminders' && <RemindersView reminders={reminders} onUpdate={updateReminders} now={now} />}
+        {view === 'habits' && <HabitsView habits={habits} onUpdate={updateHabits} now={now} />}
+        {view === 'notes' && <Notes />}
+      </div>
+    </MotionConfig>
+  )
+}
+
+function TasksView({ tasks, onUpdate, now }) {
+  const [quick, setQuick] = useState('')
+  const todayKey = dateKey(now)
+
+  function addTask() {
+    const text = quick.trim()
+    if (!text) return
+    const { title, date } = parseQuick(text, now)
+    const task = {
+      id: String(Date.now()),
+      title: title || text,
+      due: date ? dateKey(date) : null,
+      done: false,
+      doneAt: null,
+      createdAt: Date.now(),
+    }
+    onUpdate([task, ...tasks])
+    setQuick('')
+  }
+
+  async function toggle(id) {
+    const task = tasks.find((t) => t.id === id)
+    const wasDone = task.done
+    const next = tasks.map((t) =>
+      t.id === id ? { ...t, done: !t.done, doneAt: !t.done ? Date.now() : null } : t
+    )
+    await onUpdate(next)
+    if (!wasDone) {
+      const hadDueToday = tasks.some((t) => !t.done && t.due === todayKey)
+      const stillDueToday = next.some((t) => !t.done && t.due === todayKey)
+      if (hadDueToday && !stillDueToday) fireConfetti()
+    }
+  }
+
+  function remove(id) {
+    onUpdate(tasks.filter((t) => t.id !== id))
+  }
+
+  const overdue = tasks.filter((t) => !t.done && t.due && t.due < todayKey)
+  const dueToday = tasks.filter((t) => !t.done && t.due === todayKey)
+  const upcoming = tasks
+    .filter((t) => !t.done && t.due && t.due > todayKey)
+    .sort((a, b) => a.due.localeCompare(b.due))
+  const noDate = tasks.filter((t) => !t.done && !t.due)
+  const done = tasks.filter((t) => t.done)
+
+  return (
+    <div>
+      <div className="life-quick-add">
+        <input
+          value={quick}
+          onChange={(e) => setQuick(e.target.value)}
+          placeholder='Add a task… "gym tomorrow 5pm"'
+          onKeyDown={(e) => e.key === 'Enter' && addTask()}
+        />
+        <button className="btn btn-primary btn-sm" onClick={addTask} disabled={!quick.trim()}>
+          Add
+        </button>
+      </div>
+
+      <TaskSection label="Overdue" items={overdue} overdue onToggle={toggle} onRemove={remove} />
+      <TaskSection label="Today" items={dueToday} onToggle={toggle} onRemove={remove} />
+      <TaskSection label="Upcoming" items={upcoming} onToggle={toggle} onRemove={remove} />
+      <TaskSection label="No date" items={noDate} onToggle={toggle} onRemove={remove} />
+      {done.length > 0 && <DoneTaskSection items={done} onToggle={toggle} onRemove={remove} />}
+
+      {tasks.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">✅</div>
+          <div className="empty-text">No tasks yet.</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TaskSection({ label, items, overdue, onToggle, onRemove }) {
+  if (items.length === 0) return null
+  return (
+    <>
+      <div className="life-section-label">{label}</div>
+      <AnimatePresence initial={false}>
+        {items.map((t) => (
+          <motion.div
+            key={t.id}
+            layout
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, x: 40 }}
+            className={`life-row${overdue ? ' overdue' : ''}`}
+          >
+            <button className="life-check" onClick={() => onToggle(t.id)} aria-label="Mark done" />
+            <div className="life-row-title">{t.title}</div>
+            {t.due && <div className="life-row-due">{t.due}</div>}
+            <button className="life-icon-btn" title="Delete" onClick={() => onRemove(t.id)}>
+              🗑️
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </>
+  )
+}
+
+function DoneTaskSection({ items, onToggle, onRemove }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        className="life-section-label"
+        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {open ? '▾' : '▸'} Done ({items.length})
+      </button>
+      {open && (
+        <AnimatePresence initial={false}>
+          {items.map((t) => (
+            <motion.div
+              key={t.id}
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="life-row done"
+            >
+              <button className="life-check done" onClick={() => onToggle(t.id)}>
+                ✓
+              </button>
+              <div className="life-row-title">{t.title}</div>
+              <button className="life-icon-btn" title="Delete" onClick={() => onRemove(t.id)}>
+                🗑️
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      )}
+    </>
+  )
+}
+
+function RemindersView({ reminders, onUpdate, now }) {
+  const [quick, setQuick] = useState('')
+
+  function addReminder() {
+    const text = quick.trim()
+    if (!text) return
+    const { title, date, at } = parseQuick(text, now)
+    const when = at || date || new Date(now.getTime() + 3_600_000)
+    const reminder = {
+      id: String(Date.now()),
+      title: title || text,
+      at: when.getTime(),
+      done: false,
+      createdAt: Date.now(),
+    }
+    onUpdate([...reminders, reminder].sort((a, b) => a.at - b.at))
+    setQuick('')
+  }
+
+  function toggle(id) {
+    onUpdate(reminders.map((r) => (r.id === id ? { ...r, done: !r.done } : r)))
+  }
+  function remove(id) {
+    onUpdate(reminders.filter((r) => r.id !== id))
+  }
+
+  function icsHref(r) {
+    return `/api/ics?title=${encodeURIComponent(r.title)}&start=${encodeURIComponent(new Date(r.at).toISOString())}`
+  }
+
+  const nowMs = now.getTime()
+  const due = reminders.filter((r) => !r.done && r.at <= nowMs)
+  const upcoming = reminders.filter((r) => !r.done && r.at > nowMs).sort((a, b) => a.at - b.at)
+  const done = reminders.filter((r) => r.done)
+
+  return (
+    <div>
+      {due.length > 0 && (
+        <div className="life-reminder-banner">
+          ⏰ {due.length} reminder{due.length > 1 ? 's' : ''} due: {due.map((r) => r.title).join(', ')}
+        </div>
+      )}
+
+      <div className="life-quick-add">
+        <input
+          value={quick}
+          onChange={(e) => setQuick(e.target.value)}
+          placeholder='Remind me… "call mom tomorrow 6pm"'
+          onKeyDown={(e) => e.key === 'Enter' && addReminder()}
+        />
+        <button className="btn btn-primary btn-sm" onClick={addReminder} disabled={!quick.trim()}>
+          Add
+        </button>
+      </div>
+
+      {(due.length > 0 || upcoming.length > 0) && <div className="life-section-label">Upcoming</div>}
+      <AnimatePresence initial={false}>
+        {[...due, ...upcoming].map((r) => (
+          <motion.div
+            key={r.id}
+            layout
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, x: 40 }}
+            className={`life-row${r.at <= nowMs ? ' overdue' : ''}`}
+          >
+            <button className="life-check" onClick={() => toggle(r.id)} aria-label="Mark done" />
+            <div className="life-row-title">{r.title}</div>
+            <div className="life-row-due">
+              {new Date(r.at).toLocaleString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+            </div>
+            <a className="life-icon-btn" href={icsHref(r)} title="Add to Calendar">
+              📅
+            </a>
+            <button className="life-icon-btn" title="Delete" onClick={() => remove(r.id)}>
+              🗑️
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {reminders.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">⏰</div>
+          <div className="empty-text">No reminders yet.</div>
+        </div>
+      )}
+
+      {done.length > 0 && (
+        <>
+          <div className="life-section-label">Done ({done.length})</div>
+          {done.map((r) => (
+            <div key={r.id} className="life-row done">
+              <button className="life-check done" onClick={() => toggle(r.id)}>
+                ✓
+              </button>
+              <div className="life-row-title">{r.title}</div>
+              <button className="life-icon-btn" title="Delete" onClick={() => remove(r.id)}>
+                🗑️
+              </button>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
+function HabitsView({ habits, onUpdate, now }) {
+  const [showAdd, setShowAdd] = useState(false)
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('exercise')
+  const [species, setSpecies] = useState(SPECIES[0])
+  const [coinFlash, setCoinFlash] = useState({}) // habitId -> amount, for the floating +₹ animation
+
+  function addHabit() {
+    const n = name.trim()
+    if (!n) return
+    const habit = { id: String(Date.now()), name: n, category, species, createdAt: Date.now(), checkins: [] }
+    onUpdate([...habits, habit])
+    setName('')
+    setShowAdd(false)
+  }
+
+  function removeHabit(id) {
+    onUpdate(habits.filter((h) => h.id !== id))
+  }
+
+  async function checkIn(habit) {
+    const key = dateKey(now)
+    const already = habit.checkins.includes(key)
+    const nextCheckins = already ? habit.checkins.filter((c) => c !== key) : [...habit.checkins, key]
+    const nextHabit = { ...habit, checkins: nextCheckins }
+    await onUpdate(habits.map((h) => (h.id === habit.id ? nextHabit : h)))
+
+    if (!already) {
+      const amount = earnings(nextHabit, now).today
+      setCoinFlash((f) => ({ ...f, [habit.id]: amount }))
+      setTimeout(() => setCoinFlash((f) => { const n = { ...f }; delete n[habit.id]; return n }), 1000)
+
+      const prevBest = streaks(habit.checkins, now).best
+      const newBest = streaks(nextCheckins, now).best
+      if (crossedMilestone(prevBest, newBest)) fireConfetti()
+    }
+  }
+
+  return (
+    <div>
+      <AnimatePresence initial={false}>
+        {habits.map((h) => {
+          const pet = petState(h, now)
+          const { current } = streaks(h.checkins, now)
+          const money = earnings(h, now)
+          const checkedToday = h.checkins.includes(dateKey(now))
+          return (
+            <motion.div
+              key={h.id}
+              layout
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="habit-card"
+            >
+              {coinFlash[h.id] != null && <div className="coin-float">+₹{Math.round(coinFlash[h.id])}</div>}
+
+              <div className="habit-head">
+                <span className={`pet-avatar pet-mood-${pet.mood}`}>
+                  {h.species}
+                  {pet.accessory && <span className="pet-accessory">{pet.accessory}</span>}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <div className="habit-name">{h.name}</div>
+                  <div className="habit-meta">
+                    {current > 0 && <span className="habit-streak-flame">🔥</span>} {current}-day streak ·{' '}
+                    {CATEGORY_LABELS[h.category] || CATEGORY_LABELS.custom}
+                  </div>
+                </div>
+                <button className="life-icon-btn" title="Remove habit" onClick={() => removeHabit(h.id)}>
+                  🗑️
+                </button>
+              </div>
+
+              <div className="habit-health-bar">
+                <div className="habit-health-fill" style={{ width: `${pet.health}%` }} />
+              </div>
+
+              <div className="habit-wallet-row">
+                <span className="habit-wallet-amount">₹{Math.round(money.total)} earned</span>
+                <span className="habit-multiplier-chip">×{multiplier(current)}</span>
+              </div>
+
+              <div className="habit-traits">
+                {pet.traits.map((t) => (
+                  <span key={t.days} className={`habit-trait${t.unlocked ? ' unlocked' : ''}`}>
+                    {t.unlocked ? '✓ ' : '🔒 '}{t.label}
+                  </span>
+                ))}
+              </div>
+
+              <button
+                className={`habit-checkin-btn${checkedToday ? ' checked-in' : ''}`}
+                onClick={() => checkIn(h)}
+              >
+                {checkedToday ? '✓ Checked in today (tap to undo)' : 'Check in'}
+              </button>
+            </motion.div>
+          )
+        })}
+      </AnimatePresence>
+
+      {habits.length === 0 && !showAdd && (
+        <div className="empty-state">
+          <div className="empty-icon">🐾</div>
+          <div className="empty-text">No habits yet. Adopt a pet to start one.</div>
+        </div>
+      )}
+
+      {showAdd ? (
+        <div className="card" style={{ marginTop: 12 }}>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Habit name (e.g. Gym)" />
+          <select style={{ marginTop: 8 }} value={category} onChange={(e) => setCategory(e.target.value)}>
+            {Object.keys(CATEGORY_LABELS).map((c) => (
+              <option key={c} value={c}>
+                {CATEGORY_LABELS[c]}
+              </option>
+            ))}
+          </select>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            {SPECIES.map((s) => (
+              <button
+                key={s}
+                className={`theme-swatch${species === s ? ' active' : ''}`}
+                style={{ fontSize: 18, background: 'var(--surface-raised)' }}
+                onClick={() => setSpecies(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button className="btn btn-primary btn-sm" onClick={addHabit} disabled={!name.trim()}>
+              Adopt
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowAdd(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button className="btn btn-primary btn-sm" style={{ marginTop: 12, width: '100%' }} onClick={() => setShowAdd(true)}>
+          + New habit
+        </button>
+      )}
+    </div>
+  )
+}

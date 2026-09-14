@@ -5,18 +5,30 @@ import Puzzles from './tabs/Puzzles.jsx'
 import Agents from './tabs/Agents.jsx'
 import Expenses from './tabs/Expenses.jsx'
 import Exams from './tabs/Exams.jsx'
+import Invest from './tabs/Invest.jsx'
+import Life from './tabs/Life.jsx'
 
 const TABS = [
+  { id: 'Life', icon: '🌱', label: 'Life' },
   { id: 'Today', icon: '⚡', label: 'Code' },
   { id: 'Puzzles', icon: '🧩', label: 'Puzzles' },
   { id: 'Exams', icon: '📝', label: 'Exams' },
   { id: 'Expenses', icon: '💰', label: 'Money' },
+  { id: 'Invest', icon: '📈', label: 'Invest' },
   { id: 'Agents', icon: '🤖', label: 'Agents' },
 ]
 
+const THEMES = [
+  { id: 'ocean', label: 'Ocean', color: '#6ea8fe' },
+  { id: 'forest', label: 'Forest', color: '#4ade80' },
+  { id: 'sunset', label: 'Sunset', color: '#fb923c' },
+  { id: 'grape', label: 'Grape', color: '#c084fc' },
+  { id: 'rose', label: 'Rose', color: '#fb7185' },
+]
+
 export default function App() {
-  const [tab, setTab] = useState('Today')
-  const [cfHandle, setCfHandle] = useState('')
+  const [tab, setTab] = useState('Life')
+  const [settings, setSettings] = useState({ cfHandle: '', theme: 'ocean' })
   const [draftHandle, setDraftHandle] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [storageOk, setStorageOk] = useState(true)
@@ -24,17 +36,26 @@ export default function App() {
   useEffect(() => {
     storageAvailable().then(setStorageOk)
     getSettings().then((s) => {
-      setCfHandle(s.cfHandle)
+      setSettings(s)
       setDraftHandle(s.cfHandle)
+      document.documentElement.dataset.accent = s.theme
       if (!s.cfHandle) setShowSettings(true)
     })
   }, [])
 
   async function save() {
     const handle = draftHandle.trim()
-    await saveSettings({ cfHandle: handle })
-    setCfHandle(handle)
+    const next = { ...settings, cfHandle: handle }
+    await saveSettings(next)
+    setSettings(next)
     setShowSettings(false)
+  }
+
+  async function setTheme(themeId) {
+    const next = { ...settings, theme: themeId }
+    setSettings(next)
+    document.documentElement.dataset.accent = themeId
+    await saveSettings(next)
   }
 
   return (
@@ -72,14 +93,30 @@ export default function App() {
             <button className="btn btn-primary btn-sm" onClick={save}>Save</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setShowSettings(false)}>Cancel</button>
           </div>
+
+          <div className="meta" style={{ marginTop: 14, marginBottom: 6 }}>Theme</div>
+          <div className="theme-swatches">
+            {THEMES.map((t) => (
+              <button
+                key={t.id}
+                className={`theme-swatch${settings.theme === t.id ? ' active' : ''}`}
+                style={{ background: t.color }}
+                onClick={() => setTheme(t.id)}
+                aria-label={t.label}
+                title={t.label}
+              />
+            ))}
+          </div>
         </div>
       )}
 
       <main className="content">
-        {tab === 'Today' && <Today cfHandle={cfHandle} />}
+        {tab === 'Life' && <Life />}
+        {tab === 'Today' && <Today cfHandle={settings.cfHandle} />}
         {tab === 'Puzzles' && <Puzzles />}
         {tab === 'Exams' && <Exams />}
         {tab === 'Expenses' && <Expenses />}
+        {tab === 'Invest' && <Invest />}
         {tab === 'Agents' && <Agents />}
       </main>
 

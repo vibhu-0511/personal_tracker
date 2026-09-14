@@ -32,13 +32,17 @@ npm test
 curl http://localhost:5173/api/health
 curl "http://localhost:5173/api/cf?handle=tourist"
 curl http://localhost:5173/api/puzzle
+curl "http://localhost:5173/api/quote?symbols=RELIANCE.NS"
+curl "http://localhost:5173/api/ics?title=Gym&start=2026-09-15T17:00:00%2B05:30"
 ```
 
 ## Layout
 
 - `api/` — serverless functions (Vercel). Also mounted into the Vite dev server by the
   `forge-api-dev` plugin in `vite.config.js`, so `npm run dev` runs the API too.
-- `src/tabs/` — the three screens.
+- `src/tabs/` — the tab screens. `Life.jsx` (tasks, reminders, habits, notes) is the
+  default tab; its pure math (streaks, wallet, pet state, quick-add parsing) lives in
+  `src/life/logic.js`.
 - `src/store.js` — IndexedDB wrappers. All user data is local to the browser.
 - `src/agents.json` — agent definitions. **To add an agent, add an entry here.** No code
   change is needed.
