@@ -7,12 +7,16 @@ async function cfGet(path) {
   return j.result
 }
 
-// Cached per warm serverless instance; the problemset changes rarely.
 let problemsCache = null
 
 export default async function handler(req, res) {
   const handle = (req.query.handle || '').trim()
   if (!handle) return res.status(400).json({ error: 'handle required' })
+
+  const ratingMin = req.query.ratingMin ? Number(req.query.ratingMin) : undefined
+  const ratingMax = req.query.ratingMax ? Number(req.query.ratingMax) : undefined
+  const tags = req.query.tags ? req.query.tags.split(',').map((t) => t.trim()).filter(Boolean) : undefined
+  const page = req.query.page ? Number(req.query.page) : 0
 
   const h = encodeURIComponent(handle)
   try {
@@ -32,7 +36,14 @@ export default async function handler(req, res) {
       for (const t of s.problem.tags || []) tagCounts[t] = (tagCounts[t] || 0) + 1
     }
 
-    const problems = pickProblems(problemsCache, info.rating, solvedIds).map((p) => ({
+    const result = pickProblems(problemsCache, info.rating, solvedIds, {
+      ratingMin,
+      ratingMax,
+      tags,
+      offset: page * 20,
+    })
+
+    const problems = result.items.map((p) => ({
       id: `${p.contestId}${p.index}`,
       name: p.name,
       rating: p.rating,
@@ -40,7 +51,14 @@ export default async function handler(req, res) {
       url: `https://codeforces.com/problemset/problem/${p.contestId}/${p.index}`,
     }))
 
-    res.status(200).json({ rating: info.rating ?? null, problems, tagCounts })
+    res.status(200).json({
+      rating: info.rating ?? null,
+      problems,
+      tagCounts,
+      total: result.total,
+      hasMore: result.hasMore,
+      page,
+    })
   } catch (e) {
     res.status(502).json({ error: String((e && e.message) || e) })
   }

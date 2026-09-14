@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import agents from '../agents.json'
 
-const AGENT_ICONS = { tricks: '🧮', geopolitics: '🌍', 'ai-arch': '🧠' }
+const AGENT_ICONS = { explain: '💡', debug: '🐛', quiz: '🎯' }
 
 export default function Agents() {
   const [agent, setAgent] = useState(agents[0])

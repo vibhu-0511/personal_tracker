@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react'
 import { getSettings, saveSettings, storageAvailable } from './store.js'
 import Today from './tabs/Today.jsx'
 import Puzzles from './tabs/Puzzles.jsx'
-import Notes from './tabs/Notes.jsx'
 import Agents from './tabs/Agents.jsx'
 import Expenses from './tabs/Expenses.jsx'
+import Exams from './tabs/Exams.jsx'
 
 const TABS = [
   { id: 'Today', icon: '⚡', label: 'Code' },
   { id: 'Puzzles', icon: '🧩', label: 'Puzzles' },
+  { id: 'Exams', icon: '📝', label: 'Exams' },
   { id: 'Expenses', icon: '💰', label: 'Money' },
-  { id: 'Notes', icon: '📝', label: 'Notes' },
   { id: 'Agents', icon: '🤖', label: 'Agents' },
 ]
 
@@ -78,8 +78,8 @@ export default function App() {
       <main className="content">
         {tab === 'Today' && <Today cfHandle={cfHandle} />}
         {tab === 'Puzzles' && <Puzzles />}
+        {tab === 'Exams' && <Exams />}
         {tab === 'Expenses' && <Expenses />}
-        {tab === 'Notes' && <Notes />}
         {tab === 'Agents' && <Agents />}
       </main>
 

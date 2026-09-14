@@ -13,7 +13,7 @@ export async function storageAvailable() {
 }
 
 export async function getSettings() {
-  return (await db.getItem('settings')) || { cfHandle: '' }
+  return (await db.getItem('settings')) || { cfHandle: 'step_bro' }
 }
 export async function saveSettings(settings) {
   await db.setItem('settings', settings)
@@ -41,4 +41,32 @@ export async function getExpenses() {
 }
 export async function saveExpenses(expenses) {
   await db.setItem('expenses', expenses)
+}
+
+export async function getBudgets() {
+  return (await db.getItem('budgets')) || {}
+}
+export async function saveBudgets(budgets) {
+  await db.setItem('budgets', budgets)
+}
+
+export async function getGoals() {
+  return (await db.getItem('goals')) || []
+}
+export async function saveGoals(goals) {
+  await db.setItem('goals', goals)
+}
+
+export async function getExamProgress() {
+  return (await db.getItem('examProgress')) || {}
+}
+export async function saveExamProgress(progress) {
+  await db.setItem('examProgress', progress)
+}
+
+export async function getExamNotes() {
+  return (await db.getItem('examNotes')) || []
+}
+export async function saveExamNotes(notes) {
+  await db.setItem('examNotes', notes)
 }
