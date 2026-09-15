@@ -1,19 +1,15 @@
 import { useEffect, useState } from 'react'
 import { getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey, SYNCED_KEYS } from './store.js'
 import { supabase } from './supabaseClient.js'
-import Today from './tabs/Today.jsx'
-import Puzzles from './tabs/Puzzles.jsx'
+import LogicBuilding from './tabs/LogicBuilding.jsx'
 import Agents from './tabs/Agents.jsx'
 import Expenses from './tabs/Expenses.jsx'
-import Exams from './tabs/Exams.jsx'
 import Invest from './tabs/Invest.jsx'
 import Life from './tabs/Life.jsx'
 
 const TABS = [
   { id: 'Life', icon: '🌱', label: 'Life' },
-  { id: 'Today', icon: '⚡', label: 'Code' },
-  { id: 'Puzzles', icon: '🧩', label: 'Puzzles' },
-  { id: 'Exams', icon: '📝', label: 'Exams' },
+  { id: 'LogicBuilding', icon: '🧠', label: 'Logic' },
   { id: 'Expenses', icon: '💰', label: 'Money' },
   { id: 'Invest', icon: '📈', label: 'Invest' },
   { id: 'Agents', icon: '🤖', label: 'Agents' },
@@ -240,9 +236,7 @@ export default function App() {
 
       <main className="content">
         {tab === 'Life' && <Life key={syncTicks.Life || 0} />}
-        {tab === 'Today' && <Today key={syncTicks.Today || 0} cfHandle={settings.cfHandle} />}
-        {tab === 'Puzzles' && <Puzzles />}
-        {tab === 'Exams' && <Exams key={syncTicks.Exams || 0} />}
+        {tab === 'LogicBuilding' && <LogicBuilding cfHandle={settings.cfHandle} syncTicks={syncTicks} />}
         {tab === 'Expenses' && <Expenses key={syncTicks.Expenses || 0} />}
         {tab === 'Invest' && <Invest key={syncTicks.Invest || 0} />}
         {tab === 'Agents' && <Agents />}
