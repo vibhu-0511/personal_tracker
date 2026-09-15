@@ -119,10 +119,15 @@ export default function App() {
   async function handleAuth(mode) {
     setAuthError('')
     setAuthBusy(true)
-    const fn = mode === 'signup' ? supabase.auth.signUp : supabase.auth.signInWithPassword
-    const { error } = await fn({ email: authEmail.trim(), password: authPassword })
-    setAuthBusy(false)
-    if (error) setAuthError(error.message)
+    try {
+      const fn = mode === 'signup' ? supabase.auth.signUp : supabase.auth.signInWithPassword
+      const { error } = await fn({ email: authEmail.trim(), password: authPassword })
+      if (error) setAuthError(error.message)
+    } catch (err) {
+      setAuthError(err.message || 'Sign-in failed')
+    } finally {
+      setAuthBusy(false)
+    }
   }
 
   if (session === undefined) {
