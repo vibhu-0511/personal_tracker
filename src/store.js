@@ -1,4 +1,6 @@
 import localforage from 'localforage'
+import { supabase, getUserId } from './supabaseClient.js'
+import { readLocalShape, wrapForSave, decideSync } from './sync/logic.js'
 
 const db = localforage.createInstance({ name: 'forge' })
 
@@ -12,110 +14,167 @@ export async function storageAvailable() {
   }
 }
 
+const pushTimers = {}
+
+function schedulePush(key, wrapped, delay = 700) {
+  clearTimeout(pushTimers[key])
+  pushTimers[key] = setTimeout(() => {
+    pushToCloud(key, wrapped).catch(() => {}) // offline/failed push: local write already succeeded, next reconcile retries
+  }, delay)
+}
+
+async function pushToCloud(key, wrapped) {
+  const userId = getUserId()
+  if (!userId) return
+  await supabase.from('kv_store').upsert({
+    user_id: userId,
+    key,
+    value: wrapped.data,
+    updated_at: new Date(wrapped.updatedAt).toISOString(),
+  })
+}
+
+async function readLocal(key) {
+  return readLocalShape(await db.getItem(key))
+}
+
+async function getSynced(key, fallback) {
+  const local = await readLocal(key)
+  return local ? local.data : fallback
+}
+
+async function saveSynced(key, data) {
+  const wrapped = wrapForSave(data)
+  await db.setItem(key, wrapped)
+  schedulePush(key, wrapped)
+}
+
+export async function reconcileKey(key) {
+  const local = await readLocal(key)
+  const { data: row } = await supabase
+    .from('kv_store')
+    .select('value, updated_at')
+    .eq('key', key)
+    .maybeSingle()
+  const decision = decideSync(local, row)
+  if (decision.action === 'pull') await db.setItem(key, decision.value)
+  else if (decision.action === 'push') await pushToCloud(key, decision.value)
+}
+
+export const SYNCED_KEYS = [
+  'settings', 'notes', 'progress', 'expenses', 'budgets', 'goals',
+  'examProgress', 'examNotes', 'investProgress', 'watchlist',
+  'tasks', 'reminders', 'habits', 'moodLog', 'loans',
+]
+
+export async function reconcileAll() {
+  for (const key of SYNCED_KEYS) await reconcileKey(key)
+}
+
 export async function getSettings() {
-  return { cfHandle: 'step_bro', theme: 'ocean', ...(await db.getItem('settings')) }
+  return { cfHandle: 'step_bro', theme: 'ocean', ...(await getSynced('settings', {})) }
 }
 export async function saveSettings(settings) {
-  await db.setItem('settings', settings)
+  await saveSynced('settings', settings)
 }
 
 export async function getNotes() {
-  return (await db.getItem('notes')) || []
+  return await getSynced('notes', [])
 }
 export async function saveNotes(notes) {
-  await db.setItem('notes', notes)
+  await saveSynced('notes', notes)
 }
 
 export async function getProgress() {
-  return (await db.getItem('progress')) || {}
+  return await getSynced('progress', {})
 }
 export async function markProblem(problemId, status, tags) {
   const progress = await getProgress()
   progress[problemId] = { status, tags, updatedAt: Date.now() }
-  await db.setItem('progress', progress)
+  await saveSynced('progress', progress)
   return progress
 }
 
 export async function getExpenses() {
-  return (await db.getItem('expenses')) || []
+  return await getSynced('expenses', [])
 }
 export async function saveExpenses(expenses) {
-  await db.setItem('expenses', expenses)
+  await saveSynced('expenses', expenses)
 }
 
 export async function getBudgets() {
-  return (await db.getItem('budgets')) || {}
+  return await getSynced('budgets', {})
 }
 export async function saveBudgets(budgets) {
-  await db.setItem('budgets', budgets)
+  await saveSynced('budgets', budgets)
 }
 
 export async function getGoals() {
-  return (await db.getItem('goals')) || []
+  return await getSynced('goals', [])
 }
 export async function saveGoals(goals) {
-  await db.setItem('goals', goals)
+  await saveSynced('goals', goals)
 }
 
 export async function getExamProgress() {
-  return (await db.getItem('examProgress')) || {}
+  return await getSynced('examProgress', {})
 }
 export async function saveExamProgress(progress) {
-  await db.setItem('examProgress', progress)
+  await saveSynced('examProgress', progress)
 }
 
 export async function getExamNotes() {
-  return (await db.getItem('examNotes')) || []
+  return await getSynced('examNotes', [])
 }
 export async function saveExamNotes(notes) {
-  await db.setItem('examNotes', notes)
+  await saveSynced('examNotes', notes)
 }
 
 export async function getInvestProgress() {
-  return (await db.getItem('investProgress')) || { done: {}, quiz: {}, tasks: {}, current: null }
+  return await getSynced('investProgress', { done: {}, quiz: {}, tasks: {}, current: null })
 }
 export async function saveInvestProgress(progress) {
-  await db.setItem('investProgress', progress)
+  await saveSynced('investProgress', progress)
 }
 
 export async function getWatchlist() {
-  return (await db.getItem('watchlist')) || []
+  return await getSynced('watchlist', [])
 }
 export async function saveWatchlist(watchlist) {
-  await db.setItem('watchlist', watchlist)
+  await saveSynced('watchlist', watchlist)
 }
 
 export async function getTasks() {
-  return (await db.getItem('tasks')) || []
+  return await getSynced('tasks', [])
 }
 export async function saveTasks(tasks) {
-  await db.setItem('tasks', tasks)
+  await saveSynced('tasks', tasks)
 }
 
 export async function getReminders() {
-  return (await db.getItem('reminders')) || []
+  return await getSynced('reminders', [])
 }
 export async function saveReminders(reminders) {
-  await db.setItem('reminders', reminders)
+  await saveSynced('reminders', reminders)
 }
 
 export async function getHabits() {
-  return (await db.getItem('habits')) || []
+  return await getSynced('habits', [])
 }
 export async function saveHabits(habits) {
-  await db.setItem('habits', habits)
+  await saveSynced('habits', habits)
 }
 
 export async function getMoodLog() {
-  return (await db.getItem('moodLog')) || []
+  return await getSynced('moodLog', [])
 }
 export async function saveMoodLog(log) {
-  await db.setItem('moodLog', log)
+  await saveSynced('moodLog', log)
 }
 
 export async function getLoans() {
-  return (await db.getItem('loans')) || []
+  return await getSynced('loans', [])
 }
 export async function saveLoans(loans) {
-  await db.setItem('loans', loans)
+  await saveSynced('loans', loans)
 }
