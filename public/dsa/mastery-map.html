@@ -1617,11 +1617,13 @@
   var nativeRemove = localStorage.removeItem.bind(localStorage);
   var pill;
 
+  function ours(k) { return /^(mastery_|roadmap_)/.test(k); }
+
   function snapshot() {
     var out = {};
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
-      out[k] = localStorage.getItem(k);
+      if (ours(k)) out[k] = localStorage.getItem(k);
     }
     return out;
   }
@@ -1645,20 +1647,35 @@
         if (!uid) return;
         sb.from('kv_store').upsert({
           user_id: uid, key: DATA_KEY, value: snapshot(), updated_at: new Date().toISOString(),
-        }).then(function (res) { flash(!res.error); });
+        }).then(function (res) { flash(!res.error); }).catch(function () { flash(false); });
       });
     }, delay == null ? 700 : delay);
   }
 
   // On sign-in (session is shared with the main Forge app via localStorage,
   // same origin — no separate login here), pull the cloud snapshot once.
+  // Note: onAuthStateChange fires INITIAL_SESSION on every page load (not just
+  // sign-in), so this must only reload when a pull actually changed something.
   sb.auth.onAuthStateChange(function (event, session) {
-    if (!session) return;
+    if (!session) {
+      if (pill) {
+        pill.textContent = '⚠ not signed in — not syncing';
+        pill.style.color = '#ff6b6b';
+        pill.style.opacity = '1';
+      }
+      return;
+    }
     sb.from('kv_store').select('value').eq('key', DATA_KEY).maybeSingle().then(function (res) {
       var cloud = res.data && res.data.value;
       if (cloud && Object.keys(cloud).length) {
-        for (var k in cloud) if (Object.prototype.hasOwnProperty.call(cloud, k)) nativeSet(k, cloud[k]);
-        location.reload(); // app already read localStorage at parse time
+        var changed = false;
+        for (var k in cloud) {
+          if (Object.prototype.hasOwnProperty.call(cloud, k) && ours(k) && localStorage.getItem(k) !== cloud[k]) {
+            nativeSet(k, cloud[k]);
+            changed = true;
+          }
+        }
+        if (changed) location.reload();
       } else {
         schedulePush(0); // nothing in the cloud yet for this account — seed it
       }

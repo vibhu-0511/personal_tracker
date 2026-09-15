@@ -66,6 +66,10 @@ Set `GROQ_API_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY` in the
 Vercel project's environment variables. Then open the deployed URL on your
 iPhone and use Share → Add to Home Screen.
 
+> The DSA mastery map (`public/dsa/mastery-map.html`) can't read Vite env vars — its
+> Supabase URL/anon key are hardcoded as literals near the top of its persistence
+> script and must be updated there too if the project's credentials ever change.
+
 ## Not built yet
 
 - Phase 2: quant question engine (LLM-generated, reuses `/api/agent`), spaced repetition
