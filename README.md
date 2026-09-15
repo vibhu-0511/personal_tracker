@@ -19,6 +19,12 @@ Get a free Groq API key at https://console.groq.com (no credit card).
 |---|---|---|
 | `GROQ_API_KEY` | yes | — |
 | `GROQ_MODEL` | no | `llama-3.3-70b-versatile` |
+| `VITE_SUPABASE_URL` | yes | — |
+| `VITE_SUPABASE_ANON_KEY` | yes | — |
+
+Cloud sync uses a Supabase project. See
+`docs/superpowers/specs/2026-09-15-cloud-sync-design.md` for the schema and
+the SQL to run once in the Supabase SQL Editor.
 
 ## Tests
 
@@ -43,7 +49,10 @@ curl "http://localhost:5173/api/ics?title=Gym&start=2026-09-15T17:00:00%2B05:30"
 - `src/tabs/` — the tab screens. `Life.jsx` (tasks, reminders, habits, notes) is the
   default tab; its pure math (streaks, wallet, pet state, quick-add parsing) lives in
   `src/life/logic.js`.
-- `src/store.js` — IndexedDB wrappers. All user data is local to the browser.
+- `src/store.js` — IndexedDB wrappers, synced to Supabase (`src/supabaseClient.js`,
+  `src/sync/logic.js`). Local-first: reads/writes never block on network.
+- `public/dsa/` — the DSA mastery map tool, synced via its own small script (same
+  Supabase project, same signed-in session).
 - `src/agents.json` — agent definitions. **To add an agent, add an entry here.** No code
   change is needed.
 
@@ -53,8 +62,9 @@ curl "http://localhost:5173/api/ics?title=Gym&start=2026-09-15T17:00:00%2B05:30"
 npx vercel --prod
 ```
 
-Set `GROQ_API_KEY` in the Vercel project's environment variables. Then open the
-deployed URL on your iPhone and use Share → Add to Home Screen.
+Set `GROQ_API_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY` in the
+Vercel project's environment variables. Then open the deployed URL on your
+iPhone and use Share → Add to Home Screen.
 
 ## Not built yet
 
