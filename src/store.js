@@ -1,5 +1,5 @@
 import localforage from 'localforage'
-import { supabase, getUserId } from './supabaseClient.js'
+import { supabase } from './supabaseClient.js'
 import { readLocalShape, wrapForSave, decideSync } from './sync/logic.js'
 
 const db = localforage.createInstance({ name: 'forge' })
@@ -16,15 +16,16 @@ export async function storageAvailable() {
 
 const pushTimers = {}
 
-function schedulePush(key, wrapped, delay = 700) {
+function schedulePush(key, delay = 700) {
   clearTimeout(pushTimers[key])
   pushTimers[key] = setTimeout(() => {
-    pushToCloud(key, wrapped).catch(() => {}) // offline/failed push: local write already succeeded, next reconcile retries
+    readLocal(key).then((cur) => cur && pushToCloud(key, cur)).catch(() => {}) // offline/failed push: local write already succeeded, next reconcile retries
   }, delay)
 }
 
 async function pushToCloud(key, wrapped) {
-  const userId = getUserId()
+  const { data } = await supabase.auth.getSession()
+  const userId = data.session?.user?.id
   if (!userId) return
   await supabase.from('kv_store').upsert({
     user_id: userId,
@@ -46,7 +47,7 @@ async function getSynced(key, fallback) {
 async function saveSynced(key, data) {
   const wrapped = wrapForSave(data)
   await db.setItem(key, wrapped)
-  schedulePush(key, wrapped)
+  schedulePush(key)
 }
 
 export async function reconcileKey(key) {
@@ -57,13 +58,19 @@ export async function reconcileKey(key) {
       .select('value, updated_at')
       .eq('key', key)
       .maybeSingle()
-    if (error) return
+    if (error) return 'noop'
     const decision = decideSync(local, row)
-    if (decision.action === 'pull') await db.setItem(key, decision.value)
-    else if (decision.action === 'push') await pushToCloud(key, decision.value)
+    if (decision.action === 'pull') {
+      if (local && local.updatedAt === 0) {
+        await db.setItem(`${key}__pre_sync_backup`, local)
+      }
+      await db.setItem(key, decision.value)
+    } else if (decision.action === 'push') await pushToCloud(key, decision.value)
+    return decision.action
   } catch {
     // offline or a transient failure — this key just doesn't reconcile this pass;
     // the next reconcileAll (next app open, or the next realtime event) retries it
+    return 'noop'
   }
 }
 

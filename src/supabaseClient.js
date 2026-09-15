@@ -1,15 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
-
-let currentUserId = null
-supabase.auth.onAuthStateChange((_event, session) => {
-  currentUserId = session?.user?.id ?? null
-})
-
-export function getUserId() {
-  return currentUserId
+const url = import.meta.env.VITE_SUPABASE_URL
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+if (!url || !anonKey) {
+  throw new Error('Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY — check your .env file.')
 }
+
+export const supabase = createClient(url, anonKey)

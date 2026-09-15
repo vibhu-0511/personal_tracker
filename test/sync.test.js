@@ -59,3 +59,14 @@ test('decideSync: equal timestamps -> noop', () => {
   const cloudRow = { value: 'x', updated_at: new Date(ts).toISOString() }
   assert.deepEqual(decideSync(local, cloudRow), { action: 'noop' })
 })
+
+test('decideSync: malformed cloud timestamp with local data present -> push (data-preserving)', () => {
+  const local = { data: 'mine', updatedAt: 100 }
+  const cloudRow = { value: 'cloud', updated_at: 'not-a-date' }
+  assert.deepEqual(decideSync(local, cloudRow), { action: 'push', value: local })
+})
+
+test('decideSync: malformed cloud timestamp with no local data -> noop', () => {
+  const cloudRow = { value: 'cloud', updated_at: 'not-a-date' }
+  assert.deepEqual(decideSync(null, cloudRow), { action: 'noop' })
+})

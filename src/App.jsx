@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey } from './store.js'
+import { getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey, SYNCED_KEYS } from './store.js'
 import { supabase } from './supabaseClient.js'
 import Today from './tabs/Today.jsx'
 import Puzzles from './tabs/Puzzles.jsx'
@@ -51,6 +51,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [storageOk, setStorageOk] = useState(true)
   const [syncTicks, setSyncTicks] = useState({})
+  const [synced, setSynced] = useState(false)
+  const userId = session?.user?.id
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -63,29 +65,34 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!session) return
+    if (!userId) { setSynced(false); return }
+    let cancelled = false
 
-    reconcileAll().then(() =>
-      getSettings().then((s) => {
+    reconcileAll()
+      .then(() => getSettings())
+      .then((s) => {
+        if (cancelled) return
         setSettings(s)
         setDraftHandle(s.cfHandle)
         document.documentElement.dataset.accent = s.theme
         if (!s.cfHandle) setShowSettings(true)
+        setSynced(true)
       })
-    )
 
     const channel = supabase
       .channel('kv_store_changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'kv_store', filter: `user_id=eq.${session.user.id}` },
+        { event: '*', schema: 'public', table: 'kv_store', filter: `user_id=eq.${userId}` },
         (payload) => {
           const key = payload.new?.key || payload.old?.key
-          if (!key) return
-          reconcileKey(key).then(() => {
+          if (!key || !SYNCED_KEYS.includes(key)) return
+          reconcileKey(key).then((action) => {
+            if (action !== 'pull') return
             if (key === 'settings') {
               getSettings().then((s) => {
                 setSettings(s)
+                setDraftHandle(s.cfHandle)
                 document.documentElement.dataset.accent = s.theme
               })
               return
@@ -98,8 +105,11 @@ export default function App() {
       )
       .subscribe()
 
-    return () => supabase.removeChannel(channel)
-  }, [session])
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
+  }, [userId])
 
   async function save() {
     const handle = draftHandle.trim()
@@ -120,8 +130,9 @@ export default function App() {
     setAuthError('')
     setAuthBusy(true)
     try {
-      const fn = mode === 'signup' ? supabase.auth.signUp : supabase.auth.signInWithPassword
-      const { error } = await fn({ email: authEmail.trim(), password: authPassword })
+      const { error } = mode === 'signup'
+        ? await supabase.auth.signUp({ email: authEmail.trim(), password: authPassword })
+        : await supabase.auth.signInWithPassword({ email: authEmail.trim(), password: authPassword })
       if (error) setAuthError(error.message)
     } catch (err) {
       setAuthError(err.message || 'Sign-in failed')
@@ -130,7 +141,7 @@ export default function App() {
     }
   }
 
-  if (session === undefined) {
+  if (session === undefined || (session && !synced)) {
     return <div className="app" />
   }
 

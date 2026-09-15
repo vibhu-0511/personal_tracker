@@ -19,6 +19,9 @@ export function decideSync(local, cloudRow) {
     return local ? { action: 'push', value: local } : { action: 'noop' }
   }
   const cloudUpdatedAt = new Date(cloudRow.updated_at).getTime()
+  if (!Number.isFinite(cloudUpdatedAt)) {
+    return local ? { action: 'push', value: local } : { action: 'noop' }
+  }
   if (!local || cloudUpdatedAt > local.updatedAt) {
     return { action: 'pull', value: { data: cloudRow.value, updatedAt: cloudUpdatedAt } }
   }
