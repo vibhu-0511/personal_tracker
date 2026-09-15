@@ -1,5 +1,27 @@
 # Forge — Ideas Backlog
 
+## Handwritten/drawn notes via iPad + Apple Pencil (2026-09-15)
+
+Under the Life tab's Notes sub-view, add a section for drawing/handwritten
+notes alongside the existing text notes. Parked before building anything —
+two open design questions:
+
+- **Storage scope**: drawings can be large (tens-hundreds of KB per canvas
+  snapshot). The cloud-sync layer pushes each `store.js` key as one whole
+  JSON blob on every save — sharing the existing `notes` key would mean
+  every text-note edit re-pushes all your drawings too. A separate
+  `drawings` synced key keeps text notes light regardless of how many
+  drawings pile up, at the cost of one more key to manage.
+- **Fidelity**: a simple canvas (freehand draw, a couple of colors, pen
+  thickness, eraser, clear-all, undo-last-stroke, saved as one image per
+  note) is fast to build and covers real handwritten-note use. A full
+  stroke-based vector editor (every stroke as points+pressure data) would
+  keep drawings editable/resizable later, with real per-stroke undo — but
+  is meaningfully more code.
+- Native `<canvas>` + Pointer Events (not a drawing library) already
+  supports Apple Pencil pressure in Safari with no dependency.
+
+
 Uncommitted ideas from brainstorming sessions. Nothing here is scoped or approved for
 implementation — this is a parking lot, not a spec. Move an idea to
 `docs/superpowers/specs/` when it's actually going to be built.
