@@ -51,14 +51,20 @@ async function saveSynced(key, data) {
 
 export async function reconcileKey(key) {
   const local = await readLocal(key)
-  const { data: row } = await supabase
-    .from('kv_store')
-    .select('value, updated_at')
-    .eq('key', key)
-    .maybeSingle()
-  const decision = decideSync(local, row)
-  if (decision.action === 'pull') await db.setItem(key, decision.value)
-  else if (decision.action === 'push') await pushToCloud(key, decision.value)
+  try {
+    const { data: row, error } = await supabase
+      .from('kv_store')
+      .select('value, updated_at')
+      .eq('key', key)
+      .maybeSingle()
+    if (error) return
+    const decision = decideSync(local, row)
+    if (decision.action === 'pull') await db.setItem(key, decision.value)
+    else if (decision.action === 'push') await pushToCloud(key, decision.value)
+  } catch {
+    // offline or a transient failure — this key just doesn't reconcile this pass;
+    // the next reconcileAll (next app open, or the next realtime event) retries it
+  }
 }
 
 export const SYNCED_KEYS = [
