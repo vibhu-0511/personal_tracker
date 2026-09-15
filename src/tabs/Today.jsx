@@ -125,6 +125,15 @@ export default function Today({ cfHandle }) {
         </div>
       </div>
 
+      {/* DSA Mastery Map link */}
+      <a
+        href="/dsa/mastery-map.html"
+        className="btn btn-sm"
+        style={{ width: '100%', marginBottom: 12, textAlign: 'center', display: 'block' }}
+      >
+        📘 DSA Mastery Map
+      </a>
+
       {/* Filter toggle */}
       {cfHandle && (
         <button
