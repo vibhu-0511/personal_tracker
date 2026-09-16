@@ -22,6 +22,7 @@ import {
   emotionSummary,
 } from '../life/logic.js'
 import Notes from './Notes.jsx'
+import { showToast } from '../toast.js'
 
 const VIEWS = [
   { id: 'tasks', icon: '✅', label: 'Tasks' },
@@ -146,16 +147,21 @@ export default function Life() {
 
 function TasksView({ tasks, onUpdate, now }) {
   const [quick, setQuick] = useState('')
+  const [filter, setFilter] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDue, setEditDue] = useState('')
   const todayKey = dateKey(now)
 
   function addTask() {
     const text = quick.trim()
     if (!text) return
-    const { title, date } = parseQuick(text, now)
+    const { title, date, at } = parseQuick(text, now)
     const task = {
       id: String(Date.now()),
       title: title || text,
       due: date ? dateKey(date) : null,
+      dueAt: at ? at.getTime() : null,
       done: false,
       doneAt: null,
       createdAt: Date.now(),
@@ -179,16 +185,42 @@ function TasksView({ tasks, onUpdate, now }) {
   }
 
   function remove(id) {
+    const task = tasks.find((t) => t.id === id)
+    const prev = tasks
     onUpdate(tasks.filter((t) => t.id !== id))
+    if (task) showToast(`Deleted "${task.title}"`, { undo: () => onUpdate(prev) })
   }
 
-  const overdue = tasks.filter((t) => !t.done && t.due && t.due < todayKey)
-  const dueToday = tasks.filter((t) => !t.done && t.due === todayKey)
-  const upcoming = tasks
+  function startEdit(t) {
+    setEditingId(t.id)
+    setEditTitle(t.title)
+    setEditDue(t.due || '')
+  }
+  function cancelEdit() {
+    setEditingId(null)
+  }
+  function saveEdit(id) {
+    const title = editTitle.trim()
+    if (!title) return
+    onUpdate(tasks.map((t) => (t.id === id ? { ...t, title, due: editDue || null } : t)))
+    setEditingId(null)
+  }
+
+  const q = filter.trim().toLowerCase()
+  const visible = q ? tasks.filter((t) => t.title.toLowerCase().includes(q)) : tasks
+
+  const overdue = visible.filter((t) => !t.done && t.due && t.due < todayKey)
+  const dueToday = visible.filter((t) => !t.done && t.due === todayKey)
+  const upcoming = visible
     .filter((t) => !t.done && t.due && t.due > todayKey)
     .sort((a, b) => a.due.localeCompare(b.due))
-  const noDate = tasks.filter((t) => !t.done && !t.due)
-  const done = tasks.filter((t) => t.done)
+  const noDate = visible.filter((t) => !t.done && !t.due)
+  const done = visible.filter((t) => t.done)
+
+  const editProps = {
+    editingId, editTitle, setEditTitle, editDue, setEditDue,
+    onStartEdit: startEdit, onSaveEdit: saveEdit, onCancelEdit: cancelEdit,
+  }
 
   return (
     <div>
@@ -204,45 +236,85 @@ function TasksView({ tasks, onUpdate, now }) {
         </button>
       </div>
 
-      <TaskSection label="Overdue" items={overdue} overdue onToggle={toggle} onRemove={remove} />
-      <TaskSection label="Today" items={dueToday} onToggle={toggle} onRemove={remove} />
-      <TaskSection label="Upcoming" items={upcoming} onToggle={toggle} onRemove={remove} />
-      <TaskSection label="No date" items={noDate} onToggle={toggle} onRemove={remove} />
+      {tasks.length > 0 && (
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="🔍 Filter tasks..."
+          style={{ marginBottom: 12 }}
+        />
+      )}
+
+      <TaskSection label="Overdue" items={overdue} overdue {...editProps} onToggle={toggle} onRemove={remove} />
+      <TaskSection label="Today" items={dueToday} {...editProps} onToggle={toggle} onRemove={remove} />
+      <TaskSection label="Upcoming" items={upcoming} {...editProps} onToggle={toggle} onRemove={remove} />
+      <TaskSection label="No date" items={noDate} {...editProps} onToggle={toggle} onRemove={remove} />
       {done.length > 0 && <DoneTaskSection items={done} onToggle={toggle} onRemove={remove} />}
 
-      {tasks.length === 0 && (
+      {visible.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">✅</div>
-          <div className="empty-text">No tasks yet.</div>
+          <div className="empty-text">{tasks.length === 0 ? 'No tasks yet.' : 'No tasks match your filter.'}</div>
         </div>
       )}
     </div>
   )
 }
 
-function TaskSection({ label, items, overdue, onToggle, onRemove }) {
+function TaskSection({
+  label, items, overdue, onToggle, onRemove,
+  editingId, editTitle, setEditTitle, editDue, setEditDue, onStartEdit, onSaveEdit, onCancelEdit,
+}) {
   if (items.length === 0) return null
   return (
     <>
       <div className="life-section-label">{label}</div>
       <AnimatePresence initial={false}>
-        {items.map((t) => (
-          <motion.div
-            key={t.id}
-            layout
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, x: 40 }}
-            className={`life-row${overdue ? ' overdue' : ''}`}
-          >
-            <button className="life-check" onClick={() => onToggle(t.id)} aria-label="Mark done" />
-            <div className="life-row-title">{t.title}</div>
-            {t.due && <div className="life-row-due">{t.due}</div>}
-            <button className="life-icon-btn" title="Delete" onClick={() => onRemove(t.id)}>
-              🗑️
-            </button>
-          </motion.div>
-        ))}
+        {items.map((t) =>
+          editingId === t.id ? (
+            <motion.div key={t.id} layout className="life-row">
+              <input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                autoFocus
+                style={{ flex: 1 }}
+                onKeyDown={(e) => e.key === 'Enter' && onSaveEdit(t.id)}
+              />
+              <input
+                type="date"
+                value={editDue}
+                onChange={(e) => setEditDue(e.target.value)}
+                style={{ width: 140 }}
+              />
+              <button className="btn btn-primary btn-sm" onClick={() => onSaveEdit(t.id)}>Save</button>
+              <button className="btn btn-ghost btn-sm" onClick={onCancelEdit}>Cancel</button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={t.id}
+              layout
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, x: 40 }}
+              className={`life-row${overdue ? ' overdue' : ''}`}
+            >
+              <button className="life-check" onClick={() => onToggle(t.id)} aria-label="Mark done" />
+              <div className="life-row-title">{t.title}</div>
+              {t.due && (
+                <div className="life-row-due">
+                  {t.due}
+                  {t.dueAt && ` · ${new Date(t.dueAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`}
+                </div>
+              )}
+              <button className="life-icon-btn" title="Edit" onClick={() => onStartEdit(t)}>
+                ✎
+              </button>
+              <button className="life-icon-btn" title="Delete" onClick={() => onRemove(t.id)}>
+                🗑️
+              </button>
+            </motion.div>
+          )
+        )}
       </AnimatePresence>
     </>
   )
@@ -287,12 +359,16 @@ function DoneTaskSection({ items, onToggle, onRemove }) {
 
 function RemindersView({ reminders, onUpdate, now }) {
   const [quick, setQuick] = useState('')
+  const [filter, setFilter] = useState('')
 
   function addReminder() {
     const text = quick.trim()
     if (!text) return
     const { title, date, at } = parseQuick(text, now)
-    const when = at || date || new Date(now.getTime() + 3_600_000)
+    const when =
+      at ||
+      (date ? new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9, 0) : null) ||
+      new Date(now.getTime() + 3_600_000)
     const reminder = {
       id: String(Date.now()),
       title: title || text,
@@ -308,7 +384,10 @@ function RemindersView({ reminders, onUpdate, now }) {
     onUpdate(reminders.map((r) => (r.id === id ? { ...r, done: !r.done } : r)))
   }
   function remove(id) {
+    const reminder = reminders.find((r) => r.id === id)
+    const prev = reminders
     onUpdate(reminders.filter((r) => r.id !== id))
+    if (reminder) showToast(`Deleted "${reminder.title}"`, { undo: () => onUpdate(prev) })
   }
 
   function icsHref(r) {
@@ -316,9 +395,11 @@ function RemindersView({ reminders, onUpdate, now }) {
   }
 
   const nowMs = now.getTime()
-  const due = reminders.filter((r) => !r.done && r.at <= nowMs)
-  const upcoming = reminders.filter((r) => !r.done && r.at > nowMs).sort((a, b) => a.at - b.at)
-  const done = reminders.filter((r) => r.done)
+  const q = filter.trim().toLowerCase()
+  const visible = q ? reminders.filter((r) => r.title.toLowerCase().includes(q)) : reminders
+  const due = visible.filter((r) => !r.done && r.at <= nowMs)
+  const upcoming = visible.filter((r) => !r.done && r.at > nowMs).sort((a, b) => a.at - b.at)
+  const done = visible.filter((r) => r.done)
 
   return (
     <div>
@@ -339,6 +420,15 @@ function RemindersView({ reminders, onUpdate, now }) {
           Add
         </button>
       </div>
+
+      {reminders.length > 0 && (
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="🔍 Filter reminders..."
+          style={{ marginBottom: 12 }}
+        />
+      )}
 
       {(due.length > 0 || upcoming.length > 0) && <div className="life-section-label">Upcoming</div>}
       <AnimatePresence initial={false}>
@@ -371,10 +461,12 @@ function RemindersView({ reminders, onUpdate, now }) {
         ))}
       </AnimatePresence>
 
-      {reminders.length === 0 && (
+      {visible.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">⏰</div>
-          <div className="empty-text">No reminders yet.</div>
+          <div className="empty-text">
+            {reminders.length === 0 ? 'No reminders yet.' : 'No reminders match your filter.'}
+          </div>
         </div>
       )}
 
@@ -405,6 +497,10 @@ function HabitsView({ habits, onUpdate, now }) {
   const [species, setSpecies] = useState(SPECIES[0])
   const [domain, setDomain] = useState('other')
   const [coinFlash, setCoinFlash] = useState({}) // habitId -> amount, for the floating +₹ animation
+  const [editingId, setEditingId] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editCategory, setEditCategory] = useState('exercise')
+  const [editDomain, setEditDomain] = useState('other')
 
   function addHabit() {
     const n = name.trim()
@@ -417,7 +513,26 @@ function HabitsView({ habits, onUpdate, now }) {
   }
 
   function removeHabit(id) {
+    const habit = habits.find((h) => h.id === id)
+    const prev = habits
     onUpdate(habits.filter((h) => h.id !== id))
+    if (habit) showToast(`Deleted "${habit.name}"`, { undo: () => onUpdate(prev) })
+  }
+
+  function startEditHabit(h) {
+    setEditingId(h.id)
+    setEditName(h.name)
+    setEditCategory(h.category)
+    setEditDomain(h.domain)
+  }
+  function cancelEditHabit() {
+    setEditingId(null)
+  }
+  function saveEditHabit(id) {
+    const n = editName.trim()
+    if (!n) return
+    onUpdate(habits.map((h) => (h.id === id ? { ...h, name: n, category: editCategory, domain: editDomain } : h)))
+    setEditingId(null)
   }
 
   async function checkIn(habit) {
@@ -443,7 +558,7 @@ function HabitsView({ habits, onUpdate, now }) {
       <AnimatePresence initial={false}>
         {habits.map((h) => {
           const pet = petState(h, now)
-          const { current } = streaks(h.checkins, now)
+          const { current, best } = streaks(h.checkins, now)
           const money = earnings(h, now)
           const checkedToday = h.checkins.includes(dateKey(now))
           return (
@@ -457,22 +572,52 @@ function HabitsView({ habits, onUpdate, now }) {
             >
               {coinFlash[h.id] != null && <div className="coin-float">+₹{Math.round(coinFlash[h.id])}</div>}
 
-              <div className="habit-head">
-                <span className={`pet-avatar pet-mood-${pet.mood}`}>
-                  {h.species}
-                  {pet.accessory && <span className="pet-accessory">{pet.accessory}</span>}
-                </span>
-                <div style={{ flex: 1 }}>
-                  <div className="habit-name">{h.name}</div>
-                  <div className="habit-meta">
-                    {current > 0 && <span className="habit-streak-flame">🔥</span>} {current}-day streak ·{' '}
-                    {CATEGORY_LABELS[h.category] || CATEGORY_LABELS.custom}
+              {editingId === h.id ? (
+                <div className="habit-head" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+                  <input value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
+                  <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}>
+                    {Object.keys(CATEGORY_LABELS).map((c) => (
+                      <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
+                    ))}
+                  </select>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {DOMAINS.map((d) => (
+                      <button
+                        key={d.id}
+                        className={`agent-pill${editDomain === d.id ? ' active' : ''}`}
+                        onClick={() => setEditDomain(d.id)}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-primary btn-sm" onClick={() => saveEditHabit(h.id)}>Save</button>
+                    <button className="btn btn-ghost btn-sm" onClick={cancelEditHabit}>Cancel</button>
                   </div>
                 </div>
-                <button className="life-icon-btn" title="Remove habit" onClick={() => removeHabit(h.id)}>
-                  🗑️
-                </button>
-              </div>
+              ) : (
+                <div className="habit-head">
+                  <span className={`pet-avatar pet-mood-${pet.mood}`}>
+                    {h.species}
+                    {pet.accessory && <span className="pet-accessory">{pet.accessory}</span>}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div className="habit-name">{h.name}</div>
+                    <div className="habit-meta">
+                      {current > 0 && <span className="habit-streak-flame">🔥</span>} {current}-day streak
+                      {best > current ? ` · best ${best}` : ''} ·{' '}
+                      {CATEGORY_LABELS[h.category] || CATEGORY_LABELS.custom}
+                    </div>
+                  </div>
+                  <button className="life-icon-btn" title="Edit habit" onClick={() => startEditHabit(h)}>
+                    ✎
+                  </button>
+                  <button className="life-icon-btn" title="Remove habit" onClick={() => removeHabit(h.id)}>
+                    🗑️
+                  </button>
+                </div>
+              )}
 
               <div className="habit-health-bar">
                 <div className="habit-health-fill" style={{ width: `${pet.health}%` }} />

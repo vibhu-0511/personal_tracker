@@ -33,3 +33,13 @@ test('tracks balances per person independently', () => {
 test('empty ledger gives no balances', () => {
   assert.deepEqual(computeLoanBalances([]), {})
 })
+
+test('person names are merged case/whitespace-insensitively, keeping first-seen casing', () => {
+  const balances = computeLoanBalances([
+    entry('Raj', 500, 'lent'),
+    entry('raj ', 200, 'theyRepaid'),
+    entry(' RAJ', 100, 'lent'),
+  ])
+  assert.deepEqual(Object.keys(balances), ['Raj'])
+  assert.equal(balances.Raj, 400)
+})

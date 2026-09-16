@@ -20,7 +20,7 @@ function leastPracticedTag(tagCounts) {
     .sort((a, b) => a[1] - b[1])[0]
 }
 
-function solvedToday(progress) {
+export function solvedToday(progress) {
   const start = new Date().setHours(0, 0, 0, 0)
   return Object.values(progress).filter(
     (p) => p.status === 'solved' && p.updatedAt >= start
@@ -124,15 +124,6 @@ export default function Today({ cfHandle }) {
           <div className="stat-label">Least practiced</div>
         </div>
       </div>
-
-      {/* DSA Mastery Map link */}
-      <a
-        href="/dsa/mastery-map.html"
-        className="btn btn-sm"
-        style={{ width: '100%', marginBottom: 12, textAlign: 'center', display: 'block' }}
-      >
-        📘 DSA Mastery Map
-      </a>
 
       {/* Filter toggle */}
       {cfHandle && (

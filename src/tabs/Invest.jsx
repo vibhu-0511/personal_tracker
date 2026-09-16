@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getInvestProgress, saveInvestProgress, getWatchlist, saveWatchlist } from '../store.js'
 import { PHASES, CONTENT, QUIZZES, TASKS, GLOSSARY } from '../invest/course.js'
 import { STOCK_CHECKLIST, MF_CHECKLIST, IPO_CHECKLIST, OSS_TOOLS, LINKS } from '../invest/research.js'
+import { showToast } from '../toast.js'
 
 const ALL_MODS = PHASES.flatMap((p) => p.mods)
 const VIEWS = [
@@ -398,6 +399,7 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
   const [quotes, setQuotes] = useState({})
   const [navs, setNavs] = useState({})
   const [addType, setAddType] = useState(null)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (initialType) {
@@ -410,9 +412,9 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
   const stockSymbols = items.filter((i) => i.type === 'stock').map((i) => i.symbol)
   const mfItems = items.filter((i) => i.type === 'mf')
 
-  useEffect(() => {
-    if (stockSymbols.length === 0) { setQuotes({}); return }
-    fetch(`/api/quote?symbols=${stockSymbols.join(',')}`)
+  function fetchQuotes(symbols) {
+    if (symbols.length === 0) { setQuotes({}); return }
+    fetch(`/api/quote?symbols=${symbols.join(',')}`)
       .then((r) => r.json())
       .then((data) => {
         const map = {}
@@ -420,7 +422,15 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
         ;(data.errors || []).forEach((e) => { map[e.symbol] = { error: e.error } })
         setQuotes(map)
       })
-      .catch(() => {})
+      .catch(() => {
+        const map = {}
+        symbols.forEach((s) => { map[s] = { error: true } })
+        setQuotes(map)
+      })
+  }
+
+  useEffect(() => {
+    fetchQuotes(stockSymbols)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items])
 
@@ -447,14 +457,21 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
   }
 
   async function removeItem(id) {
+    const item = items.find((i) => i.id === id)
+    const prev = items
     await onUpdate(items.filter((i) => i.id !== id))
+    if (item) showToast(`Removed "${item.name}"`, { undo: () => onUpdate(prev) })
   }
 
   async function updateNote(id, note) {
     await onUpdate(items.map((i) => (i.id === id ? { ...i, note } : i)))
   }
 
-  const sorted = [...items].sort((a, b) => {
+  const q = search.trim().toLowerCase()
+  const filtered = q
+    ? items.filter((i) => i.name.toLowerCase().includes(q) || i.symbol?.toLowerCase().includes(q))
+    : items
+  const sorted = [...filtered].sort((a, b) => {
     if (a.type === 'ipo' && b.type !== 'ipo') return -1
     if (b.type === 'ipo' && a.type !== 'ipo') return 1
     if (a.type === 'ipo' && b.type === 'ipo') return (a.ipo?.open || '').localeCompare(b.ipo?.open || '')
@@ -475,13 +492,36 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
         </button>
       </div>
 
+      {stockSymbols.length > 0 && (
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ marginBottom: 10 }}
+          onClick={() => fetchQuotes(stockSymbols)}
+        >
+          ↻ Refresh prices
+        </button>
+      )}
+
       {addType === 'stock' && <AddStockForm onAdd={addItem} onCancel={() => setAddType(null)} />}
       {addType === 'mf' && <AddMfForm onAdd={addItem} onCancel={() => setAddType(null)} />}
       {addType === 'ipo' && <AddIpoForm onAdd={addItem} onCancel={() => setAddType(null)} />}
 
+      {items.length > 0 && (
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="🔍 Filter watchlist..."
+          style={{ marginBottom: 10 }}
+        />
+      )}
+
       {sorted.length === 0 && (
         <div className="empty-state" style={{ padding: '24px 16px' }}>
-          <div className="empty-text">Your watchlist is empty. Add a stock, fund, or IPO to track.</div>
+          <div className="empty-text">
+            {items.length === 0
+              ? 'Your watchlist is empty. Add a stock, fund, or IPO to track.'
+              : 'No watchlist items match your filter.'}
+          </div>
         </div>
       )}
 
@@ -502,7 +542,6 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
 function WatchlistRow({ item, quote, nav, onDelete, onNote }) {
   const [editing, setEditing] = useState(false)
   const [noteText, setNoteText] = useState(item.note || '')
-  const [confirmDelete, setConfirmDelete] = useState(false)
 
   function saveNote() {
     onNote(noteText.trim())
@@ -538,6 +577,12 @@ function WatchlistRow({ item, quote, nav, onDelete, onNote }) {
                   {quote.changePct != null && (
                     <div className={quote.changePct >= 0 ? 'up' : 'down'} style={{ fontSize: 12 }}>
                       {quote.changePct >= 0 ? '+' : ''}{quote.changePct.toFixed(2)}%
+                    </div>
+                  )}
+                  {quote.price != null && item.priceAtAdd != null && (
+                    <div className={quote.price >= item.priceAtAdd ? 'up' : 'down'} style={{ fontSize: 11 }}>
+                      {quote.price >= item.priceAtAdd ? '+' : ''}
+                      ₹{(quote.price - item.priceAtAdd).toFixed(2)} since added
                     </div>
                   )}
                   {quote.low52 != null && quote.high52 != null && (
@@ -582,14 +627,7 @@ function WatchlistRow({ item, quote, nav, onDelete, onNote }) {
         {item.type === 'ipo' && item.ipo?.link ? (
           <a href={item.ipo.link} target="_blank" rel="noreferrer" className="meta">RHP / NSE page →</a>
         ) : <span />}
-        {confirmDelete ? (
-          <span style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-danger-ghost btn-sm" onClick={onDelete}>Confirm delete</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(false)}>Cancel</button>
-          </span>
-        ) : (
-          <button className="btn btn-danger-ghost btn-sm" onClick={() => setConfirmDelete(true)}>Delete</button>
-        )}
+        <button className="btn btn-danger-ghost btn-sm" onClick={onDelete}>Delete</button>
       </div>
     </div>
   )
@@ -612,7 +650,7 @@ function AddStockForm({ onAdd, onCancel }) {
       const data = await r.json()
       if (!data.quotes?.length) throw new Error(data.errors?.[0]?.error || data.error || 'Symbol not found')
       const q = data.quotes[0]
-      await onAdd({ type: 'stock', symbol: full, name: q.name || sym })
+      await onAdd({ type: 'stock', symbol: full, name: q.name || sym, priceAtAdd: q.price ?? null })
       setSymbol('')
     } catch (e) {
       setError(String(e.message || e))

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getNotes, saveNotes } from '../store.js'
+import { showToast } from '../toast.js'
 
 const COLORS = ['', 'red', 'orange', 'green', 'blue', 'purple']
 
@@ -69,8 +70,10 @@ export default function Notes() {
   }
 
   async function remove(id) {
+    const prev = notes
     await persist(notes.filter((n) => n.id !== id))
     if (editingId === id) setEditingId(null)
+    showToast('Note deleted', { undo: () => persist(prev) })
   }
 
   const q = filter.trim().toLowerCase()
@@ -179,7 +182,14 @@ export default function Notes() {
                   <div className="meta">{new Date(n.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>
                   <div className="note-tags">
                     {n.tags.map((t) => (
-                      <span className="chip" key={t}>{t}</span>
+                      <button
+                        key={t}
+                        className={`chip${filter.trim().toLowerCase() === t.toLowerCase() ? '' : ' chip-muted'}`}
+                        style={{ cursor: 'pointer', border: 'none' }}
+                        onClick={() => setFilter((f) => (f.trim().toLowerCase() === t.toLowerCase() ? '' : t))}
+                      >
+                        {t}
+                      </button>
                     ))}
                   </div>
                 </div>

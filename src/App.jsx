@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
-import { getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey, SYNCED_KEYS } from './store.js'
+import {
+  getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey, SYNCED_KEYS,
+  onSyncStatusChange,
+} from './store.js'
 import { supabase } from './supabaseClient.js'
+import ToastHost from './Toast.jsx'
 import LogicBuilding from './tabs/LogicBuilding.jsx'
 import Agents from './tabs/Agents.jsx'
 import Expenses from './tabs/Expenses.jsx'
@@ -32,6 +36,7 @@ const KEY_TO_TAB = {
   examProgress: 'Exams', examNotes: 'Exams',
   investProgress: 'Invest', watchlist: 'Invest',
   tasks: 'Life', reminders: 'Life', habits: 'Life', moodLog: 'Life', notes: 'Life',
+  puzzleProgress: 'Puzzles',
 }
 
 export default function App() {
@@ -48,10 +53,16 @@ export default function App() {
   const [storageOk, setStorageOk] = useState(true)
   const [syncTicks, setSyncTicks] = useState({})
   const [synced, setSynced] = useState(false)
+  const [syncFailed, setSyncFailed] = useState(false)
+  const [initError, setInitError] = useState(null)
   const userId = session?.user?.id
 
+  useEffect(() => onSyncStatusChange(setSyncFailed), [])
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    supabase.auth.getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch((err) => setInitError(err.message || 'Failed to load session'))
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
     return () => sub.subscription.unsubscribe()
   }, [])
@@ -74,6 +85,7 @@ export default function App() {
         if (!s.cfHandle) setShowSettings(true)
         setSynced(true)
       })
+      .catch((err) => { if (!cancelled) setInitError(err.message || 'Failed to sync') })
 
     const channel = supabase
       .channel('kv_store_changes')
@@ -135,6 +147,15 @@ export default function App() {
     } finally {
       setAuthBusy(false)
     }
+  }
+
+  if (initError) {
+    return (
+      <div className="app">
+        <div className="banner-warn">{initError}</div>
+        <button className="btn btn-primary btn-sm" onClick={() => location.reload()}>Retry</button>
+      </div>
+    )
   }
 
   if (session === undefined || (session && !synced)) {
@@ -201,6 +222,12 @@ export default function App() {
         </div>
       )}
 
+      {syncFailed && (
+        <div className="banner-warn">
+          Cloud sync failed — changes are saved on this device and will retry.
+        </div>
+      )}
+
       {showSettings && (
         <div className="card settings-panel" style={{ marginBottom: 12 }}>
           <div className="h3" style={{ marginBottom: 10 }}>Settings</div>
@@ -256,6 +283,8 @@ export default function App() {
           ))}
         </div>
       </nav>
+
+      <ToastHost />
     </div>
   )
 }

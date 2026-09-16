@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import puzzles from '../puzzles.json'
+import { getPuzzleProgress, savePuzzleProgress } from '../store.js'
 
 const CATEGORIES = [...new Set(puzzles.map((p) => p.category))].sort()
 const DIFFICULTIES = ['easy', 'medium', 'hard']
@@ -29,6 +30,7 @@ export default function Puzzles() {
   const [difficulty, setDifficulty] = useState('all')
   const [expanded, setExpanded] = useState({})
   const [showHint, setShowHint] = useState({})
+  const [progress, setProgress] = useState({})
 
   useEffect(() => {
     fetch('/api/puzzle')
@@ -37,13 +39,17 @@ export default function Puzzles() {
       .catch((e) => setPuzzleError(e.message))
   }, [])
 
+  useEffect(() => { getPuzzleProgress().then(setProgress) }, [])
+
   const daySeed = Math.floor(Date.now() / 86400000)
   const filtered = puzzles.filter((p) => {
     if (category !== 'all' && p.category !== category) return false
     if (difficulty !== 'all' && p.difficulty !== difficulty) return false
     return true
   })
-  const daily = shuffleDaily(filtered, daySeed).slice(0, 5)
+  // "Today's Picks" is seeded from the full bank, not the filtered view, so
+  // changing category/difficulty filters doesn't change what "today" means.
+  const daily = shuffleDaily(puzzles, daySeed).slice(0, 5)
 
   function toggleExpand(id) {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -51,6 +57,12 @@ export default function Puzzles() {
 
   function toggleHint(id) {
     setShowHint((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  function toggleSolved(id) {
+    const next = { ...progress, [id]: !progress[id] }
+    setProgress(next)
+    savePuzzleProgress(next)
   }
 
   return (
@@ -81,7 +93,7 @@ export default function Puzzles() {
       {/* Filters */}
       <div className="section-header">
         <span className="section-title">Today's Picks</span>
-        <span className="meta">{daily.length} of {filtered.length}</span>
+        <span className="meta">{daily.length} picks</span>
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto' }}>
@@ -134,6 +146,14 @@ export default function Puzzles() {
                 <span className="meta">{p.source}</span>
               </div>
             </div>
+            <button
+              className={`btn btn-sm${progress[p.id] ? ' btn-success' : ''}`}
+              onClick={() => toggleSolved(p.id)}
+              style={{ flexShrink: 0 }}
+              title={progress[p.id] ? 'Solved (tap to unmark)' : 'Mark solved'}
+            >
+              {progress[p.id] ? '✓' : '☐'}
+            </button>
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => toggleExpand(p.id)}
@@ -216,6 +236,13 @@ export default function Puzzles() {
                   <span className="chip chip-muted" style={{ fontSize: 11, padding: '1px 8px' }}>{p.category}</span>
                 </div>
               </div>
+              <button
+                className={`btn btn-sm${progress[p.id] ? ' btn-success' : ''}`}
+                onClick={() => toggleSolved(p.id)}
+                title={progress[p.id] ? 'Solved (tap to unmark)' : 'Mark solved'}
+              >
+                {progress[p.id] ? '✓' : '☐'}
+              </button>
               <button className="btn btn-ghost btn-sm" onClick={() => toggleExpand(p.id)}>
                 {expanded[p.id] ? '▲' : '▼'}
               </button>

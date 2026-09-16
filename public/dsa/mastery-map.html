@@ -1609,8 +1609,15 @@
 <script>
 /* ===== Mastery Map cloud sync (Supabase) ===== */
 (function () {
+  // Keep in sync with .env / src/supabaseClient.js — this file can't read import.meta.env.
   var SUPABASE_URL = 'https://pcqumjhiwalqkncnxguh.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjcXVtamhpd2FscWtuY254Z3VoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0MDMzODgsImV4cCI6MjEwNDk3OTM4OH0.Fhkj1jFlrk2oa3-GSerH6sQfnKbMYGEW1LvruYU0IsI';
+  // ponytail: no updatedAt comparison here (unlike src/sync/logic.js's decideSync) —
+  // every local write and every sign-in pull is last-write-wins with no staleness check.
+  // This is a real gap vs. the main app's sync, left as-is: this file can't import
+  // src/sync/logic.js (outside the Vite build) and porting it inline is disproportionate
+  // for this standalone tool. Upgrade path: inline a copy of decideSync's comparison
+  // if this file ever needs real conflict safety.
   var DATA_KEY = 'dsa_mastery_v1';
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var nativeSet = localStorage.setItem.bind(localStorage);
@@ -1638,17 +1645,20 @@
   }
 
   var timer = null;
+  function doPush() {
+    return sb.auth.getUser().then(function (r) {
+      var uid = r.data && r.data.user && r.data.user.id;
+      if (!uid) return;
+      return sb.from('kv_store').upsert({
+        user_id: uid, key: DATA_KEY, value: snapshot(), updated_at: new Date().toISOString(),
+      }).then(function (res) { flash(!res.error); });
+    }).catch(function () { flash(false); });
+  }
   function schedulePush(delay) {
     if (timer) clearTimeout(timer);
     timer = setTimeout(function () {
       timer = null;
-      sb.auth.getUser().then(function (r) {
-        var uid = r.data && r.data.user && r.data.user.id;
-        if (!uid) return;
-        sb.from('kv_store').upsert({
-          user_id: uid, key: DATA_KEY, value: snapshot(), updated_at: new Date().toISOString(),
-        }).then(function (res) { flash(!res.error); }).catch(function () { flash(false); });
-      });
+      doPush();
     }, delay == null ? 700 : delay);
   }
 
@@ -1675,11 +1685,17 @@
             changed = true;
           }
         }
-        if (changed) location.reload();
+        if (changed) {
+          // flush any pending debounced push before reloading, so an edit made
+          // just before sign-in doesn't get torn down by the reload (see plan 0.8)
+          var pending = timer !== null;
+          if (timer) { clearTimeout(timer); timer = null; }
+          (pending ? doPush() : Promise.resolve()).then(function () { location.reload(); });
+        }
       } else {
         schedulePush(0); // nothing in the cloud yet for this account — seed it
       }
-    });
+    }).catch(function () { flash(false); });
   });
 
   localStorage.setItem = function (key, val) { nativeSet(key, val); schedulePush(); };

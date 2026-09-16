@@ -11,8 +11,12 @@ const SIGN = Object.fromEntries(LOAN_ACTIONS.map((a) => [a.id, a.sign]))
 
 export function computeLoanBalances(loans) {
   const balances = {}
+  const displayNames = {} // normalized key -> first-seen display casing
   for (const l of loans) {
-    balances[l.person] = (balances[l.person] || 0) + l.amount * SIGN[l.direction]
+    const norm = l.person.trim().toLowerCase()
+    if (!(norm in displayNames)) displayNames[norm] = l.person.trim()
+    const key = displayNames[norm]
+    balances[key] = (balances[key] || 0) + l.amount * SIGN[l.direction]
   }
   return balances
 }

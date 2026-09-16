@@ -16,10 +16,27 @@ export async function storageAvailable() {
 
 const pushTimers = {}
 
+let syncFailed = false
+const syncListeners = new Set()
+function setSyncStatus(failed) {
+  if (failed === syncFailed) return
+  syncFailed = failed
+  syncListeners.forEach((fn) => fn(failed))
+}
+export function onSyncStatusChange(fn) {
+  syncListeners.add(fn)
+  fn(syncFailed)
+  return () => syncListeners.delete(fn)
+}
+
 function schedulePush(key, delay = 700) {
   clearTimeout(pushTimers[key])
   pushTimers[key] = setTimeout(() => {
-    readLocal(key).then((cur) => cur && pushToCloud(key, cur)).catch(() => {}) // offline/failed push: local write already succeeded, next reconcile retries
+    // offline/failed push: local write already succeeded, next reconcile retries
+    readLocal(key)
+      .then((cur) => cur && pushToCloud(key, cur))
+      .then(() => setSyncStatus(false))
+      .catch(() => setSyncStatus(true))
   }, delay)
 }
 
@@ -58,7 +75,7 @@ export async function reconcileKey(key) {
       .select('value, updated_at')
       .eq('key', key)
       .maybeSingle()
-    if (error) return 'noop'
+    if (error) { setSyncStatus(true); return 'noop' }
     const decision = decideSync(local, row)
     if (decision.action === 'pull') {
       if (local && local.updatedAt === 0) {
@@ -66,10 +83,12 @@ export async function reconcileKey(key) {
       }
       await db.setItem(key, decision.value)
     } else if (decision.action === 'push') await pushToCloud(key, decision.value)
+    setSyncStatus(false)
     return decision.action
   } catch {
     // offline or a transient failure — this key just doesn't reconcile this pass;
     // the next reconcileAll (next app open, or the next realtime event) retries it
+    setSyncStatus(true)
     return 'noop'
   }
 }
@@ -77,7 +96,7 @@ export async function reconcileKey(key) {
 export const SYNCED_KEYS = [
   'settings', 'notes', 'progress', 'expenses', 'budgets', 'goals',
   'examProgress', 'examNotes', 'investProgress', 'watchlist',
-  'tasks', 'reminders', 'habits', 'moodLog', 'loans',
+  'tasks', 'reminders', 'habits', 'moodLog', 'loans', 'puzzleProgress',
 ]
 
 export async function reconcileAll() {
@@ -141,6 +160,13 @@ export async function getExamNotes() {
 }
 export async function saveExamNotes(notes) {
   await saveSynced('examNotes', notes)
+}
+
+export async function getPuzzleProgress() {
+  return await getSynced('puzzleProgress', {})
+}
+export async function savePuzzleProgress(progress) {
+  await saveSynced('puzzleProgress', progress)
 }
 
 export async function getInvestProgress() {

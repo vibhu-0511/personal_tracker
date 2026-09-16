@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getExamProgress, saveExamProgress, getExamNotes, saveExamNotes } from '../store.js'
 
-const EXAMS = [
+export const EXAMS = [
   {
     id: 'cat',
     name: 'CAT',
@@ -154,7 +154,7 @@ export default function Exams() {
           <button
             key={ex.id}
             className={`agent-pill${ex.id === exam.id ? ' active' : ''}`}
-            onClick={() => setExam(ex)}
+            onClick={() => { setExam(ex); setNoteTopic('') }}
           >
             <span className="agent-pill-icon">{ex.icon}</span>
             {ex.name}
@@ -205,7 +205,6 @@ export default function Exams() {
                       <span style={{ textDecoration: checked ? 'line-through' : 'none', opacity: checked ? 0.5 : 1 }}>
                         {topic}
                       </span>
-                      <span className="exam-material-badge">+ material</span>
                     </label>
                   )
                 })}
@@ -229,6 +228,12 @@ export default function Exams() {
           onKeyDown={(e) => e.key === 'Enter' && addNote()}
           style={{ flex: 1 }}
         />
+        <select value={noteTopic} onChange={(e) => setNoteTopic(e.target.value)} style={{ maxWidth: 160 }}>
+          <option value="">General</option>
+          {exam.sections.flatMap((s) => s.topics).map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
         <button className="btn btn-primary btn-sm" onClick={addNote} disabled={!noteText.trim()}>Add</button>
       </div>
 
