@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Today, { solvedToday } from './Today.jsx'
 import Puzzles from './Puzzles.jsx'
 import Exams, { EXAMS } from './Exams.jsx'
-import puzzleBank from '../puzzles.json'
+import { loadPuzzles } from '../puzzles.js'
 import { getProgress, getPuzzleProgress, getExamProgress } from '../store.js'
 
 const VIEWS = [
@@ -19,6 +19,11 @@ const TOTAL_EXAM_TOPICS = EXAMS.reduce(
 export default function LogicBuilding({ cfHandle, syncTicks }) {
   const [view, setView] = useState('code')
   const [glance, setGlance] = useState({ solvedToday: 0, puzzlesSolved: 0, examPct: 0 })
+  const [puzzleCount, setPuzzleCount] = useState(0)
+
+  useEffect(() => {
+    loadPuzzles().then((p) => setPuzzleCount(p.length))
+  }, [])
 
   useEffect(() => {
     Promise.all([getProgress(), getPuzzleProgress(), getExamProgress()]).then(
@@ -42,7 +47,7 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
           <div className="stat-label">Solved today</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{glance.puzzlesSolved}/{puzzleBank.length}</div>
+          <div className="stat-value">{glance.puzzlesSolved}/{puzzleCount}</div>
           <div className="stat-label">Puzzles solved</div>
         </div>
         <div className="stat-card">

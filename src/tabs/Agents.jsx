@@ -4,9 +4,15 @@ import { supabase } from '../supabaseClient.js'
 
 const AGENT_ICONS = { explain: '💡', debug: '🐛', quiz: '🎯' }
 
+// Module-scope, not component state, so the conversation survives a tab
+// switch (Agents unmounts on every tab change) without needing full
+// cross-session persistence — lost only on a page reload.
+let savedAgentId = agents[0].id
+let savedMessages = []
+
 export default function Agents() {
-  const [agent, setAgent] = useState(agents[0])
-  const [messages, setMessages] = useState([])
+  const [agent, setAgent] = useState(agents.find((a) => a.id === savedAgentId) || agents[0])
+  const [messages, setMessages] = useState(savedMessages)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -16,18 +22,18 @@ export default function Agents() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, busy])
 
+  useEffect(() => {
+    savedAgentId = agent.id
+    savedMessages = messages
+  }, [agent, messages])
+
   function switchAgent(id) {
     setAgent(agents.find((a) => a.id === id))
     setMessages([])
     setError('')
   }
 
-  async function send() {
-    const text = input.trim()
-    if (!text || busy) return
-    const next = [...messages, { role: 'user', content: text }]
-    setMessages(next)
-    setInput('')
+  async function sendMessages(next) {
     setBusy(true)
     setError('')
     try {
@@ -46,6 +52,20 @@ export default function Agents() {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function send() {
+    const text = input.trim()
+    if (!text || busy) return
+    const next = [...messages, { role: 'user', content: text }]
+    setMessages(next)
+    setInput('')
+    await sendMessages(next)
+  }
+
+  function retry() {
+    if (busy) return
+    sendMessages(messages)
   }
 
   function handleKeyDown(e) {
@@ -95,7 +115,12 @@ export default function Agents() {
             </div>
           </div>
         )}
-        {error && <div className="banner-warn" style={{ fontSize: 13 }}>{error}</div>}
+        {error && (
+          <div className="banner-warn" style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ flex: 1 }}>{error}</span>
+            <button className="btn btn-ghost btn-sm" onClick={retry} disabled={busy}>Retry</button>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 

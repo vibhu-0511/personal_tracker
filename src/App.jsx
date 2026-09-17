@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import {
   getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey, SYNCED_KEYS,
   onSyncStatusChange, claimOwner, flush,
 } from './store.js'
 import { supabase } from './supabaseClient.js'
 import ToastHost from './Toast.jsx'
-import LogicBuilding from './tabs/LogicBuilding.jsx'
-import Agents from './tabs/Agents.jsx'
-import Expenses from './tabs/Expenses.jsx'
-import Invest from './tabs/Invest.jsx'
-import Life from './tabs/Life.jsx'
+
+const LogicBuilding = lazy(() => import('./tabs/LogicBuilding.jsx'))
+const Agents = lazy(() => import('./tabs/Agents.jsx'))
+const Expenses = lazy(() => import('./tabs/Expenses.jsx'))
+const Invest = lazy(() => import('./tabs/Invest.jsx'))
+const Life = lazy(() => import('./tabs/Life.jsx'))
 
 const TABS = [
   { id: 'Life', icon: '🌱', label: 'Life' },
@@ -274,11 +275,13 @@ export default function App() {
       )}
 
       <main className="content">
-        {tab === 'Life' && <Life syncTick={syncTicks.Life || 0} />}
-        {tab === 'LogicBuilding' && <LogicBuilding cfHandle={settings.cfHandle} syncTicks={syncTicks} />}
-        {tab === 'Expenses' && <Expenses syncTick={syncTicks.Expenses || 0} />}
-        {tab === 'Invest' && <Invest syncTick={syncTicks.Invest || 0} />}
-        {tab === 'Agents' && <Agents />}
+        <Suspense fallback={<div className="loading"><span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" /></div>}>
+          {tab === 'Life' && <Life syncTick={syncTicks.Life || 0} />}
+          {tab === 'LogicBuilding' && <LogicBuilding cfHandle={settings.cfHandle} syncTicks={syncTicks} />}
+          {tab === 'Expenses' && <Expenses syncTick={syncTicks.Expenses || 0} />}
+          {tab === 'Invest' && <Invest syncTick={syncTicks.Invest || 0} />}
+          {tab === 'Agents' && <Agents />}
+        </Suspense>
       </main>
 
       <nav className="tab-bar">

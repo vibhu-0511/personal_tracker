@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react'
-import puzzles from '../puzzles.json'
+import { useEffect, useMemo, useState } from 'react'
+import { loadPuzzles } from '../puzzles.js'
 import { getPuzzleProgress, savePuzzleProgress } from '../store.js'
 import { useHydrate } from '../useHydrate.js'
 
-const CATEGORIES = [...new Set(puzzles.map((p) => p.category))].sort()
 const DIFFICULTIES = ['easy', 'medium', 'hard']
-const SOURCES = [...new Set(puzzles.map((p) => p.source))].sort()
 
 const DIFF_COLORS = {
   easy: 'var(--success)',
@@ -27,6 +25,7 @@ function shuffleDaily(arr, seed) {
 export default function Puzzles({ syncTick = 0 }) {
   const [puzzle, setPuzzle] = useState(null)
   const [puzzleError, setPuzzleError] = useState('')
+  const [puzzles, setPuzzles] = useState([])
   const [category, setCategory] = useState('all')
   const [difficulty, setDifficulty] = useState('all')
   const [expanded, setExpanded] = useState({})
@@ -39,6 +38,12 @@ export default function Puzzles({ syncTick = 0 }) {
       .then((j) => (j.error ? setPuzzleError(j.error) : setPuzzle(j)))
       .catch((e) => setPuzzleError(e.message))
   }, [])
+
+  useEffect(() => {
+    loadPuzzles().then(setPuzzles)
+  }, [])
+
+  const categories = useMemo(() => [...new Set(puzzles.map((p) => p.category))].sort(), [puzzles])
 
   const { error: progressError } = useHydrate([() => getPuzzleProgress().then(setProgress)], [syncTick])
 
@@ -105,7 +110,7 @@ export default function Puzzles({ syncTick = 0 }) {
           style={{ flex: 1, fontSize: 13 }}
         >
           <option value="all">All categories</option>
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
