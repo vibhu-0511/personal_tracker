@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   getExpenses, saveExpenses, getBudgets, saveBudgets, getGoals, saveGoals, getLoans, saveLoans,
   mutateReminders,
 } from '../store.js'
 import { LOAN_ACTIONS, computeLoanBalances } from '../money/logic.js'
-import { showToast } from '../toast.js'
+import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
+import { newId } from '../id.js'
 
 const CATEGORIES = [
   { id: 'food', emoji: '🍔', label: 'Food' },
@@ -79,7 +82,7 @@ function monthTotals(expenses, ts) {
   }
 }
 
-export default function Expenses() {
+export default function Expenses({ syncTick = 0 }) {
   const [expenses, setExpenses] = useState([])
   const [budgets, setBudgets] = useState({})
   const [goals, setGoals] = useState([])
@@ -124,12 +127,16 @@ export default function Expenses() {
 
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    getExpenses().then(setExpenses)
-    getBudgets().then(setBudgets)
-    getGoals().then(setGoals)
-    getLoans().then(setLoans)
-  }, [])
+  const expensesRef = useLatest(expenses)
+  const loansRef = useLatest(loans)
+  const goalsRef = useLatest(goals)
+
+  const { ready, error } = useHydrate([
+    () => getExpenses().then(setExpenses),
+    () => getBudgets().then(setBudgets),
+    () => getGoals().then(setGoals),
+    () => getLoans().then(setLoans),
+  ], [syncTick])
 
   async function persistExpenses(next) {
     setExpenses(next)
@@ -203,7 +210,7 @@ export default function Expenses() {
       } else {
         await persistExpenses([
           {
-            id: Date.now(), amount: val, category: cat, note: note.trim(), date: Date.now(),
+            id: newId(), amount: val, category: cat, note: note.trim(), date: Date.now(),
             type: txnType, person: withPerson,
           },
           ...expenses,
@@ -216,9 +223,7 @@ export default function Expenses() {
   }
 
   async function handleDelete(id) {
-    const prev = expenses
-    await persistExpenses(expenses.filter((e) => e.id !== id))
-    showToast('Entry deleted', { undo: () => persistExpenses(prev) })
+    deleteWithUndo({ list: expenses, id, persist: persistExpenses, ref: expensesRef, label: () => 'Entry deleted' })
   }
 
   async function addLoan() {
@@ -229,12 +234,12 @@ export default function Expenses() {
     setSaving(true)
     try {
       await persistLoans([
-        { id: Date.now(), person: who, amount: val, direction: loanDirection, note: loanNote.trim(), date: Date.now() },
+        { id: newId(), person: who, amount: val, direction: loanDirection, note: loanNote.trim(), date: Date.now() },
         ...loans,
       ])
       if (remindMe) {
         const reminder = {
-          id: String(Date.now() + 1),
+          id: newId(),
           title: `Follow up: ₹${val.toLocaleString('en-IN')} loan with ${who}`,
           at: Date.now() + 7 * 86400000,
           done: false,
@@ -254,9 +259,7 @@ export default function Expenses() {
   }
 
   function deleteLoanEntry(id) {
-    const prev = loans
-    persistLoans(loans.filter((l) => l.id !== id))
-    showToast('Loan entry deleted', { undo: () => persistLoans(prev) })
+    deleteWithUndo({ list: loans, id, persist: persistLoans, ref: loansRef, label: () => 'Loan entry deleted' })
   }
 
   function saveBudgetFor(catId) {
@@ -277,7 +280,7 @@ export default function Expenses() {
     if (!goalName.trim() || !target || target <= 0) return
     setSaving(true)
     try {
-      await persistGoals([...goals, { id: Date.now(), name: goalName.trim(), target, saved: 0, icon: goalIcon }])
+      await persistGoals([...goals, { id: newId(), name: goalName.trim(), target, saved: 0, icon: goalIcon }])
       setShowGoalForm(false)
       setGoalName('')
       setGoalTarget('')
@@ -296,10 +299,22 @@ export default function Expenses() {
   }
 
   function deleteGoal(id) {
-    const goal = goals.find((g) => g.id === id)
-    const prev = goals
-    persistGoals(goals.filter((g) => g.id !== id))
-    if (goal) showToast(`Deleted "${goal.name}"`, { undo: () => persistGoals(prev) })
+    deleteWithUndo({
+      list: goals, id, persist: persistGoals, ref: goalsRef,
+      label: (goal) => `Deleted "${goal.name}"`,
+    })
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">⚠️</div>
+        <div className="empty-text">Couldn't load Money: {error}</div>
+      </div>
+    )
+  }
+  if (!ready) {
+    return <div className="empty-state"><div className="empty-text">Loading…</div></div>
   }
 
   // Computed

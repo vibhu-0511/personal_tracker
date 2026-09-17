@@ -273,10 +273,10 @@ export default function App() {
       )}
 
       <main className="content">
-        {tab === 'Life' && <Life key={syncTicks.Life || 0} />}
+        {tab === 'Life' && <Life syncTick={syncTicks.Life || 0} />}
         {tab === 'LogicBuilding' && <LogicBuilding cfHandle={settings.cfHandle} syncTicks={syncTicks} />}
-        {tab === 'Expenses' && <Expenses key={syncTicks.Expenses || 0} />}
-        {tab === 'Invest' && <Invest key={syncTicks.Invest || 0} />}
+        {tab === 'Expenses' && <Expenses syncTick={syncTicks.Expenses || 0} />}
+        {tab === 'Invest' && <Invest syncTick={syncTicks.Invest || 0} />}
         {tab === 'Agents' && <Agents />}
       </main>
 

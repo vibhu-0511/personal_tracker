@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import puzzles from '../puzzles.json'
 import { getPuzzleProgress, savePuzzleProgress } from '../store.js'
+import { useHydrate } from '../useHydrate.js'
 
 const CATEGORIES = [...new Set(puzzles.map((p) => p.category))].sort()
 const DIFFICULTIES = ['easy', 'medium', 'hard']
@@ -23,7 +24,7 @@ function shuffleDaily(arr, seed) {
   return copy
 }
 
-export default function Puzzles() {
+export default function Puzzles({ syncTick = 0 }) {
   const [puzzle, setPuzzle] = useState(null)
   const [puzzleError, setPuzzleError] = useState('')
   const [category, setCategory] = useState('all')
@@ -39,7 +40,7 @@ export default function Puzzles() {
       .catch((e) => setPuzzleError(e.message))
   }, [])
 
-  useEffect(() => { getPuzzleProgress().then(setProgress) }, [])
+  const { error: progressError } = useHydrate([() => getPuzzleProgress().then(setProgress)], [syncTick])
 
   const daySeed = Math.floor(Date.now() / 86400000)
   const filtered = puzzles.filter((p) => {
@@ -69,6 +70,7 @@ export default function Puzzles() {
     <div className="fade-in">
       {/* Lichess daily */}
       {puzzleError && <div className="banner-warn">Chess puzzle: {puzzleError}</div>}
+      {progressError && <div className="banner-warn">Couldn't load your puzzle progress: {progressError}</div>}
       {!puzzle && !puzzleError && (
         <div className="loading">
           <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />

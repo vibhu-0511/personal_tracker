@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getProgress, markProblem } from '../store.js'
+import { useHydrate } from '../useHydrate.js'
 
 const ALL_TAGS = [
   'dp', 'graphs', 'greedy', 'math', 'data structures', 'binary search',
@@ -36,7 +37,7 @@ function buildUrl(handle, filters) {
   return `/api/cf?${params}`
 }
 
-export default function Today({ cfHandle }) {
+export default function Today({ cfHandle, syncTick = 0 }) {
   const [cf, setCf] = useState(null)
   const [cfError, setCfError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -48,7 +49,7 @@ export default function Today({ cfHandle }) {
   const [ratingMax, setRatingMax] = useState('')
   const [selectedTags, setSelectedTags] = useState([])
 
-  useEffect(() => { getProgress().then(setProgress) }, [])
+  const { error: progressError } = useHydrate([() => getProgress().then(setProgress)], [syncTick])
 
   function fetchProblems(filters) {
     if (!cfHandle) return
@@ -196,6 +197,7 @@ export default function Today({ cfHandle }) {
         </div>
       )}
       {cfError && <div className="banner-warn">{cfError}</div>}
+      {progressError && <div className="banner-warn">Couldn't load your solved progress: {progressError}</div>}
       {loading && (
         <div className="loading">
           <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />

@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { getNotes, saveNotes } from '../store.js'
 import { showToast } from '../toast.js'
+import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
+import { newId } from '../id.js'
 
 const COLORS = ['', 'red', 'orange', 'green', 'blue', 'purple']
 
@@ -179,7 +183,7 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
   )
 }
 
-export default function Notes() {
+export default function Notes({ syncTick = 0 }) {
   const [notes, setNotes] = useState([])
   const [body, setBody] = useState('')
   const [tags, setTags] = useState('')
@@ -192,10 +196,9 @@ export default function Notes() {
   const [expandedIds, setExpandedIds] = useState(new Set())
   const [subComposeFor, setSubComposeFor] = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const notesRef = useLatest(notes)
 
-  useEffect(() => {
-    getNotes().then(setNotes)
-  }, [])
+  const { ready, error } = useHydrate([() => getNotes().then(setNotes)], [syncTick])
 
   async function persist(next) {
     setNotes(next)
@@ -204,7 +207,7 @@ export default function Notes() {
 
   async function addNoteWith(text, tagsStr, noteColor, parentId) {
     const note = {
-      id: String(Date.now()),
+      id: newId(),
       createdAt: Date.now(),
       body: text,
       tags: tagsStr.split(',').map((t) => t.trim()).filter(Boolean),
@@ -276,18 +279,32 @@ export default function Notes() {
       setConfirmDeleteId(id)
       return
     }
-    const prev = notes
-    await persist(notes.filter((n) => n.id !== id))
     if (editingId === id) setEditingId(null)
-    showToast('Note deleted', { undo: () => persist(prev) })
+    deleteWithUndo({ list: notes, id, persist, ref: notesRef, label: () => 'Note deleted' })
   }
 
   async function confirmCascadeDelete(id) {
     const descIds = collectDescendantIds(id, childMap)
     const idsToRemove = new Set([id, ...descIds])
+    const removed = notes.filter((n) => idsToRemove.has(n.id))
     await persist(notes.filter((n) => !idsToRemove.has(n.id)))
     setConfirmDeleteId(null)
     if (editingId && idsToRemove.has(editingId)) setEditingId(null)
+    showToast(`Deleted ${removed.length} note${removed.length !== 1 ? 's' : ''}`, {
+      undo: () => persist([...removed, ...notesRef.current]),
+    })
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">⚠️</div>
+        <div className="empty-text">Couldn't load notes: {error}</div>
+      </div>
+    )
+  }
+  if (!ready) {
+    return <div className="empty-state"><div className="empty-text">Loading…</div></div>
   }
 
   const q = filter.trim().toLowerCase()

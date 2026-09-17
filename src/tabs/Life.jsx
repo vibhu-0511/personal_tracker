@@ -23,7 +23,10 @@ import {
 } from '../life/logic.js'
 import Notes from './Notes.jsx'
 import Checklist from './Checklist.jsx'
-import { showToast } from '../toast.js'
+import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
+import { newId } from '../id.js'
 
 const VIEWS = [
   { id: 'tasks', icon: '✅', label: 'Tasks' },
@@ -64,7 +67,7 @@ async function fireConfetti() {
   confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 }, disableForReducedMotion: true })
 }
 
-export default function Life() {
+export default function Life({ syncTick = 0 }) {
   const [view, setView] = useState('tasks')
   const [tasks, setTasks] = useState([])
   const [reminders, setReminders] = useState([])
@@ -72,22 +75,27 @@ export default function Life() {
   const [moodLog, setMoodLog] = useState([])
   const [now, setNow] = useState(() => new Date())
 
-  useEffect(() => {
-    getTasks().then(setTasks)
-    getReminders().then(setReminders)
-    getHabits().then(setHabits)
-    getMoodLog().then(setMoodLog)
-  }, [])
+  const { ready, error } = useHydrate([
+    () => getTasks().then(setTasks),
+    () => getReminders().then(setReminders),
+    () => getHabits().then(setHabits),
+    () => getMoodLog().then(setMoodLog),
+  ], [syncTick])
 
-  // Auto-derive today's mood entry from habit behavior, once, unless already logged.
+  // Auto-derive today's mood entry from habit behavior, once, unless already
+  // logged. Gated on `ready`: habits and moodLog hydrate from independent
+  // promises, and racing ahead on a partial load (e.g. habits resolved,
+  // moodLog didn't yet) would derive from an empty moodLog and overwrite the
+  // real history.
   useEffect(() => {
+    if (!ready) return
     const next = ensureTodayEntry(moodLog, habits, now)
     if (next !== moodLog) {
       setMoodLog(next)
       saveMoodLog(next)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [habits, now])
+  }, [ready, habits, now])
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
@@ -127,6 +135,18 @@ export default function Life() {
   const tasksDueToday = tasks.filter((t) => !t.done && t.due === dateKey(now)).length
   const remindersDue = reminders.filter((r) => !r.done && r.at <= now.getTime()).length
 
+  if (error) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">⚠️</div>
+        <div className="empty-text">Couldn't load Life: {error}</div>
+      </div>
+    )
+  }
+  if (!ready) {
+    return <div className="empty-state"><div className="empty-text">Loading…</div></div>
+  }
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="fade-in">
@@ -164,8 +184,8 @@ export default function Life() {
         {view === 'growth' && (
           <GrowthView habits={habits} moodLog={moodLog} onMoodLog={updateMoodLog} now={now} />
         )}
-        {view === 'checklist' && <Checklist />}
-        {view === 'notes' && <Notes />}
+        {view === 'checklist' && <Checklist syncTick={syncTick} />}
+        {view === 'notes' && <Notes syncTick={syncTick} />}
       </div>
     </MotionConfig>
   )
@@ -179,13 +199,14 @@ function TasksView({ tasks, onUpdate, now }) {
   const [editTitle, setEditTitle] = useState('')
   const [editDue, setEditDue] = useState('')
   const todayKey = dateKey(now)
+  const tasksRef = useLatest(tasks)
 
   function addTask() {
     const text = quick.trim()
     if (!text) return
     const { title, date, at } = parseQuick(text, now)
     const task = {
-      id: String(Date.now()),
+      id: newId(),
       title: title || text,
       due: date ? dateKey(date) : null,
       dueAt: at ? at.getTime() : null,
@@ -218,10 +239,10 @@ function TasksView({ tasks, onUpdate, now }) {
   }
 
   function remove(id) {
-    const task = tasks.find((t) => t.id === id)
-    const prev = tasks
-    onUpdate(tasks.filter((t) => t.id !== id))
-    if (task) showToast(`Deleted "${task.title}"`, { undo: () => onUpdate(prev) })
+    deleteWithUndo({
+      list: tasks, id, persist: onUpdate, ref: tasksRef,
+      label: (task) => `Deleted "${task.title}"`,
+    })
   }
 
   function startEdit(t) {
@@ -429,6 +450,7 @@ function DoneTaskSection({ items, onToggle, onRemove }) {
 function RemindersView({ reminders, onUpdate, now }) {
   const [quick, setQuick] = useState('')
   const [filter, setFilter] = useState('')
+  const remindersRef = useLatest(reminders)
 
   function addReminder() {
     const text = quick.trim()
@@ -439,7 +461,7 @@ function RemindersView({ reminders, onUpdate, now }) {
       (date ? new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9, 0) : null) ||
       new Date(now.getTime() + 3_600_000)
     const reminder = {
-      id: String(Date.now()),
+      id: newId(),
       title: title || text,
       at: when.getTime(),
       done: false,
@@ -453,10 +475,10 @@ function RemindersView({ reminders, onUpdate, now }) {
     onUpdate(reminders.map((r) => (r.id === id ? { ...r, done: !r.done } : r)))
   }
   function remove(id) {
-    const reminder = reminders.find((r) => r.id === id)
-    const prev = reminders
-    onUpdate(reminders.filter((r) => r.id !== id))
-    if (reminder) showToast(`Deleted "${reminder.title}"`, { undo: () => onUpdate(prev) })
+    deleteWithUndo({
+      list: reminders, id, persist: onUpdate, ref: remindersRef,
+      label: (reminder) => `Deleted "${reminder.title}"`,
+    })
   }
 
   function icsHref(r) {
@@ -570,11 +592,12 @@ function HabitsView({ habits, onUpdate, now }) {
   const [editName, setEditName] = useState('')
   const [editCategory, setEditCategory] = useState('exercise')
   const [editDomain, setEditDomain] = useState('other')
+  const habitsRef = useLatest(habits)
 
   function addHabit() {
     const n = name.trim()
     if (!n) return
-    const habit = { id: String(Date.now()), name: n, category, species, domain, createdAt: Date.now(), checkins: [] }
+    const habit = { id: newId(), name: n, category, species, domain, createdAt: Date.now(), checkins: [] }
     onUpdate([...habits, habit])
     setName('')
     setDomain('other')
@@ -582,10 +605,10 @@ function HabitsView({ habits, onUpdate, now }) {
   }
 
   function removeHabit(id) {
-    const habit = habits.find((h) => h.id === id)
-    const prev = habits
-    onUpdate(habits.filter((h) => h.id !== id))
-    if (habit) showToast(`Deleted "${habit.name}"`, { undo: () => onUpdate(prev) })
+    deleteWithUndo({
+      list: habits, id, persist: onUpdate, ref: habitsRef,
+      label: (habit) => `Deleted "${habit.name}"`,
+    })
   }
 
   function startEditHabit(h) {

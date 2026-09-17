@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { getInvestProgress, saveInvestProgress, getWatchlist, saveWatchlist } from '../store.js'
 import { PHASES, CONTENT, QUIZZES, TASKS, GLOSSARY } from '../invest/course.js'
 import { STOCK_CHECKLIST, MF_CHECKLIST, IPO_CHECKLIST, OSS_TOOLS, LINKS } from '../invest/research.js'
-import { showToast } from '../toast.js'
+import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
+import { newId } from '../id.js'
 
 const ALL_MODS = PHASES.flatMap((p) => p.mods)
 const VIEWS = [
@@ -20,16 +23,16 @@ function isUnlocked(done, id) {
   return !!done[ALL_MODS[i - 1].id]
 }
 
-export default function Invest() {
+export default function Invest({ syncTick = 0 }) {
   const [view, setView] = useState('learn')
   const [progress, setProgress] = useState({ done: {}, quiz: {}, tasks: {}, current: null })
   const [watchlist, setWatchlist] = useState([])
   const [watchIntent, setWatchIntent] = useState(null)
 
-  useEffect(() => {
-    getInvestProgress().then((p) => setProgress({ current: ALL_MODS[0].id, ...p }))
-    getWatchlist().then(setWatchlist)
-  }, [])
+  const { ready, error } = useHydrate([
+    () => getInvestProgress().then((p) => setProgress({ current: ALL_MODS[0].id, ...p })),
+    () => getWatchlist().then(setWatchlist),
+  ], [syncTick])
 
   async function updateProgress(next) {
     setProgress(next)
@@ -39,6 +42,18 @@ export default function Invest() {
   async function updateWatchlist(next) {
     setWatchlist(next)
     await saveWatchlist(next)
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">⚠️</div>
+        <div className="empty-text">Couldn't load Invest: {error}</div>
+      </div>
+    )
+  }
+  if (!ready) {
+    return <div className="empty-state"><div className="empty-text">Loading…</div></div>
   }
 
   return (
@@ -400,6 +415,7 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
   const [navs, setNavs] = useState({})
   const [addType, setAddType] = useState(null)
   const [search, setSearch] = useState('')
+  const itemsRef = useLatest(items)
 
   useEffect(() => {
     if (initialType) {
@@ -452,15 +468,15 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
   }, [items])
 
   async function addItem(item) {
-    await onUpdate([...items, { id: Date.now(), addedAt: Date.now(), note: '', ...item }])
+    await onUpdate([...items, { id: newId(), addedAt: Date.now(), note: '', ...item }])
     setAddType(null)
   }
 
   async function removeItem(id) {
-    const item = items.find((i) => i.id === id)
-    const prev = items
-    await onUpdate(items.filter((i) => i.id !== id))
-    if (item) showToast(`Removed "${item.name}"`, { undo: () => onUpdate(prev) })
+    deleteWithUndo({
+      list: items, id, persist: onUpdate, ref: itemsRef,
+      label: (item) => `Removed "${item.name}"`,
+    })
   }
 
   async function updateNote(id, note) {

@@ -72,9 +72,9 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
         📘 DSA Mastery Map
       </a>
 
-      {view === 'code' && <Today key={syncTicks.Today || 0} cfHandle={cfHandle} />}
-      {view === 'puzzles' && <Puzzles key={syncTicks.Puzzles || 0} />}
-      {view === 'exams' && <Exams key={syncTicks.Exams || 0} />}
+      {view === 'code' && <Today syncTick={syncTicks.Today || 0} cfHandle={cfHandle} />}
+      {view === 'puzzles' && <Puzzles syncTick={syncTicks.Puzzles || 0} />}
+      {view === 'exams' && <Exams syncTick={syncTicks.Exams || 0} />}
     </div>
   )
 }

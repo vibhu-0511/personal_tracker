@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { getChecklists, saveChecklists } from '../store.js'
 import { showToast } from '../toast.js'
+import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
+import { newId } from '../id.js'
 
-export default function Checklist() {
+export default function Checklist({ syncTick = 0 }) {
   const [sections, setSections] = useState([])
   const [expanded, setExpanded] = useState(null)
   const [addingSection, setAddingSection] = useState(false)
@@ -10,10 +14,9 @@ export default function Checklist() {
   const [editingSectionId, setEditingSectionId] = useState(null)
   const [editSectionName, setEditSectionName] = useState('')
   const [itemDrafts, setItemDrafts] = useState({})
+  const sectionsRef = useLatest(sections)
 
-  useEffect(() => {
-    getChecklists().then(setSections)
-  }, [])
+  const { ready, error } = useHydrate([() => getChecklists().then(setSections)], [syncTick])
 
   async function persist(next) {
     setSections(next)
@@ -23,7 +26,7 @@ export default function Checklist() {
   function addSection() {
     const name = newSectionName.trim()
     if (!name) return
-    const section = { id: String(Date.now()), name, createdAt: Date.now(), items: [] }
+    const section = { id: newId(), name, createdAt: Date.now(), items: [] }
     persist([section, ...sections])
     setNewSectionName('')
     setAddingSection(false)
@@ -42,17 +45,17 @@ export default function Checklist() {
   }
 
   function removeSection(id) {
-    const section = sections.find((s) => s.id === id)
-    const prev = sections
-    persist(sections.filter((s) => s.id !== id))
     if (expanded === id) setExpanded(null)
-    if (section) showToast(`Deleted "${section.name}"`, { undo: () => persist(prev) })
+    deleteWithUndo({
+      list: sections, id, persist, ref: sectionsRef,
+      label: (section) => `Deleted "${section.name}"`,
+    })
   }
 
   function addItem(sectionId) {
     const text = (itemDrafts[sectionId] || '').trim()
     if (!text) return
-    const item = { id: String(Date.now()), text, checked: false, createdAt: Date.now() }
+    const item = { id: newId(), text, checked: false, createdAt: Date.now() }
     persist(sections.map((s) => (s.id === sectionId ? { ...s, items: [...s.items, item] } : s)))
     setItemDrafts((d) => ({ ...d, [sectionId]: '' }))
   }
@@ -71,6 +74,18 @@ export default function Checklist() {
     persist(
       sections.map((s) => (s.id === sectionId ? { ...s, items: s.items.filter((i) => i.id !== itemId) } : s))
     )
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">⚠️</div>
+        <div className="empty-text">Couldn't load checklists: {error}</div>
+      </div>
+    )
+  }
+  if (!ready) {
+    return <div className="empty-state"><div className="empty-text">Loading…</div></div>
   }
 
   return (
