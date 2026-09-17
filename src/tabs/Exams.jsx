@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { getExamProgress, saveExamProgress, getExamNotes, saveExamNotes } from '../store.js'
 import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
 import { newId } from '../id.js'
 
 export const EXAMS = [
@@ -98,6 +100,7 @@ export default function Exams({ syncTick = 0 }) {
     () => getExamProgress().then(setProgress),
     () => getExamNotes().then(setNotes),
   ], [syncTick])
+  const notesRef = useLatest(notes)
 
   function topicKey(examId, section, topic) {
     return `${examId}::${section}::${topic}`
@@ -139,10 +142,13 @@ export default function Exams({ syncTick = 0 }) {
     await saveExamNotes(next)
   }
 
-  async function deleteNote(id) {
-    const next = notes.filter((n) => n.id !== id)
+  async function persistNotes(next) {
     setNotes(next)
     await saveExamNotes(next)
+  }
+
+  function deleteNote(id) {
+    deleteWithUndo({ list: notes, id, persist: persistNotes, ref: notesRef, label: () => 'Note deleted' })
   }
 
   if (error) {

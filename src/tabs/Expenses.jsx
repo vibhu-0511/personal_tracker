@@ -4,6 +4,7 @@ import {
   mutateReminders,
 } from '../store.js'
 import { LOAN_ACTIONS, computeLoanBalances } from '../money/logic.js'
+import Sheet from '../Sheet.jsx'
 import { useHydrate } from '../useHydrate.js'
 import { useLatest } from '../useLatest.js'
 import { deleteWithUndo } from '../undo.js'
@@ -25,6 +26,19 @@ const CATEGORIES = [
 ]
 const CAT_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]))
 const GOAL_ICONS = ['🏦', '🏠', '🚗', '✈️', '📱', '🎓', '💍', '🏥', '🎯', '💰']
+const MAX_AMOUNT = 10_000_000
+
+function toDateInputValue(ts) {
+  const d = new Date(ts)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+function fromDateInputValue(str, fallbackTs) {
+  if (!str) return fallbackTs
+  const [y, m, d] = str.split('-').map(Number)
+  const base = new Date(fallbackTs)
+  return new Date(y, m - 1, d, base.getHours(), base.getMinutes(), base.getSeconds()).getTime()
+}
 
 function monthRange(ts) {
   const d = new Date(ts)
@@ -101,6 +115,7 @@ export default function Expenses({ syncTick = 0 }) {
   const [note, setNote] = useState('')
   const [person, setPerson] = useState('')
   const [editId, setEditId] = useState(null)
+  const [txnDate, setTxnDate] = useState(() => toDateInputValue(Date.now()))
 
   const [loans, setLoans] = useState([])
   const [showLoanForm, setShowLoanForm] = useState(false)
@@ -166,7 +181,9 @@ export default function Expenses({ syncTick = 0 }) {
     setViewMonth((prev) => {
       const d = new Date(prev)
       d.setMonth(d.getMonth() + 1)
-      return d.getTime()
+      const next = d.getTime()
+      const { start: thisMonthStart } = monthRange(Date.now())
+      return next > thisMonthStart ? prev : next
     })
   }
 
@@ -177,6 +194,7 @@ export default function Expenses({ syncTick = 0 }) {
     setPerson('')
     setEditId(null)
     setTxnType(type)
+    setTxnDate(toDateInputValue(Date.now()))
     setShowAdd(true)
   }
 
@@ -187,13 +205,14 @@ export default function Expenses({ syncTick = 0 }) {
     setPerson(e.person || '')
     setEditId(e.id)
     setTxnType(e.type || 'expense')
+    setTxnDate(toDateInputValue(e.date))
     setShowAdd(true)
   }
 
   async function handleSave() {
     if (saving) return
     const val = parseFloat(amount)
-    if (!val || val <= 0) return
+    if (!val || val <= 0 || val > MAX_AMOUNT) return
     if (txnType === 'expense' && !category) return
     setSaving(true)
     try {
@@ -203,14 +222,18 @@ export default function Expenses({ syncTick = 0 }) {
         await persistExpenses(
           expenses.map((e) =>
             e.id === editId
-              ? { ...e, amount: val, category: cat, note: note.trim(), type: txnType, person: withPerson }
+              ? {
+                  ...e, amount: val, category: cat, note: note.trim(), type: txnType, person: withPerson,
+                  date: fromDateInputValue(txnDate, e.date),
+                }
               : e
           )
         )
       } else {
         await persistExpenses([
           {
-            id: newId(), amount: val, category: cat, note: note.trim(), date: Date.now(),
+            id: newId(), amount: val, category: cat, note: note.trim(),
+            date: fromDateInputValue(txnDate, Date.now()),
             type: txnType, person: withPerson,
           },
           ...expenses,
@@ -230,7 +253,7 @@ export default function Expenses({ syncTick = 0 }) {
     if (saving) return
     const val = parseFloat(loanAmount)
     const who = loanPerson.trim()
-    if (!val || val <= 0 || !who) return
+    if (!val || val <= 0 || val > MAX_AMOUNT || !who) return
     setSaving(true)
     try {
       await persistLoans([
@@ -262,22 +285,30 @@ export default function Expenses({ syncTick = 0 }) {
     deleteWithUndo({ list: loans, id, persist: persistLoans, ref: loansRef, label: () => 'Loan entry deleted' })
   }
 
-  function saveBudgetFor(catId) {
+  async function saveBudgetFor(catId) {
+    if (saving) return
     const val = parseFloat(budgetAmount)
-    if (!val || val <= 0) {
-      const next = { ...budgets }
-      delete next[catId]
-      persistBudgets(next)
-    } else {
-      persistBudgets({ ...budgets, [catId]: val })
+    if (!val || val <= 0 || val > MAX_AMOUNT) return
+    setSaving(true)
+    try {
+      await persistBudgets({ ...budgets, [catId]: val })
+      setEditBudgetCat(null)
+    } finally {
+      setSaving(false)
     }
+  }
+
+  function removeBudgetFor(catId) {
+    const next = { ...budgets }
+    delete next[catId]
+    persistBudgets(next)
     setEditBudgetCat(null)
   }
 
   async function addGoal() {
     if (saving) return
     const target = parseFloat(goalTarget)
-    if (!goalName.trim() || !target || target <= 0) return
+    if (!goalName.trim() || !target || target <= 0 || target > MAX_AMOUNT) return
     setSaving(true)
     try {
       await persistGoals([...goals, { id: newId(), name: goalName.trim(), target, saved: 0, icon: goalIcon }])
@@ -290,12 +321,18 @@ export default function Expenses({ syncTick = 0 }) {
     }
   }
 
-  function addFunds() {
+  async function addFunds() {
+    if (saving) return
     const val = parseFloat(fundAmount)
-    if (!val || val <= 0 || !fundGoalId) return
-    persistGoals(goals.map((g) => (g.id === fundGoalId ? { ...g, saved: Math.max(0, g.saved + val) } : g)))
-    setFundGoalId(null)
-    setFundAmount('')
+    if (!val || val <= 0 || val > MAX_AMOUNT || !fundGoalId) return
+    setSaving(true)
+    try {
+      await persistGoals(goals.map((g) => (g.id === fundGoalId ? { ...g, saved: Math.max(0, g.saved + val) } : g)))
+      setFundGoalId(null)
+      setFundAmount('')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function deleteGoal(id) {
@@ -640,7 +677,8 @@ export default function Expenses({ syncTick = 0 }) {
                           className="btn btn-ghost btn-sm"
                           onClick={() => openEdit(e)}
                           title="Edit"
-                          style={{ padding: '4px 6px', fontSize: 14 }}
+                          aria-label="Edit"
+                          style={{ padding: '4px 6px', fontSize: 14, minWidth: 44, minHeight: 44 }}
                         >
                           ✏️
                         </button>
@@ -648,7 +686,8 @@ export default function Expenses({ syncTick = 0 }) {
                           className="btn btn-danger-ghost btn-sm"
                           onClick={() => handleDelete(e.id)}
                           title="Delete"
-                          style={{ padding: '4px 6px', fontSize: 14 }}
+                          aria-label="Delete"
+                          style={{ padding: '4px 6px', fontSize: 14, minWidth: 44, minHeight: 44 }}
                         >
                           ×
                         </button>
@@ -736,6 +775,7 @@ export default function Expenses({ syncTick = 0 }) {
                             value={budgetAmount}
                             onChange={(e) => setBudgetAmount(e.target.value)}
                             placeholder="₹"
+                            max={MAX_AMOUNT}
                             style={{ width: 80, padding: '2px 6px', fontSize: 12, textAlign: 'right' }}
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && saveBudgetFor(cat.id)}
@@ -744,9 +784,19 @@ export default function Expenses({ syncTick = 0 }) {
                             className="btn btn-primary btn-sm"
                             style={{ padding: '2px 8px', fontSize: 11 }}
                             onClick={() => saveBudgetFor(cat.id)}
+                            disabled={!budgetAmount || parseFloat(budgetAmount) <= 0 || parseFloat(budgetAmount) > MAX_AMOUNT || saving}
                           >
                             ✓
                           </button>
+                          {budget > 0 && (
+                            <button
+                              className="btn btn-danger-ghost btn-sm"
+                              style={{ padding: '2px 8px', fontSize: 11 }}
+                              onClick={() => removeBudgetFor(cat.id)}
+                            >
+                              Remove
+                            </button>
+                          )}
                           <button
                             className="btn btn-ghost btn-sm"
                             style={{ padding: '2px 8px', fontSize: 11 }}
@@ -800,55 +850,50 @@ export default function Expenses({ syncTick = 0 }) {
             </button>
           </div>
 
-          {showGoalForm && (
-            <>
-              <div className="money-backdrop" onClick={() => setShowGoalForm(false)} />
-              <div className="money-sheet">
-                <div className="h3" style={{ marginBottom: 10 }}>
-                  New Goal
-                </div>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-                  {GOAL_ICONS.map((icon) => (
-                    <button
-                      key={icon}
-                      className={`expense-cat-btn${goalIcon === icon ? ' active' : ''}`}
-                      style={{ padding: 6, width: 40, height: 40 }}
-                      onClick={() => setGoalIcon(icon)}
-                    >
-                      <span style={{ fontSize: 18 }}>{icon}</span>
-                    </button>
-                  ))}
-                </div>
-                <input
-                  placeholder="Goal name"
-                  value={goalName}
-                  onChange={(e) => setGoalName(e.target.value)}
-                  autoFocus
-                  style={{ marginBottom: 8 }}
-                />
-                <input
-                  type="number"
-                  placeholder="Target amount (₹)"
-                  value={goalTarget}
-                  onChange={(e) => setGoalTarget(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addGoal()}
-                />
-                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    style={{ flex: 1 }}
-                    onClick={addGoal}
-                    disabled={!goalName.trim() || !goalTarget || saving}
-                  >
-                    Create
-                  </button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowGoalForm(false)}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+          <Sheet open={showGoalForm} onClose={() => setShowGoalForm(false)}>
+            <div className="h3" style={{ marginBottom: 10 }}>
+              New Goal
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+              {GOAL_ICONS.map((icon) => (
+                <button
+                  key={icon}
+                  className={`expense-cat-btn${goalIcon === icon ? ' active' : ''}`}
+                  style={{ padding: 6, width: 40, height: 40 }}
+                  onClick={() => setGoalIcon(icon)}
+                >
+                  <span style={{ fontSize: 18 }}>{icon}</span>
+                </button>
+              ))}
+            </div>
+            <input
+              placeholder="Goal name"
+              value={goalName}
+              onChange={(e) => setGoalName(e.target.value)}
+              style={{ marginBottom: 8 }}
+            />
+            <input
+              type="number"
+              placeholder="Target amount (₹)"
+              value={goalTarget}
+              onChange={(e) => setGoalTarget(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addGoal()}
+              max={MAX_AMOUNT}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ flex: 1 }}
+                onClick={addGoal}
+                disabled={!goalName.trim() || !goalTarget || parseFloat(goalTarget) > MAX_AMOUNT || saving}
+              >
+                Create
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowGoalForm(false)}>
+                Cancel
+              </button>
+            </div>
+          </Sheet>
 
           {goals.length === 0 && !showGoalForm && (
             <div className="empty-state">
@@ -903,12 +948,13 @@ export default function Expenses({ syncTick = 0 }) {
                       onChange={(e) => setFundAmount(e.target.value)}
                       style={{ flex: 1, fontSize: 13, padding: '6px 10px' }}
                       autoFocus
+                      max={MAX_AMOUNT}
                       onKeyDown={(e) => e.key === 'Enter' && addFunds()}
                     />
                     <button
                       className="btn btn-success btn-sm"
                       onClick={addFunds}
-                      disabled={!fundAmount || parseFloat(fundAmount) <= 0}
+                      disabled={!fundAmount || parseFloat(fundAmount) <= 0 || parseFloat(fundAmount) > MAX_AMOUNT || saving}
                     >
                       + Add
                     </button>
@@ -1032,20 +1078,16 @@ export default function Expenses({ syncTick = 0 }) {
       )}
 
       {/* ─── LOG A LOAN (bottom sheet) ─── */}
-      {showLoanForm && (
-        <>
-          <div className="money-backdrop" onClick={() => setShowLoanForm(false)} />
-          <div className="money-sheet">
-            <div className="h3" style={{ marginBottom: 10 }}>Log a Loan</div>
+      <Sheet open={showLoanForm} onClose={() => setShowLoanForm(false)}>
+        <div className="h3" style={{ marginBottom: 10 }}>Log a Loan</div>
 
-            <input
-              list="loan-person-suggestions"
-              placeholder="Person (e.g. Raj)"
-              value={loanPerson}
-              onChange={(e) => setLoanPerson(e.target.value)}
-              autoFocus
-              style={{ marginBottom: 10 }}
-            />
+        <input
+          list="loan-person-suggestions"
+          placeholder="Person (e.g. Raj)"
+          value={loanPerson}
+          onChange={(e) => setLoanPerson(e.target.value)}
+          style={{ marginBottom: 10 }}
+        />
             <datalist id="loan-person-suggestions">
               {loanPeopleSuggestions.map((p) => (
                 <option key={p} value={p} />
@@ -1059,6 +1101,7 @@ export default function Expenses({ syncTick = 0 }) {
               value={loanAmount}
               onChange={(e) => setLoanAmount(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addLoan()}
+              max={MAX_AMOUNT}
               style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', marginBottom: 10 }}
             />
 
@@ -1093,7 +1136,10 @@ export default function Expenses({ syncTick = 0 }) {
                 className="btn btn-primary btn-sm"
                 style={{ flex: 1 }}
                 onClick={addLoan}
-                disabled={!loanPerson.trim() || !loanAmount || parseFloat(loanAmount) <= 0 || saving}
+                disabled={
+                  !loanPerson.trim() || !loanAmount || parseFloat(loanAmount) <= 0 ||
+                  parseFloat(loanAmount) > MAX_AMOUNT || saving
+                }
               >
                 + Log
               </button>
@@ -1101,15 +1147,10 @@ export default function Expenses({ syncTick = 0 }) {
                 Cancel
               </button>
             </div>
-          </div>
-        </>
-      )}
+      </Sheet>
 
       {/* ─── ADD FORM (bottom sheet) ─── */}
-      {showAdd && (
-        <>
-          <div className="money-backdrop" onClick={() => setShowAdd(false)} />
-          <div className="money-sheet">
+      <Sheet open={showAdd} onClose={() => setShowAdd(false)}>
             <div className="h3" style={{ marginBottom: 10 }}>
               {editId ? 'Edit' : 'Add'} {txnType === 'income' ? 'Income' : 'Expense'}
             </div>
@@ -1149,8 +1190,16 @@ export default function Expenses({ syncTick = 0 }) {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              autoFocus
+              max={MAX_AMOUNT}
               style={{ fontSize: 24, fontWeight: 700, textAlign: 'center', marginBottom: 12 }}
+            />
+
+            <input
+              type="date"
+              value={txnDate}
+              max={toDateInputValue(Date.now())}
+              onChange={(e) => setTxnDate(e.target.value)}
+              style={{ marginBottom: 10, fontSize: 13 }}
             />
 
             {txnType === 'expense' && (
@@ -1200,7 +1249,10 @@ export default function Expenses({ syncTick = 0 }) {
                     : {}),
                 }}
                 onClick={handleSave}
-                disabled={!amount || parseFloat(amount) <= 0 || (txnType === 'expense' && !category) || saving}
+                disabled={
+                  !amount || parseFloat(amount) <= 0 || parseFloat(amount) > MAX_AMOUNT ||
+                  (txnType === 'expense' && !category) || saving
+                }
               >
                 {editId ? 'Save' : txnType === 'income' ? '+ Add Income' : '+ Add Expense'}
               </button>
@@ -1208,9 +1260,7 @@ export default function Expenses({ syncTick = 0 }) {
                 Cancel
               </button>
             </div>
-          </div>
-        </>
-      )}
+      </Sheet>
 
       {/* FAB */}
       {!showAdd && !showLoanForm && view !== 'loans' && (

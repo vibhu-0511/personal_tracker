@@ -415,6 +415,7 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
   const [navs, setNavs] = useState({})
   const [addType, setAddType] = useState(null)
   const [search, setSearch] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
   const itemsRef = useLatest(items)
 
   useEffect(() => {
@@ -430,7 +431,8 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
 
   function fetchQuotes(symbols) {
     if (symbols.length === 0) { setQuotes({}); return }
-    fetch(`/api/quote?symbols=${symbols.join(',')}`)
+    setRefreshing(true)
+    fetch(`/api/quote?symbols=${symbols.join(',')}`, { signal: AbortSignal.timeout(8000) })
       .then((r) => r.json())
       .then((data) => {
         const map = {}
@@ -443,6 +445,7 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
         symbols.forEach((s) => { map[s] = { error: true } })
         setQuotes(map)
       })
+      .finally(() => setRefreshing(false))
   }
 
   useEffect(() => {
@@ -454,7 +457,7 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
     if (mfItems.length === 0) { setNavs({}); return }
     Promise.all(
       mfItems.map((i) =>
-        fetch(`https://api.mfapi.in/mf/${i.schemeCode}/latest`)
+        fetch(`https://api.mfapi.in/mf/${i.schemeCode}/latest`, { signal: AbortSignal.timeout(8000) })
           .then((r) => r.json())
           .then((d) => ({ code: i.schemeCode, nav: d?.data?.[0]?.nav, date: d?.data?.[0]?.date }))
           .catch(() => ({ code: i.schemeCode, error: true }))
@@ -513,8 +516,9 @@ function Watchlist({ items, onUpdate, initialType, onConsumeInitialType }) {
           className="btn btn-ghost btn-sm"
           style={{ marginBottom: 10 }}
           onClick={() => fetchQuotes(stockSymbols)}
+          disabled={refreshing}
         >
-          ↻ Refresh prices
+          {refreshing ? 'Refreshing…' : '↻ Refresh prices'}
         </button>
       )}
 

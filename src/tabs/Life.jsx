@@ -355,7 +355,13 @@ function TaskSection({
                 onChange={(e) => setEditDue(e.target.value)}
                 style={{ width: 140 }}
               />
-              <button className="btn btn-primary btn-sm" onClick={() => onSaveEdit(t.id)}>Save</button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => onSaveEdit(t.id)}
+                disabled={!editTitle.trim()}
+              >
+                Save
+              </button>
               <button className="btn btn-ghost btn-sm" onClick={onCancelEdit}>Cancel</button>
             </motion.div>
           ) : (
@@ -383,6 +389,7 @@ function TaskSection({
               <button
                 className="life-icon-btn"
                 title="Urgent"
+                aria-label="Toggle urgent"
                 style={{ opacity: t.urgent ? 1 : 0.3 }}
                 onClick={() => onToggleFlag(t.id, 'urgent')}
               >
@@ -391,15 +398,16 @@ function TaskSection({
               <button
                 className="life-icon-btn"
                 title="Important"
+                aria-label="Toggle important"
                 style={{ opacity: t.important ? 1 : 0.3 }}
                 onClick={() => onToggleFlag(t.id, 'important')}
               >
                 ⭐
               </button>
-              <button className="life-icon-btn" title="Edit" onClick={() => onStartEdit(t)}>
+              <button className="life-icon-btn" title="Edit" aria-label="Edit" onClick={() => onStartEdit(t)}>
                 ✎
               </button>
-              <button className="life-icon-btn" title="Delete" onClick={() => onRemove(t.id)}>
+              <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => onRemove(t.id)}>
                 🗑️
               </button>
             </motion.div>
@@ -432,11 +440,11 @@ function DoneTaskSection({ items, onToggle, onRemove }) {
               exit={{ opacity: 0 }}
               className="life-row done"
             >
-              <button className="life-check done" onClick={() => onToggle(t.id)}>
+              <button className="life-check done" aria-label="Mark not done" onClick={() => onToggle(t.id)}>
                 ✓
               </button>
               <div className="life-row-title">{t.title}</div>
-              <button className="life-icon-btn" title="Delete" onClick={() => onRemove(t.id)}>
+              <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => onRemove(t.id)}>
                 🗑️
               </button>
             </motion.div>
@@ -542,10 +550,10 @@ function RemindersView({ reminders, onUpdate, now }) {
                 minute: '2-digit',
               })}
             </div>
-            <a className="life-icon-btn" href={icsHref(r)} title="Add to Calendar">
+            <a className="life-icon-btn" href={icsHref(r)} title="Add to Calendar" aria-label="Add to Calendar">
               📅
             </a>
-            <button className="life-icon-btn" title="Delete" onClick={() => remove(r.id)}>
+            <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => remove(r.id)}>
               🗑️
             </button>
           </motion.div>
@@ -566,11 +574,11 @@ function RemindersView({ reminders, onUpdate, now }) {
           <div className="life-section-label">Done ({done.length})</div>
           {done.map((r) => (
             <div key={r.id} className="life-row done">
-              <button className="life-check done" onClick={() => toggle(r.id)}>
+              <button className="life-check done" aria-label="Mark not done" onClick={() => toggle(r.id)}>
                 ✓
               </button>
               <div className="life-row-title">{r.title}</div>
-              <button className="life-icon-btn" title="Delete" onClick={() => remove(r.id)}>
+              <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => remove(r.id)}>
                 🗑️
               </button>
             </div>
@@ -684,7 +692,13 @@ function HabitsView({ habits, onUpdate, now }) {
                     ))}
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-primary btn-sm" onClick={() => saveEditHabit(h.id)}>Save</button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => saveEditHabit(h.id)}
+                      disabled={!editName.trim()}
+                    >
+                      Save
+                    </button>
                     <button className="btn btn-ghost btn-sm" onClick={cancelEditHabit}>Cancel</button>
                   </div>
                 </div>
@@ -702,10 +716,10 @@ function HabitsView({ habits, onUpdate, now }) {
                       {CATEGORY_LABELS[h.category] || CATEGORY_LABELS.custom}
                     </div>
                   </div>
-                  <button className="life-icon-btn" title="Edit habit" onClick={() => startEditHabit(h)}>
+                  <button className="life-icon-btn" title="Edit habit" aria-label="Edit habit" onClick={() => startEditHabit(h)}>
                     ✎
                   </button>
-                  <button className="life-icon-btn" title="Remove habit" onClick={() => removeHabit(h.id)}>
+                  <button className="life-icon-btn" title="Remove habit" aria-label="Remove habit" onClick={() => removeHabit(h.id)}>
                     🗑️
                   </button>
                 </div>

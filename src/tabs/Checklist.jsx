@@ -71,9 +71,18 @@ export default function Checklist({ syncTick = 0 }) {
   }
 
   function removeItem(sectionId, itemId) {
+    const section = sections.find((s) => s.id === sectionId)
+    const item = section?.items.find((i) => i.id === itemId)
     persist(
       sections.map((s) => (s.id === sectionId ? { ...s, items: s.items.filter((i) => i.id !== itemId) } : s))
     )
+    if (item) {
+      showToast(`Deleted "${item.text}"`, {
+        undo: () => persist(
+          sectionsRef.current.map((s) => (s.id === sectionId ? { ...s, items: [item, ...s.items] } : s))
+        ),
+      })
+    }
   }
 
   if (error) {
@@ -111,7 +120,13 @@ export default function Checklist({ syncTick = 0 }) {
                   style={{ flex: 1 }}
                   onKeyDown={(e) => e.key === 'Enter' && saveRename(section.id)}
                 />
-                <button className="btn btn-primary btn-sm" onClick={() => saveRename(section.id)}>Save</button>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => saveRename(section.id)}
+                  disabled={!editSectionName.trim()}
+                >
+                  Save
+                </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditingSectionId(null)}>Cancel</button>
               </div>
             ) : (
@@ -156,7 +171,13 @@ export default function Checklist({ syncTick = 0 }) {
                     style={{ flex: 1 }}
                     onKeyDown={(e) => e.key === 'Enter' && addItem(section.id)}
                   />
-                  <button className="btn btn-primary btn-sm" onClick={() => addItem(section.id)}>Add</button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => addItem(section.id)}
+                    disabled={!(itemDrafts[section.id] || '').trim()}
+                  >
+                    Add
+                  </button>
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>

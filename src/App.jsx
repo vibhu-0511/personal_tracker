@@ -168,7 +168,13 @@ export default function App() {
   }
 
   if (session === undefined || (session && !synced)) {
-    return <div className="app" />
+    return (
+      <div className="app">
+        <div className="loading" style={{ justifyContent: 'center', marginTop: '40vh' }}>
+          <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
+        </div>
+      </div>
+    )
   }
 
   if (!session) {

@@ -92,7 +92,13 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
             />
             <ColorPicker value={ctx.editColor} onChange={ctx.setEditColor} />
             <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-              <button className="btn btn-primary btn-sm" onClick={() => ctx.saveEdit(note.id)}>Save</button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => ctx.saveEdit(note.id)}
+                disabled={!ctx.editBody.trim()}
+              >
+                Save
+              </button>
               <button className="btn btn-ghost btn-sm" onClick={ctx.cancelEdit}>Cancel</button>
             </div>
           </>
