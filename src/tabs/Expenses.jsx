@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   getExpenses, saveExpenses, getBudgets, saveBudgets, getGoals, saveGoals, getLoans, saveLoans,
-  getReminders, saveReminders,
+  mutateReminders,
 } from '../store.js'
 import { LOAN_ACTIONS, computeLoanBalances } from '../money/logic.js'
 import { showToast } from '../toast.js'
@@ -233,7 +233,6 @@ export default function Expenses() {
         ...loans,
       ])
       if (remindMe) {
-        const reminders = await getReminders()
         const reminder = {
           id: String(Date.now() + 1),
           title: `Follow up: ₹${val.toLocaleString('en-IN')} loan with ${who}`,
@@ -241,7 +240,7 @@ export default function Expenses() {
           done: false,
           createdAt: Date.now(),
         }
-        await saveReminders([...reminders, reminder].sort((a, b) => a.at - b.at))
+        await mutateReminders((reminders) => [...reminders, reminder].sort((a, b) => a.at - b.at))
       }
       setLoanPerson('')
       setLoanAmount('')

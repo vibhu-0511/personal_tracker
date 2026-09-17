@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey, SYNCED_KEYS,
-  onSyncStatusChange,
+  onSyncStatusChange, claimOwner, flush,
 } from './store.js'
 import { supabase } from './supabaseClient.js'
 import ToastHost from './Toast.jsx'
@@ -60,6 +60,16 @@ export default function App() {
   useEffect(() => onSyncStatusChange(setSyncFailed), [])
 
   useEffect(() => {
+    const onVisibility = () => { if (document.visibilityState === 'hidden') flush() }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('beforeunload', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('beforeunload', flush)
+    }
+  }, [])
+
+  useEffect(() => {
     supabase.auth.getSession()
       .then(({ data }) => setSession(data.session))
       .catch((err) => setInitError(err.message || 'Failed to load session'))
@@ -75,7 +85,8 @@ export default function App() {
     if (!userId) { setSynced(false); return }
     let cancelled = false
 
-    reconcileAll()
+    claimOwner(userId)
+      .then(() => reconcileAll())
       .then(() => getSettings())
       .then((s) => {
         if (cancelled) return
