@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import agents from '../agents.json'
+import { supabase } from '../supabaseClient.js'
 
 const AGENT_ICONS = { explain: '💡', debug: '🐛', quiz: '🎯' }
 
@@ -30,9 +31,11 @@ export default function Agents() {
     setBusy(true)
     setError('')
     try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
       const r = await fetch('/api/agent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ systemPrompt: agent.systemPrompt, messages: next }),
       })
       const j = await r.json()

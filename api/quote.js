@@ -39,7 +39,10 @@ export default async function handler(req, res) {
   const errors = []
   results.forEach((r, i) => {
     if (r.status === 'fulfilled') quotes.push(r.value)
-    else errors.push({ symbol: symbols[i], error: String(r.reason?.message || r.reason) })
+    else {
+      console.error('quote fetch error', symbols[i], r.reason)
+      errors.push({ symbol: symbols[i], error: 'Price unavailable' })
+    }
   })
 
   res.status(200).json({ quotes, errors })

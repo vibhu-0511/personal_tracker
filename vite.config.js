@@ -40,7 +40,8 @@ function apiDevPlugin() {
           const mod = await loadApiModule(server, name)
           await mod.default(req, res)
         } catch (err) {
-          res.status(500).json({ error: String((err && err.message) || err) })
+          console.error(`api/${name} dev handler error`, err)
+          res.status(500).json({ error: 'Internal error' })
         }
       })
   }

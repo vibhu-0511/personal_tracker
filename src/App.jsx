@@ -145,13 +145,11 @@ export default function App() {
     await saveSettings(next)
   }
 
-  async function handleAuth(mode) {
+  async function handleAuth() {
     setAuthError('')
     setAuthBusy(true)
     try {
-      const { error } = mode === 'signup'
-        ? await supabase.auth.signUp({ email: authEmail.trim(), password: authPassword })
-        : await supabase.auth.signInWithPassword({ email: authEmail.trim(), password: authPassword })
+      const { error } = await supabase.auth.signInWithPassword({ email: authEmail.trim(), password: authPassword })
       if (error) setAuthError(error.message)
     } catch (err) {
       setAuthError(err.message || 'Sign-in failed')
@@ -196,17 +194,14 @@ export default function App() {
             value={authPassword}
             onChange={(e) => setAuthPassword(e.target.value)}
             style={{ marginTop: 4 }}
-            onKeyDown={(e) => e.key === 'Enter' && handleAuth('signin')}
+            onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
           />
           {authError && (
             <div className="meta" style={{ color: 'var(--danger)', marginTop: 8 }}>{authError}</div>
           )}
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button className="btn btn-primary btn-sm" disabled={authBusy} onClick={() => handleAuth('signin')}>
+            <button className="btn btn-primary btn-sm" disabled={authBusy} onClick={() => handleAuth()}>
               Sign in
-            </button>
-            <button className="btn btn-ghost btn-sm" disabled={authBusy} onClick={() => handleAuth('signup')}>
-              Sign up
             </button>
           </div>
         </div>

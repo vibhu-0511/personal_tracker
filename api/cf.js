@@ -1,22 +1,38 @@
 import { pickProblems } from './_lib/pickProblems.js'
 
+// Codeforces' own comment (e.g. "handles: User with handle X not found") is a
+// short, user-facing string worth showing as-is — unlike a raw fetch/parse
+// exception, which shouldn't reach the client.
+class CFApiError extends Error {}
+
 async function cfGet(path) {
   const r = await fetch(`https://codeforces.com/api/${path}`)
   const j = await r.json()
-  if (j.status !== 'OK') throw new Error(j.comment || `Codeforces error on ${path}`)
+  if (j.status !== 'OK') throw new CFApiError(j.comment || `Codeforces error on ${path}`)
   return j.result
 }
 
 let problemsCache = null
 
+function toFiniteOrUndefined(v) {
+  if (v === undefined || v === '') return undefined
+  const n = Number(v)
+  return Number.isFinite(n) ? n : undefined
+}
+
+function toNonNegativeInt(v, fallback) {
+  const n = Number(v)
+  return Number.isInteger(n) && n >= 0 ? n : fallback
+}
+
 export default async function handler(req, res) {
   const handle = (req.query.handle || '').trim()
   if (!handle) return res.status(400).json({ error: 'handle required' })
 
-  const ratingMin = req.query.ratingMin ? Number(req.query.ratingMin) : undefined
-  const ratingMax = req.query.ratingMax ? Number(req.query.ratingMax) : undefined
+  const ratingMin = toFiniteOrUndefined(req.query.ratingMin)
+  const ratingMax = toFiniteOrUndefined(req.query.ratingMax)
   const tags = req.query.tags ? req.query.tags.split(',').map((t) => t.trim()).filter(Boolean) : undefined
-  const page = req.query.page ? Number(req.query.page) : 0
+  const page = req.query.page ? toNonNegativeInt(req.query.page, 0) : 0
 
   const h = encodeURIComponent(handle)
   try {
@@ -60,6 +76,8 @@ export default async function handler(req, res) {
       page,
     })
   } catch (e) {
-    res.status(502).json({ error: String((e && e.message) || e) })
+    if (e instanceof CFApiError) return res.status(502).json({ error: e.message })
+    console.error('cf handler error', e)
+    res.status(502).json({ error: 'Could not reach Codeforces' })
   }
 }
