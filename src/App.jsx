@@ -35,7 +35,7 @@ const KEY_TO_TAB = {
   expenses: 'Expenses', budgets: 'Expenses', goals: 'Expenses', loans: 'Expenses',
   examProgress: 'Exams', examNotes: 'Exams',
   investProgress: 'Invest', watchlist: 'Invest',
-  tasks: 'Life', reminders: 'Life', habits: 'Life', moodLog: 'Life', notes: 'Life',
+  tasks: 'Life', reminders: 'Life', habits: 'Life', moodLog: 'Life', notes: 'Life', checklists: 'Life',
   puzzleProgress: 'Puzzles',
 }
 

@@ -96,7 +96,7 @@ export async function reconcileKey(key) {
 export const SYNCED_KEYS = [
   'settings', 'notes', 'progress', 'expenses', 'budgets', 'goals',
   'examProgress', 'examNotes', 'investProgress', 'watchlist',
-  'tasks', 'reminders', 'habits', 'moodLog', 'loans', 'puzzleProgress',
+  'tasks', 'reminders', 'habits', 'moodLog', 'loans', 'puzzleProgress', 'checklists',
 ]
 
 export async function reconcileAll() {
@@ -216,4 +216,11 @@ export async function getLoans() {
 }
 export async function saveLoans(loans) {
   await saveSynced('loans', loans)
+}
+
+export async function getChecklists() {
+  return await getSynced('checklists', [])
+}
+export async function saveChecklists(checklists) {
+  await saveSynced('checklists', checklists)
 }

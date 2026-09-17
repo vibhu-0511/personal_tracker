@@ -22,6 +22,7 @@ import {
   emotionSummary,
 } from '../life/logic.js'
 import Notes from './Notes.jsx'
+import Checklist from './Checklist.jsx'
 import { showToast } from '../toast.js'
 
 const VIEWS = [
@@ -29,8 +30,32 @@ const VIEWS = [
   { id: 'reminders', icon: '⏰', label: 'Reminders' },
   { id: 'habits', icon: '🐾', label: 'Habits' },
   { id: 'growth', icon: '🌟', label: 'Growth' },
+  { id: 'checklist', icon: '☑️', label: 'Checklist' },
   { id: 'notes', icon: '📝', label: 'Notes' },
 ]
+
+const URGENCY_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'urgent', label: 'Urgent' },
+  { id: 'important', label: 'Important' },
+  { id: 'not-important', label: 'Not important' },
+  { id: 'extras', label: 'Extras' },
+]
+
+function quadrantLabel(t) {
+  if (t.urgent && t.important) return { label: 'Urgent', cls: 'chip' }
+  if (t.important) return { label: 'Important', cls: 'chip' }
+  if (t.urgent) return { label: 'Not important', cls: 'chip-muted' }
+  return null
+}
+
+function matchesUrgency(t, f) {
+  if (f === 'urgent') return t.urgent && t.important
+  if (f === 'important') return t.important && !t.urgent
+  if (f === 'not-important') return t.urgent && !t.important
+  if (f === 'extras') return !t.urgent && !t.important
+  return true
+}
 
 const SPECIES = ['🐶', '🐱', '🐰', '🦊', '🐼', '🐧', '🐉']
 
@@ -139,6 +164,7 @@ export default function Life() {
         {view === 'growth' && (
           <GrowthView habits={habits} moodLog={moodLog} onMoodLog={updateMoodLog} now={now} />
         )}
+        {view === 'checklist' && <Checklist />}
         {view === 'notes' && <Notes />}
       </div>
     </MotionConfig>
@@ -148,6 +174,7 @@ export default function Life() {
 function TasksView({ tasks, onUpdate, now }) {
   const [quick, setQuick] = useState('')
   const [filter, setFilter] = useState('')
+  const [urgencyFilter, setUrgencyFilter] = useState('all')
   const [editingId, setEditingId] = useState(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDue, setEditDue] = useState('')
@@ -165,9 +192,15 @@ function TasksView({ tasks, onUpdate, now }) {
       done: false,
       doneAt: null,
       createdAt: Date.now(),
+      urgent: false,
+      important: false,
     }
     onUpdate([task, ...tasks])
     setQuick('')
+  }
+
+  function toggleFlag(id, flag) {
+    onUpdate(tasks.map((t) => (t.id === id ? { ...t, [flag]: !t[flag] } : t)))
   }
 
   async function toggle(id) {
@@ -207,7 +240,8 @@ function TasksView({ tasks, onUpdate, now }) {
   }
 
   const q = filter.trim().toLowerCase()
-  const visible = q ? tasks.filter((t) => t.title.toLowerCase().includes(q)) : tasks
+  let visible = q ? tasks.filter((t) => t.title.toLowerCase().includes(q)) : tasks
+  if (urgencyFilter !== 'all') visible = visible.filter((t) => matchesUrgency(t, urgencyFilter))
 
   const overdue = visible.filter((t) => !t.done && t.due && t.due < todayKey)
   const dueToday = visible.filter((t) => !t.done && t.due === todayKey)
@@ -237,18 +271,32 @@ function TasksView({ tasks, onUpdate, now }) {
       </div>
 
       {tasks.length > 0 && (
-        <input
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder="🔍 Filter tasks..."
-          style={{ marginBottom: 12 }}
-        />
+        <>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+            {URGENCY_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                className={`chip${urgencyFilter === f.id ? '' : ' chip-muted'}`}
+                style={{ cursor: 'pointer', border: 'none' }}
+                onClick={() => setUrgencyFilter(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <input
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="🔍 Filter tasks..."
+            style={{ marginBottom: 12 }}
+          />
+        </>
       )}
 
-      <TaskSection label="Overdue" items={overdue} overdue {...editProps} onToggle={toggle} onRemove={remove} />
-      <TaskSection label="Today" items={dueToday} {...editProps} onToggle={toggle} onRemove={remove} />
-      <TaskSection label="Upcoming" items={upcoming} {...editProps} onToggle={toggle} onRemove={remove} />
-      <TaskSection label="No date" items={noDate} {...editProps} onToggle={toggle} onRemove={remove} />
+      <TaskSection label="Overdue" items={overdue} overdue {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+      <TaskSection label="Today" items={dueToday} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+      <TaskSection label="Upcoming" items={upcoming} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+      <TaskSection label="No date" items={noDate} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
       {done.length > 0 && <DoneTaskSection items={done} onToggle={toggle} onRemove={remove} />}
 
       {visible.length === 0 && (
@@ -262,7 +310,7 @@ function TasksView({ tasks, onUpdate, now }) {
 }
 
 function TaskSection({
-  label, items, overdue, onToggle, onRemove,
+  label, items, overdue, onToggle, onRemove, onToggleFlag,
   editingId, editTitle, setEditTitle, editDue, setEditDue, onStartEdit, onSaveEdit, onCancelEdit,
 }) {
   if (items.length === 0) return null
@@ -300,12 +348,33 @@ function TaskSection({
             >
               <button className="life-check" onClick={() => onToggle(t.id)} aria-label="Mark done" />
               <div className="life-row-title">{t.title}</div>
+              {quadrantLabel(t) && (
+                <span className={quadrantLabel(t).cls} style={{ flexShrink: 0 }}>
+                  {quadrantLabel(t).label}
+                </span>
+              )}
               {t.due && (
                 <div className="life-row-due">
                   {t.due}
                   {t.dueAt && ` · ${new Date(t.dueAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`}
                 </div>
               )}
+              <button
+                className="life-icon-btn"
+                title="Urgent"
+                style={{ opacity: t.urgent ? 1 : 0.3 }}
+                onClick={() => onToggleFlag(t.id, 'urgent')}
+              >
+                🔥
+              </button>
+              <button
+                className="life-icon-btn"
+                title="Important"
+                style={{ opacity: t.important ? 1 : 0.3 }}
+                onClick={() => onToggleFlag(t.id, 'important')}
+              >
+                ⭐
+              </button>
               <button className="life-icon-btn" title="Edit" onClick={() => onStartEdit(t)}>
                 ✎
               </button>
