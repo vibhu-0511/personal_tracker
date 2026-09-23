@@ -22,7 +22,7 @@ function shuffleDaily(arr, seed) {
   return copy
 }
 
-export default function Puzzles({ syncTick = 0 }) {
+export default function Puzzles({ syncTick = 0, onChange }) {
   const [puzzle, setPuzzle] = useState(null)
   const [puzzleError, setPuzzleError] = useState('')
   const [puzzles, setPuzzles] = useState([])
@@ -68,7 +68,7 @@ export default function Puzzles({ syncTick = 0 }) {
   function toggleSolved(id) {
     const next = { ...progress, [id]: !progress[id] }
     setProgress(next)
-    savePuzzleProgress(next)
+    savePuzzleProgress(next).then(() => onChange?.())
   }
 
   return (

@@ -20,6 +20,8 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
   const [view, setView] = useState('code')
   const [glance, setGlance] = useState({ solvedToday: 0, puzzlesSolved: 0, examPct: 0 })
   const [puzzleCount, setPuzzleCount] = useState(0)
+  const [localTick, setLocalTick] = useState(0)
+  const bump = () => setLocalTick((t) => t + 1)
 
   useEffect(() => {
     loadPuzzles().then((p) => setPuzzleCount(p.length))
@@ -37,7 +39,7 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
         })
       }
     )
-  }, [syncTicks.Today, syncTicks.Puzzles, syncTicks.Exams])
+  }, [syncTicks.Today, syncTicks.Puzzles, syncTicks.Exams, localTick])
 
   return (
     <div>
@@ -77,9 +79,9 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
         📘 DSA Mastery Map
       </a>
 
-      {view === 'code' && <Today syncTick={syncTicks.Today || 0} cfHandle={cfHandle} />}
-      {view === 'puzzles' && <Puzzles syncTick={syncTicks.Puzzles || 0} />}
-      {view === 'exams' && <Exams syncTick={syncTicks.Exams || 0} />}
+      {view === 'code' && <Today syncTick={syncTicks.Today || 0} cfHandle={cfHandle} onChange={bump} />}
+      {view === 'puzzles' && <Puzzles syncTick={syncTicks.Puzzles || 0} onChange={bump} />}
+      {view === 'exams' && <Exams syncTick={syncTicks.Exams || 0} onChange={bump} />}
     </div>
   )
 }

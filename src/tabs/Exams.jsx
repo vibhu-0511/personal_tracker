@@ -88,7 +88,7 @@ export const EXAMS = [
   },
 ]
 
-export default function Exams({ syncTick = 0 }) {
+export default function Exams({ syncTick = 0, onChange }) {
   const [exam, setExam] = useState(EXAMS[0])
   const [progress, setProgress] = useState({})
   const [notes, setNotes] = useState([])
@@ -111,6 +111,7 @@ export default function Exams({ syncTick = 0 }) {
     const next = { ...progress, [key]: !progress[key] }
     setProgress(next)
     await saveExamProgress(next)
+    onChange?.()
   }
 
   function sectionProgress(examId, section) {

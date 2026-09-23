@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'motion/react'
 import {
   getTasks, saveTasks, getReminders, saveReminders, getHabits, saveHabits, getMoodLog, saveMoodLog,
+  getChecklists, saveChecklists,
 } from '../store.js'
+import { showToast } from '../toast.js'
 import {
   dateKey,
   streaks,
@@ -22,20 +24,24 @@ import {
   emotionSummary,
 } from '../life/logic.js'
 import Notes from './Notes.jsx'
-import Checklist from './Checklist.jsx'
 import { useHydrate } from '../useHydrate.js'
 import { useLatest } from '../useLatest.js'
 import { deleteWithUndo } from '../undo.js'
 import { newId } from '../id.js'
 
 const VIEWS = [
-  { id: 'tasks', icon: '✅', label: 'Tasks' },
-  { id: 'reminders', icon: '⏰', label: 'Reminders' },
-  { id: 'habits', icon: '🐾', label: 'Habits' },
-  { id: 'growth', icon: '🌟', label: 'Growth' },
-  { id: 'checklist', icon: '☑️', label: 'Checklist' },
-  { id: 'notes', icon: '📝', label: 'Notes' },
+  { id: 'planning', icon: '🗂️', label: 'Planning', children: [
+    { id: 'tasks', icon: '✅', label: 'Tasks' },
+    { id: 'reminders', icon: '⏰', label: 'Reminders' },
+    { id: 'notes', icon: '📝', label: 'Notes' },
+  ] },
+  { id: 'wellbeing', icon: '🌱', label: 'Wellbeing', children: [
+    { id: 'habits', icon: '🐾', label: 'Habits' },
+    { id: 'growth', icon: '🌟', label: 'Growth' },
+  ] },
 ]
+
+const activeGroup = (view) => VIEWS.find((g) => g.children.some((c) => c.id === view))
 
 const URGENCY_FILTERS = [
   { id: 'all', label: 'All' },
@@ -97,6 +103,26 @@ export default function Life({ syncTick = 0 }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, habits, now])
 
+  // One-time merge of legacy checklists into tasks (as subtasks). Tasks are
+  // saved before checklists are cleared; stable ids make a re-run a no-op.
+  const tasksLatest = useLatest(tasks)
+  useEffect(() => {
+    if (!ready) return
+    getChecklists().then(async (sections) => {
+      if (!sections.length) return
+      const have = new Set(tasksLatest.current.map((t) => t.id))
+      const added = sections
+        .filter((s) => !have.has(s.id))
+        .map((s) => ({
+          id: s.id, title: s.name, due: null, dueAt: null, done: false, doneAt: null,
+          createdAt: s.createdAt, urgent: false, important: false, subtasks: s.items,
+        }))
+      if (added.length) await updateTasks([...added, ...tasksLatest.current])
+      await saveChecklists([])
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
+
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
     return () => clearInterval(id)
@@ -147,6 +173,8 @@ export default function Life({ syncTick = 0 }) {
     return <div className="empty-state"><div className="empty-text">Loading…</div></div>
   }
 
+  const group = activeGroup(view)
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="fade-in">
@@ -166,7 +194,19 @@ export default function Life({ syncTick = 0 }) {
         </div>
 
         <div className="agent-bar">
-          {VIEWS.map((v) => (
+          {VIEWS.map((g) => (
+            <button
+              key={g.id}
+              className={`agent-pill${group === g ? ' active' : ''}`}
+              onClick={() => group !== g && setView(g.children[0].id)}
+            >
+              <span className="agent-pill-icon">{g.icon}</span>
+              {g.label}
+            </button>
+          ))}
+        </div>
+        <div className="agent-bar">
+          {group.children.map((v) => (
             <button
               key={v.id}
               className={`agent-pill${view === v.id ? ' active' : ''}`}
@@ -184,7 +224,6 @@ export default function Life({ syncTick = 0 }) {
         {view === 'growth' && (
           <GrowthView habits={habits} moodLog={moodLog} onMoodLog={updateMoodLog} now={now} />
         )}
-        {view === 'checklist' && <Checklist syncTick={syncTick} />}
         {view === 'notes' && <Notes syncTick={syncTick} />}
       </div>
     </MotionConfig>
@@ -198,6 +237,8 @@ function TasksView({ tasks, onUpdate, now }) {
   const [editingId, setEditingId] = useState(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDue, setEditDue] = useState('')
+  const [newUrgent, setNewUrgent] = useState(false)
+  const [newImportant, setNewImportant] = useState(false)
   const todayKey = dateKey(now)
   const tasksRef = useLatest(tasks)
 
@@ -213,11 +254,13 @@ function TasksView({ tasks, onUpdate, now }) {
       done: false,
       doneAt: null,
       createdAt: Date.now(),
-      urgent: false,
-      important: false,
+      urgent: newUrgent,
+      important: newImportant,
     }
     onUpdate([task, ...tasks])
     setQuick('')
+    setNewUrgent(false)
+    setNewImportant(false)
   }
 
   function toggleFlag(id, flag) {
@@ -243,6 +286,21 @@ function TasksView({ tasks, onUpdate, now }) {
       list: tasks, id, persist: onUpdate, ref: tasksRef,
       label: (task) => `Deleted "${task.title}"`,
     })
+  }
+
+  function setSubtasks(id, subtasks) {
+    onUpdate(tasks.map((t) => (t.id === id ? { ...t, subtasks } : t)))
+  }
+  function removeSubtask(id, subId) {
+    const item = tasks.find((t) => t.id === id)?.subtasks?.find((s) => s.id === subId)
+    onUpdate(tasks.map((t) => (t.id === id ? { ...t, subtasks: t.subtasks.filter((s) => s.id !== subId) } : t)))
+    if (item) {
+      showToast(`Deleted "${item.text}"`, {
+        undo: () => onUpdate(
+          tasksRef.current.map((t) => (t.id === id ? { ...t, subtasks: [item, ...(t.subtasks || [])] } : t))
+        ),
+      })
+    }
   }
 
   function startEdit(t) {
@@ -275,6 +333,7 @@ function TasksView({ tasks, onUpdate, now }) {
   const editProps = {
     editingId, editTitle, setEditTitle, editDue, setEditDue,
     onStartEdit: startEdit, onSaveEdit: saveEdit, onCancelEdit: cancelEdit,
+    onSubtasks: setSubtasks, onRemoveSubtask: removeSubtask,
   }
 
   return (
@@ -286,6 +345,24 @@ function TasksView({ tasks, onUpdate, now }) {
           placeholder='Add a task… "gym tomorrow 5pm"'
           onKeyDown={(e) => e.key === 'Enter' && addTask()}
         />
+        <button
+          className="life-icon-btn"
+          title="Urgent"
+          aria-label="New task urgent"
+          style={{ opacity: newUrgent ? 1 : 0.3 }}
+          onClick={() => setNewUrgent((v) => !v)}
+        >
+          🔥
+        </button>
+        <button
+          className="life-icon-btn"
+          title="Important"
+          aria-label="New task important"
+          style={{ opacity: newImportant ? 1 : 0.3 }}
+          onClick={() => setNewImportant((v) => !v)}
+        >
+          ⭐
+        </button>
         <button className="btn btn-primary btn-sm" onClick={addTask} disabled={!quick.trim()}>
           Add
         </button>
@@ -333,8 +410,18 @@ function TasksView({ tasks, onUpdate, now }) {
 function TaskSection({
   label, items, overdue, onToggle, onRemove, onToggleFlag,
   editingId, editTitle, setEditTitle, editDue, setEditDue, onStartEdit, onSaveEdit, onCancelEdit,
+  onSubtasks, onRemoveSubtask,
 }) {
+  const [open, setOpen] = useState({})
+  const [drafts, setDrafts] = useState({})
   if (items.length === 0) return null
+
+  function addSub(t) {
+    const text = (drafts[t.id] || '').trim()
+    if (!text) return
+    onSubtasks(t.id, [...(t.subtasks || []), { id: newId(), text, checked: false, createdAt: Date.now() }])
+    setDrafts((d) => ({ ...d, [t.id]: '' }))
+  }
   return (
     <>
       <div className="life-section-label">{label}</div>
@@ -371,8 +458,8 @@ function TaskSection({
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: 40 }}
-              className={`life-row${overdue ? ' overdue' : ''}`}
             >
+            <div className={`life-row${overdue ? ' overdue' : ''}`}>
               <button className="life-check" onClick={() => onToggle(t.id)} aria-label="Mark done" />
               <div className="life-row-title">{t.title}</div>
               {quadrantLabel(t) && (
@@ -404,12 +491,55 @@ function TaskSection({
               >
                 ⭐
               </button>
+              <button
+                className="life-icon-btn"
+                title="Subtasks"
+                aria-label="Toggle subtasks"
+                style={{ opacity: t.subtasks?.length ? 1 : 0.4, fontSize: 12 }}
+                onClick={() => setOpen((o) => ({ ...o, [t.id]: !o[t.id] }))}
+              >
+                {t.subtasks?.length ? `${t.subtasks.filter((s) => s.checked).length}/${t.subtasks.length}` : '☰'} {open[t.id] ? '▴' : '▾'}
+              </button>
               <button className="life-icon-btn" title="Edit" aria-label="Edit" onClick={() => onStartEdit(t)}>
                 ✎
               </button>
               <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => onRemove(t.id)}>
                 🗑️
               </button>
+            </div>
+            {open[t.id] && (
+              <div style={{ padding: '2px 12px 10px 40px' }}>
+                {(t.subtasks || []).map((s) => (
+                  <div key={s.id} className="exam-topic-row">
+                    <input
+                      type="checkbox"
+                      checked={s.checked}
+                      onChange={() =>
+                        onSubtasks(t.id, t.subtasks.map((x) => (x.id === s.id ? { ...x, checked: !x.checked } : x)))
+                      }
+                    />
+                    <span style={{ flex: 1, textDecoration: s.checked ? 'line-through' : 'none', opacity: s.checked ? 0.5 : 1 }}>
+                      {s.text}
+                    </span>
+                    <button className="life-icon-btn" title="Delete item" onClick={() => onRemoveSubtask(t.id, s.id)}>
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <input
+                    value={drafts[t.id] || ''}
+                    onChange={(e) => setDrafts((d) => ({ ...d, [t.id]: e.target.value }))}
+                    placeholder="Add item..."
+                    style={{ flex: 1 }}
+                    onKeyDown={(e) => e.key === 'Enter' && addSub(t)}
+                  />
+                  <button className="btn btn-primary btn-sm" onClick={() => addSub(t)} disabled={!(drafts[t.id] || '').trim()}>
+                    Add
+                  </button>
+                </div>
+              </div>
+            )}
             </motion.div>
           )
         )}

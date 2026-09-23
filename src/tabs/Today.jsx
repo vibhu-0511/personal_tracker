@@ -37,7 +37,7 @@ function buildUrl(handle, filters) {
   return `/api/cf?${params}`
 }
 
-export default function Today({ cfHandle, syncTick = 0 }) {
+export default function Today({ cfHandle, syncTick = 0, onChange }) {
   const [cf, setCf] = useState(null)
   const [cfError, setCfError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -96,6 +96,7 @@ export default function Today({ cfHandle, syncTick = 0 }) {
 
   async function mark(problem, status) {
     setProgress(await markProblem(problem.id, status, problem.tags))
+    onChange?.()
   }
 
   const weak = cf ? leastPracticedTag(cf.tagCounts) : null
