@@ -26,6 +26,7 @@ const THEMES = [
   { id: 'sunset', label: 'Sunset', color: '#fb923c' },
   { id: 'grape', label: 'Grape', color: '#c084fc' },
   { id: 'rose', label: 'Rose', color: '#fb7185' },
+  { id: 'sky', label: 'Sky', color: 'linear-gradient(135deg, #bfe3ff, #ffd6ea)' },
 ]
 
 // Which tab owns each synced data key, so a remote change only remounts

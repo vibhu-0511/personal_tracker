@@ -2,7 +2,19 @@ import { useState, useRef, useEffect } from 'react'
 import agents from '../agents.json'
 import { supabase } from '../supabaseClient.js'
 
-const AGENT_ICONS = { explain: '💡', debug: '🐛', quiz: '🎯' }
+const AGENT_ICONS = {
+  explain: '💡',
+  debug: '🐛',
+  quiz: '🎯',
+  mathematics: '🔢',
+  philosophy: '🧠',
+  strategy: '♟️',
+  'history-of-ideas': '📜',
+  'pattern-recognition': '🔍',
+}
+
+const topicAgents = agents.filter((a) => a.kind === 'topic')
+const toolAgents = agents.filter((a) => a.kind !== 'topic')
 
 // Module-scope, not component state, so the conversation survives a tab
 // switch (Agents unmounts on every tab change) without needing full
@@ -11,8 +23,8 @@ let savedAgentId = agents[0].id
 let savedMessages = []
 
 export default function Agents() {
-  const [agent, setAgent] = useState(agents.find((a) => a.id === savedAgentId) || agents[0])
-  const [messages, setMessages] = useState(savedMessages)
+  const [agent, setAgent] = useState(topicAgents[0] || agents[0])
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -75,11 +87,13 @@ export default function Agents() {
     }
   }
 
+  const isToolActive = toolAgents.some((a) => a.id === agent.id)
+
   return (
     <div className="fade-in">
       {/* Agent selector pills */}
       <div className="agent-bar">
-        {agents.map((a) => (
+        {topicAgents.map((a) => (
           <button
             key={a.id}
             className={`agent-pill${a.id === agent.id ? ' active' : ''}`}
@@ -89,6 +103,18 @@ export default function Agents() {
             {a.name}
           </button>
         ))}
+        <select
+          className={`agent-more-select${isToolActive ? ' active' : ''}`}
+          value={isToolActive ? agent.id : ''}
+          onChange={(e) => e.target.value && switchAgent(e.target.value)}
+        >
+          <option value="" disabled>More tools ▾</option>
+          {toolAgents.map((a) => (
+            <option key={a.id} value={a.id}>
+              {AGENT_ICONS[a.id] || '💡'} {a.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Chat messages */}

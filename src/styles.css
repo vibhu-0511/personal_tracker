@@ -47,6 +47,50 @@
   --accent-solid: #e11d48;
   --accent-hover: #f43f5e;
 }
+:root[data-accent="sky"] {
+  --bg: #eaf4ff;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-raised: rgba(255, 255, 255, 0.88);
+  --border: rgba(15, 23, 42, 0.08);
+  --border-light: rgba(15, 23, 42, 0.16);
+  --text: #1c2333;
+  --text-secondary: #5b6478;
+  --text-tertiary: #8791a3;
+  --accent: #2563eb;
+  --accent-dim: rgba(37, 99, 235, 0.12);
+  --accent-solid: #111827;
+  --accent-hover: #1f2937;
+  --radius: 22px;
+  --radius-sm: 16px;
+  --radius-xs: 14px;
+  color-scheme: light;
+}
+:root[data-accent="sky"] body {
+  background-color: var(--bg);
+  background-image: url('/sky-clouds.svg');
+  background-size: cover;
+  background-position: top center;
+  background-attachment: fixed;
+}
+:root[data-accent="sky"] .app-header {
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+:root[data-accent="sky"] .card,
+:root[data-accent="sky"] .stat-card,
+:root[data-accent="sky"] .settings-panel {
+  background: var(--surface);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+}
+:root[data-accent="sky"] .tab-bar {
+  background: rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
 :root { --accent-hover: #3b82f6; }
 
 * { box-sizing: border-box; margin: 0; }
@@ -442,6 +486,23 @@ select { cursor: pointer; }
   color: var(--accent);
 }
 .agent-pill-icon { font-size: 16px; }
+
+.agent-more-select {
+  width: auto;
+  padding: 8px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.agent-more-select:hover { border-color: var(--border-light); }
+.agent-more-select.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 .chat-messages {
   display: flex;
