@@ -5,6 +5,9 @@ import {
   getChecklists, saveChecklists,
 } from '../store.js'
 import { showToast } from '../toast.js'
+import { DndArea, DropList, SortableRow, useDragging } from '../dnd/Dnd.jsx'
+import { placeItem, taskDropPatch, moveSubtask } from '../dnd/logic.js'
+import { formatAdded } from '../time.js'
 import {
   dateKey,
   streaks,
@@ -303,6 +306,18 @@ function TasksView({ tasks, onUpdate, now }) {
     }
   }
 
+  function onMove({ type, id, from, to, overId, after }) {
+    if (type === 'sub') {
+      onUpdate(moveSubtask(tasks, id, from.slice(4), to.slice(4), overId, after))
+      return
+    }
+    if (to === 'overdue' && from !== 'overdue') return
+    if (to === 'upcoming' && from === 'upcoming') return
+    const tomorrowKey = dateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
+    const patch = from === to ? {} : taskDropPatch(to, tasks.find((t) => t.id === id), todayKey, tomorrowKey)
+    onUpdate(placeItem(tasks, id, overId, { patch, after }))
+  }
+
   function startEdit(t) {
     setEditingId(t.id)
     setEditTitle(t.title)
@@ -391,10 +406,12 @@ function TasksView({ tasks, onUpdate, now }) {
         </>
       )}
 
-      <TaskSection label="Overdue" items={overdue} overdue {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
-      <TaskSection label="Today" items={dueToday} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
-      <TaskSection label="Upcoming" items={upcoming} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
-      <TaskSection label="No date" items={noDate} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+      <DndArea onMove={onMove}>
+        <TaskSection id="overdue" label="Overdue" items={overdue} overdue {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+        <TaskSection id="today" label="Today" items={dueToday} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+        <TaskSection id="upcoming" label="Upcoming" items={upcoming} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+        <TaskSection id="nodate" label="No date" items={noDate} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+      </DndArea>
       {done.length > 0 && <DoneTaskSection items={done} onToggle={toggle} onRemove={remove} />}
 
       {visible.length === 0 && (
@@ -408,13 +425,14 @@ function TasksView({ tasks, onUpdate, now }) {
 }
 
 function TaskSection({
-  label, items, overdue, onToggle, onRemove, onToggleFlag,
+  id, label, items, overdue, onToggle, onRemove, onToggleFlag,
   editingId, editTitle, setEditTitle, editDue, setEditDue, onStartEdit, onSaveEdit, onCancelEdit,
   onSubtasks, onRemoveSubtask,
 }) {
   const [open, setOpen] = useState({})
   const [drafts, setDrafts] = useState({})
-  if (items.length === 0) return null
+  const dragging = useDragging()
+  if (items.length === 0 && !(dragging?.type === 'task' && id !== 'overdue')) return null
 
   function addSub(t) {
     const text = (drafts[t.id] || '').trim()
@@ -425,10 +443,12 @@ function TaskSection({
   return (
     <>
       <div className="life-section-label">{label}</div>
+      <DropList id={id} type="task" items={items.map((t) => t.id)} dropDisabled={id === 'overdue'}>
       <AnimatePresence initial={false}>
-        {items.map((t) =>
-          editingId === t.id ? (
-            <motion.div key={t.id} layout className="life-row">
+        {items.map((t) => (
+          <SortableRow key={t.id} id={t.id} type="task" disabled={editingId === t.id}>
+          {(handle) => editingId === t.id ? (
+            <motion.div className="life-row">
               <input
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
@@ -453,15 +473,17 @@ function TaskSection({
             </motion.div>
           ) : (
             <motion.div
-              key={t.id}
-              layout
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: 40 }}
             >
             <div className={`life-row${overdue ? ' overdue' : ''}`}>
+              {handle}
               <button className="life-check" onClick={() => onToggle(t.id)} aria-label="Mark done" />
-              <div className="life-row-title">{t.title}</div>
+              <div className="life-row-title">
+                {t.title}
+                <div className="meta" style={{ fontSize: 11 }}>added {formatAdded(t.createdAt)}</div>
+              </div>
               {quadrantLabel(t) && (
                 <span className={quadrantLabel(t).cls} style={{ flexShrink: 0 }}>
                   {quadrantLabel(t).label}
@@ -509,23 +531,31 @@ function TaskSection({
             </div>
             {open[t.id] && (
               <div style={{ padding: '2px 12px 10px 40px' }}>
-                {(t.subtasks || []).map((s) => (
-                  <div key={s.id} className="exam-topic-row">
-                    <input
-                      type="checkbox"
-                      checked={s.checked}
-                      onChange={() =>
-                        onSubtasks(t.id, t.subtasks.map((x) => (x.id === s.id ? { ...x, checked: !x.checked } : x)))
-                      }
-                    />
-                    <span style={{ flex: 1, textDecoration: s.checked ? 'line-through' : 'none', opacity: s.checked ? 0.5 : 1 }}>
-                      {s.text}
-                    </span>
-                    <button className="life-icon-btn" title="Delete item" onClick={() => onRemoveSubtask(t.id, s.id)}>
-                      🗑️
-                    </button>
-                  </div>
-                ))}
+                <DropList id={`sub:${t.id}`} type="sub" items={(t.subtasks || []).map((s) => s.id)}>
+                  {(t.subtasks || []).map((s) => (
+                    <SortableRow key={s.id} id={s.id} type="sub">
+                      {(subHandle) => (
+                        <div className="exam-topic-row">
+                          {subHandle}
+                          <input
+                            type="checkbox"
+                            checked={s.checked}
+                            onChange={() =>
+                              onSubtasks(t.id, t.subtasks.map((x) => (x.id === s.id ? { ...x, checked: !x.checked } : x)))
+                            }
+                          />
+                          <span style={{ flex: 1, textDecoration: s.checked ? 'line-through' : 'none', opacity: s.checked ? 0.5 : 1 }}>
+                            {s.text}
+                            <span className="meta" style={{ fontSize: 11, marginLeft: 6 }}>{formatAdded(s.createdAt)}</span>
+                          </span>
+                          <button className="life-icon-btn" title="Delete item" onClick={() => onRemoveSubtask(t.id, s.id)}>
+                            🗑️
+                          </button>
+                        </div>
+                      )}
+                    </SortableRow>
+                  ))}
+                </DropList>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <input
                     value={drafts[t.id] || ''}
@@ -541,9 +571,11 @@ function TaskSection({
               </div>
             )}
             </motion.div>
-          )
-        )}
+          )}
+          </SortableRow>
+        ))}
       </AnimatePresence>
+      </DropList>
     </>
   )
 }
@@ -785,6 +817,8 @@ function HabitsView({ habits, onUpdate, now }) {
 
   return (
     <div>
+      <DndArea onMove={({ id, overId, after }) => onUpdate(placeItem(habits, id, overId, { after }))}>
+      <DropList id="habits" type="habit" items={habits.map((h) => h.id)}>
       <AnimatePresence initial={false}>
         {habits.map((h) => {
           const pet = petState(h, now)
@@ -792,9 +826,9 @@ function HabitsView({ habits, onUpdate, now }) {
           const money = earnings(h, now)
           const checkedToday = h.checkins.includes(dateKey(now))
           return (
+            <SortableRow key={h.id} id={h.id} type="habit" disabled={editingId === h.id}>
+            {(handle) => (
             <motion.div
-              key={h.id}
-              layout
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -834,6 +868,7 @@ function HabitsView({ habits, onUpdate, now }) {
                 </div>
               ) : (
                 <div className="habit-head">
+                  {handle}
                   <span className={`pet-avatar pet-mood-${pet.mood}`}>
                     {h.species}
                     {pet.accessory && <span className="pet-accessory">{pet.accessory}</span>}
@@ -845,6 +880,7 @@ function HabitsView({ habits, onUpdate, now }) {
                       {best > current ? ` · best ${best}` : ''} ·{' '}
                       {CATEGORY_LABELS[h.category] || CATEGORY_LABELS.custom}
                     </div>
+                    <div className="habit-meta">added {formatAdded(h.createdAt)}</div>
                   </div>
                   <button className="life-icon-btn" title="Edit habit" aria-label="Edit habit" onClick={() => startEditHabit(h)}>
                     ✎
@@ -879,9 +915,13 @@ function HabitsView({ habits, onUpdate, now }) {
                 {checkedToday ? '✓ Checked in today (tap to undo)' : 'Check in'}
               </button>
             </motion.div>
+            )}
+            </SortableRow>
           )
         })}
       </AnimatePresence>
+      </DropList>
+      </DndArea>
 
       {habits.length === 0 && !showAdd && (
         <div className="empty-state">

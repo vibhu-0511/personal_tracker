@@ -9,6 +9,9 @@ import { useHydrate } from '../useHydrate.js'
 import { useLatest } from '../useLatest.js'
 import { deleteWithUndo } from '../undo.js'
 import { newId } from '../id.js'
+import { DndArea, DropList, SortableRow } from '../dnd/Dnd.jsx'
+import { placeItem } from '../dnd/logic.js'
+import { formatAdded, formatTime } from '../time.js'
 
 const CATEGORIES = [
   { id: 'food', emoji: '🍔', label: 'Food' },
@@ -127,6 +130,7 @@ export default function Expenses({ syncTick = 0 }) {
   const [expandedPerson, setExpandedPerson] = useState(null)
 
   const [search, setSearch] = useState('')
+  const [showAllCats, setShowAllCats] = useState(false)
   const [typeFilter, setTypeFilter] = useState('all')
   const [loanSearch, setLoanSearch] = useState('')
 
@@ -311,7 +315,7 @@ export default function Expenses({ syncTick = 0 }) {
     if (!goalName.trim() || !target || target <= 0 || target > MAX_AMOUNT) return
     setSaving(true)
     try {
-      await persistGoals([...goals, { id: newId(), name: goalName.trim(), target, saved: 0, icon: goalIcon }])
+      await persistGoals([...goals, { id: newId(), name: goalName.trim(), target, saved: 0, icon: goalIcon, createdAt: Date.now() }])
       setShowGoalForm(false)
       setGoalName('')
       setGoalTarget('')
@@ -508,7 +512,7 @@ export default function Expenses({ syncTick = 0 }) {
               <div className="section-header">
                 <span className="section-title">Spending by Category</span>
               </div>
-              {catSorted.slice(0, 6).map(([catId, total]) => {
+              {(showAllCats ? catSorted : catSorted.slice(0, 6)).map(([catId, total]) => {
                 const c = CAT_MAP[catId]
                 const pct = spent > 0 ? Math.round((total / spent) * 100) : 0
                 const overBudget = budgets[catId] && total > budgets[catId]
@@ -535,6 +539,15 @@ export default function Expenses({ syncTick = 0 }) {
                   </div>
                 )
               })}
+              {catSorted.length > 6 && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: '100%', marginBottom: 10 }}
+                  onClick={() => setShowAllCats((v) => !v)}
+                >
+                  {showAllCats ? 'Show less ▴' : `Show ${catSorted.length - 6} more ▾`}
+                </button>
+              )}
             </>
           )}
 
@@ -642,8 +655,16 @@ export default function Expenses({ syncTick = 0 }) {
 
           {groups.map(([dayKey, items]) => (
             <div key={dayKey}>
-              <div className="meta" style={{ padding: '6px 0 4px', fontSize: 12, fontWeight: 600 }}>
-                {formatDate(Number(dayKey))}
+              <div
+                className="meta"
+                style={{ padding: '6px 0 4px', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}
+              >
+                <span>{formatDate(Number(dayKey))}</span>
+                {items.some((e) => e.type !== 'income') && (
+                  <span className="down">
+                    ₹{items.reduce((s, e) => s + (e.type === 'income' ? 0 : e.amount), 0).toLocaleString('en-IN')} spent
+                  </span>
+                )}
               </div>
               {items.map((e) => {
                 const c = CAT_MAP[e.category]
@@ -664,13 +685,13 @@ export default function Expenses({ syncTick = 0 }) {
                             {isIncome ? '+' : '-'}₹{e.amount.toLocaleString('en-IN')}
                           </span>
                         </div>
-                        {(e.note || e.person) && !isIncome && (
-                          <div className="meta" style={{ fontSize: 12, marginTop: 1 }}>
-                            {e.note}
-                            {e.note && e.person && ' · '}
-                            {e.person && `with ${e.person}`}
-                          </div>
-                        )}
+                        <div className="meta" style={{ fontSize: 12, marginTop: 1 }}>
+                          {formatTime(e.date)}
+                          {(e.note || e.person) && !isIncome && ' · '}
+                          {!isIncome && e.note}
+                          {!isIncome && e.note && e.person && ' · '}
+                          {!isIncome && e.person && `with ${e.person}`}
+                        </div>
                       </div>
                       <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                         <button
@@ -902,18 +923,24 @@ export default function Expenses({ syncTick = 0 }) {
             </div>
           )}
 
+          <DndArea onMove={({ id, overId, after }) => persistGoals(placeItem(goals, id, overId, { after }))}>
+          <DropList id="goals" type="goal" items={goals.map((g) => g.id)}>
           {goals.map((g) => {
             const pct = g.target > 0 ? Math.round((g.saved / g.target) * 100) : 0
             const isFunding = fundGoalId === g.id
             return (
-              <div key={g.id} className="card" style={{ marginBottom: 10 }}>
+              <SortableRow key={g.id} id={g.id} type="goal">
+              {(handle) => (
+              <div className="card" style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  {handle}
                   <span style={{ fontSize: 28 }}>{g.icon}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 15 }}>{g.name}</div>
                     <div className="meta" style={{ fontSize: 13 }}>
                       ₹{g.saved.toLocaleString('en-IN')} / ₹{g.target.toLocaleString('en-IN')}
                     </div>
+                    {g.createdAt && <div className="meta" style={{ fontSize: 11 }}>added {formatAdded(g.createdAt)}</div>}
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div
@@ -986,8 +1013,12 @@ export default function Expenses({ syncTick = 0 }) {
                   </div>
                 )}
               </div>
+              )}
+              </SortableRow>
             )
           })}
+          </DropList>
+          </DndArea>
         </>
       )}
 
@@ -1301,7 +1332,7 @@ function LoanPersonCard({ person, balance, loans, expanded, onToggle, onDelete }
                 <div>
                   <div style={{ fontSize: 13 }}>{action?.label || l.direction}</div>
                   <div className="meta" style={{ fontSize: 11 }}>
-                    {formatDate(l.date)}{l.note ? ` · ${l.note}` : ''}
+                    {formatDate(l.date)}, {formatTime(l.date)}{l.note ? ` · ${l.note}` : ''}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

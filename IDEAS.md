@@ -28,6 +28,23 @@ implementation — this is a parking lot, not a spec. Move an idea to
 
 ---
 
+## Screenshots / image attachments (2026-09-24)
+
+Idea from the feature list: let the user attach screenshots (paste or pick an image)
+to notes, tasks, and/or transactions (receipts). Parked by the user ("skip for now").
+
+Open design questions when it's picked back up:
+- **Where**: notes + tasks, transactions only (receipts), or all three.
+- **Storage**: images kept in local IndexedDB only (simple, no sync, won't bloat the
+  one-JSON-blob-per-key Supabase sync) vs. a Supabase Storage bucket (syncs across
+  devices, but needs a new bucket + access rules set up by the user).
+- Either way, resize/compress before storing, and keep image blobs out of the synced
+  `notes`/`tasks` keys (store ids only) — same reasoning as the drawn-notes idea above.
+- Nothing in the app handles `<input type="file">` or blobs today; `localforage` is
+  already the IndexedDB wrapper and can store Blobs directly.
+
+---
+
 ## Pet visual growth (2026-09-14)
 
 Context: the per-habit pet system already exists (`src/life/logic.js` `petState()`,

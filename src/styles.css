@@ -1053,3 +1053,26 @@ select { cursor: pointer; }
     animation: none !important;
   }
 }
+
+.drag-handle {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: grab;
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 1;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.drag-handle:active { cursor: grabbing; }
+.drop-over { outline: 2px dashed var(--accent); outline-offset: -2px; border-radius: 8px; }
+.drop-strip {
+  margin: 2px 0 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--text-tertiary);
+  border: 1px dashed var(--border, rgba(128,128,128,.4));
+  border-radius: 8px;
+}

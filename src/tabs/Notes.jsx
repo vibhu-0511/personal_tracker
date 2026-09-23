@@ -5,6 +5,9 @@ import { useHydrate } from '../useHydrate.js'
 import { useLatest } from '../useLatest.js'
 import { deleteWithUndo } from '../undo.js'
 import { newId } from '../id.js'
+import { DndArea, DropList, DropZone, SortableRow, useDragging } from '../dnd/Dnd.jsx'
+import { placeItem, canNest } from '../dnd/logic.js'
+import { formatAdded } from '../time.js'
 
 const COLORS = ['', 'red', 'orange', 'green', 'blue', 'purple']
 
@@ -69,7 +72,21 @@ function SubComposeForm({ onAdd, onCancel }) {
   )
 }
 
-function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
+function NoteRow({ note, depth, showTree, childMap, expandedIds, ctx }) {
+  return (
+    <SortableRow id={note.id} type="note" disabled={!showTree || ctx.editingId === note.id}>
+      {(handle) => (
+        <NoteItem
+          note={note} depth={depth} showTree={showTree} childMap={childMap}
+          expandedIds={expandedIds} ctx={ctx} handle={handle}
+        />
+      )}
+    </SortableRow>
+  )
+}
+
+function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx, handle }) {
+  const dragging = useDragging()
   const children = childMap[note.id] || []
   const hasChildren = children.length > 0
   const isExpanded = expandedIds.has(note.id)
@@ -105,6 +122,7 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
         ) : (
           <>
             <div className="note-body">
+              {handle}
               {showTree && hasChildren && (
                 <button
                   onClick={() => ctx.toggleExpand(note.id)}
@@ -119,7 +137,7 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
             <div className="note-footer">
               <div>
                 <div className="meta">
-                  {new Date(note.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  {formatAdded(note.createdAt)}
                 </div>
                 <div className="note-tags">
                   {note.tags.map((t) => (
@@ -173,18 +191,28 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
         </div>
       )}
 
-      {showTree && hasChildren && isExpanded &&
-        sortSiblings(children).map((child) => (
-          <NoteItem
-            key={child.id}
-            note={child}
-            depth={depth + 1}
-            showTree={showTree}
-            childMap={childMap}
-            expandedIds={expandedIds}
-            ctx={ctx}
-          />
-        ))}
+      {showTree && hasChildren && isExpanded && (
+        <DropList id={`n:${note.id}`} type="note" items={sortSiblings(children).map((c) => c.id)}>
+          {sortSiblings(children).map((child) => (
+            <NoteRow
+              key={child.id}
+              note={child}
+              depth={depth + 1}
+              showTree={showTree}
+              childMap={childMap}
+              expandedIds={expandedIds}
+              ctx={ctx}
+            />
+          ))}
+        </DropList>
+      )}
+
+      {showTree && dragging?.type === 'note' && !(hasChildren && isExpanded) &&
+        dragging.id !== note.id && !collectDescendantIds(dragging.id, childMap).includes(note.id) && (
+          <div style={{ marginLeft: 20 }}>
+            <DropZone id={`n:${note.id}`} type="note" label="↳ nest inside" />
+          </div>
+        )}
     </div>
   )
 }
@@ -278,6 +306,13 @@ export default function Notes({ syncTick = 0 }) {
   }
 
   const childMap = buildChildMap(notes)
+
+  function onMove({ id, from, to, overId, after }) {
+    const parentId = to === 'root' ? null : to.slice(2)
+    if (!canNest(id, parentId, notes)) return
+    persist(placeItem(notes, id, overId, { patch: from === to ? {} : { parentId }, after }))
+    if (parentId) setExpandedIds((prev) => new Set(prev).add(parentId))
+  }
 
   async function remove(id) {
     const descIds = collectDescendantIds(id, childMap)
@@ -373,6 +408,7 @@ export default function Notes({ syncTick = 0 }) {
         </span>
       </div>
 
+      <DndArea onMove={onMove}>
       {isFiltering ? (
         filtered.length === 0 ? (
           <div className="empty-state">
@@ -381,7 +417,7 @@ export default function Notes({ syncTick = 0 }) {
           </div>
         ) : (
           sortSiblings(filtered).map((n) => (
-            <NoteItem key={n.id} note={n} depth={0} showTree={false} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
+            <NoteRow key={n.id} note={n} depth={0} showTree={false} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
           ))
         )
       ) : notes.length === 0 ? (
@@ -390,10 +426,13 @@ export default function Notes({ syncTick = 0 }) {
           <div className="empty-text">No notes yet. Start capturing what you learn.</div>
         </div>
       ) : (
-        sortSiblings(childMap[null] || []).map((n) => (
-          <NoteItem key={n.id} note={n} depth={0} showTree={true} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
-        ))
+        <DropList id="root" type="note" items={sortSiblings(childMap[null] || []).map((n) => n.id)}>
+          {sortSiblings(childMap[null] || []).map((n) => (
+            <NoteRow key={n.id} note={n} depth={0} showTree={true} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
+          ))}
+        </DropList>
       )}
+      </DndArea>
     </div>
   )
 }
