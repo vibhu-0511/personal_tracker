@@ -1,6 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { getNotes, saveNotes } from '../store.js'
 import { showToast } from '../toast.js'
+import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
+import { newId } from '../id.js'
+import { DndArea, DropList, DropZone, SortableRow, useDragging } from '../dnd/Dnd.jsx'
+import { placeItem, canNest } from '../dnd/logic.js'
+import { formatAdded } from '../time.js'
 
 const COLORS = ['', 'red', 'orange', 'green', 'blue', 'purple']
 
@@ -65,7 +72,21 @@ function SubComposeForm({ onAdd, onCancel }) {
   )
 }
 
-function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
+function NoteRow({ note, depth, showTree, childMap, expandedIds, ctx }) {
+  return (
+    <SortableRow id={note.id} type="note" disabled={!showTree || ctx.editingId === note.id}>
+      {(handle) => (
+        <NoteItem
+          note={note} depth={depth} showTree={showTree} childMap={childMap}
+          expandedIds={expandedIds} ctx={ctx} handle={handle}
+        />
+      )}
+    </SortableRow>
+  )
+}
+
+function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx, handle }) {
+  const dragging = useDragging()
   const children = childMap[note.id] || []
   const hasChildren = children.length > 0
   const isExpanded = expandedIds.has(note.id)
@@ -88,13 +109,20 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
             />
             <ColorPicker value={ctx.editColor} onChange={ctx.setEditColor} />
             <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-              <button className="btn btn-primary btn-sm" onClick={() => ctx.saveEdit(note.id)}>Save</button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => ctx.saveEdit(note.id)}
+                disabled={!ctx.editBody.trim()}
+              >
+                Save
+              </button>
               <button className="btn btn-ghost btn-sm" onClick={ctx.cancelEdit}>Cancel</button>
             </div>
           </>
         ) : (
           <>
             <div className="note-body">
+              {handle}
               {showTree && hasChildren && (
                 <button
                   onClick={() => ctx.toggleExpand(note.id)}
@@ -109,7 +137,7 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
             <div className="note-footer">
               <div>
                 <div className="meta">
-                  {new Date(note.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  {formatAdded(note.createdAt)}
                 </div>
                 <div className="note-tags">
                   {note.tags.map((t) => (
@@ -163,23 +191,33 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx }) {
         </div>
       )}
 
-      {showTree && hasChildren && isExpanded &&
-        sortSiblings(children).map((child) => (
-          <NoteItem
-            key={child.id}
-            note={child}
-            depth={depth + 1}
-            showTree={showTree}
-            childMap={childMap}
-            expandedIds={expandedIds}
-            ctx={ctx}
-          />
-        ))}
+      {showTree && hasChildren && isExpanded && (
+        <DropList id={`n:${note.id}`} type="note" items={sortSiblings(children).map((c) => c.id)}>
+          {sortSiblings(children).map((child) => (
+            <NoteRow
+              key={child.id}
+              note={child}
+              depth={depth + 1}
+              showTree={showTree}
+              childMap={childMap}
+              expandedIds={expandedIds}
+              ctx={ctx}
+            />
+          ))}
+        </DropList>
+      )}
+
+      {showTree && dragging?.type === 'note' && !(hasChildren && isExpanded) &&
+        dragging.id !== note.id && !collectDescendantIds(dragging.id, childMap).includes(note.id) && (
+          <div style={{ marginLeft: 20 }}>
+            <DropZone id={`n:${note.id}`} type="note" label="↳ nest inside" />
+          </div>
+        )}
     </div>
   )
 }
 
-export default function Notes() {
+export default function Notes({ syncTick = 0 }) {
   const [notes, setNotes] = useState([])
   const [body, setBody] = useState('')
   const [tags, setTags] = useState('')
@@ -192,10 +230,9 @@ export default function Notes() {
   const [expandedIds, setExpandedIds] = useState(new Set())
   const [subComposeFor, setSubComposeFor] = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const notesRef = useLatest(notes)
 
-  useEffect(() => {
-    getNotes().then(setNotes)
-  }, [])
+  const { ready, error } = useHydrate([() => getNotes().then(setNotes)], [syncTick])
 
   async function persist(next) {
     setNotes(next)
@@ -204,7 +241,7 @@ export default function Notes() {
 
   async function addNoteWith(text, tagsStr, noteColor, parentId) {
     const note = {
-      id: String(Date.now()),
+      id: newId(),
       createdAt: Date.now(),
       body: text,
       tags: tagsStr.split(',').map((t) => t.trim()).filter(Boolean),
@@ -270,24 +307,45 @@ export default function Notes() {
 
   const childMap = buildChildMap(notes)
 
+  function onMove({ id, from, to, overId, after }) {
+    const parentId = to === 'root' ? null : to.slice(2)
+    if (!canNest(id, parentId, notes)) return
+    persist(placeItem(notes, id, overId, { patch: from === to ? {} : { parentId }, after }))
+    if (parentId) setExpandedIds((prev) => new Set(prev).add(parentId))
+  }
+
   async function remove(id) {
     const descIds = collectDescendantIds(id, childMap)
     if (descIds.length > 0) {
       setConfirmDeleteId(id)
       return
     }
-    const prev = notes
-    await persist(notes.filter((n) => n.id !== id))
     if (editingId === id) setEditingId(null)
-    showToast('Note deleted', { undo: () => persist(prev) })
+    deleteWithUndo({ list: notes, id, persist, ref: notesRef, label: () => 'Note deleted' })
   }
 
   async function confirmCascadeDelete(id) {
     const descIds = collectDescendantIds(id, childMap)
     const idsToRemove = new Set([id, ...descIds])
+    const removed = notes.filter((n) => idsToRemove.has(n.id))
     await persist(notes.filter((n) => !idsToRemove.has(n.id)))
     setConfirmDeleteId(null)
     if (editingId && idsToRemove.has(editingId)) setEditingId(null)
+    showToast(`Deleted ${removed.length} note${removed.length !== 1 ? 's' : ''}`, {
+      undo: () => persist([...removed, ...notesRef.current]),
+    })
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">⚠️</div>
+        <div className="empty-text">Couldn't load notes: {error}</div>
+      </div>
+    )
+  }
+  if (!ready) {
+    return <div className="empty-state"><div className="empty-text">Loading…</div></div>
   }
 
   const q = filter.trim().toLowerCase()
@@ -350,6 +408,7 @@ export default function Notes() {
         </span>
       </div>
 
+      <DndArea onMove={onMove}>
       {isFiltering ? (
         filtered.length === 0 ? (
           <div className="empty-state">
@@ -358,7 +417,7 @@ export default function Notes() {
           </div>
         ) : (
           sortSiblings(filtered).map((n) => (
-            <NoteItem key={n.id} note={n} depth={0} showTree={false} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
+            <NoteRow key={n.id} note={n} depth={0} showTree={false} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
           ))
         )
       ) : notes.length === 0 ? (
@@ -367,10 +426,13 @@ export default function Notes() {
           <div className="empty-text">No notes yet. Start capturing what you learn.</div>
         </div>
       ) : (
-        sortSiblings(childMap[null] || []).map((n) => (
-          <NoteItem key={n.id} note={n} depth={0} showTree={true} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
-        ))
+        <DropList id="root" type="note" items={sortSiblings(childMap[null] || []).map((n) => n.id)}>
+          {sortSiblings(childMap[null] || []).map((n) => (
+            <NoteRow key={n.id} note={n} depth={0} showTree={true} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
+          ))}
+        </DropList>
       )}
+      </DndArea>
     </div>
   )
 }

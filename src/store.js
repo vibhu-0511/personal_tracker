@@ -1,6 +1,7 @@
 import localforage from 'localforage'
 import { supabase } from './supabaseClient.js'
-import { readLocalShape, wrapForSave, decideSync } from './sync/logic.js'
+import { showToast } from './toast.js'
+import { createSyncEngine } from './sync/engine.js'
 
 const db = localforage.createInstance({ name: 'forge' })
 
@@ -14,83 +15,45 @@ export async function storageAvailable() {
   }
 }
 
-const pushTimers = {}
-
-let syncFailed = false
-const syncListeners = new Set()
-function setSyncStatus(failed) {
-  if (failed === syncFailed) return
-  syncFailed = failed
-  syncListeners.forEach((fn) => fn(failed))
-}
-export function onSyncStatusChange(fn) {
-  syncListeners.add(fn)
-  fn(syncFailed)
-  return () => syncListeners.delete(fn)
-}
-
-function schedulePush(key, delay = 700) {
-  clearTimeout(pushTimers[key])
-  pushTimers[key] = setTimeout(() => {
-    // offline/failed push: local write already succeeded, next reconcile retries
-    readLocal(key)
-      .then((cur) => cur && pushToCloud(key, cur))
-      .then(() => setSyncStatus(false))
-      .catch(() => setSyncStatus(true))
-  }, delay)
-}
-
-async function pushToCloud(key, wrapped) {
-  const { data } = await supabase.auth.getSession()
-  const userId = data.session?.user?.id
-  if (!userId) return
-  await supabase.from('kv_store').upsert({
-    user_id: userId,
-    key,
-    value: wrapped.data,
-    updated_at: new Date(wrapped.updatedAt).toISOString(),
-  })
-}
-
-async function readLocal(key) {
-  return readLocalShape(await db.getItem(key))
-}
-
-async function getSynced(key, fallback) {
-  const local = await readLocal(key)
-  return local ? local.data : fallback
-}
-
-async function saveSynced(key, data) {
-  const wrapped = wrapForSave(data)
-  await db.setItem(key, wrapped)
-  schedulePush(key)
-}
-
-export async function reconcileKey(key) {
-  const local = await readLocal(key)
-  try {
-    const { data: row, error } = await supabase
+const cloud = {
+  getSession: () => supabase.auth.getSession(),
+  async read(key, userId) {
+    const { data, error } = await supabase
       .from('kv_store')
       .select('value, updated_at')
       .eq('key', key)
+      .eq('user_id', userId)
       .maybeSingle()
-    if (error) { setSyncStatus(true); return 'noop' }
-    const decision = decideSync(local, row)
-    if (decision.action === 'pull') {
-      if (local && local.updatedAt === 0) {
-        await db.setItem(`${key}__pre_sync_backup`, local)
-      }
-      await db.setItem(key, decision.value)
-    } else if (decision.action === 'push') await pushToCloud(key, decision.value)
-    setSyncStatus(false)
-    return decision.action
-  } catch {
-    // offline or a transient failure — this key just doesn't reconcile this pass;
-    // the next reconcileAll (next app open, or the next realtime event) retries it
-    setSyncStatus(true)
-    return 'noop'
-  }
+    if (error) throw error
+    return data
+  },
+  async write(key, userId, wrapped) {
+    await supabase.from('kv_store').upsert({
+      user_id: userId,
+      key,
+      value: wrapped.data,
+      updated_at: new Date(wrapped.updatedAt).toISOString(),
+    })
+  },
+}
+
+const engine = createSyncEngine({
+  db,
+  cloud,
+  onLocalWriteError: () => showToast('Could not save — storage full'),
+})
+
+export const onSyncStatusChange = engine.onStatusChange
+export const reconcileKey = engine.reconcileKey
+export const flush = engine.flush
+export const claimOwner = engine.claimOwner
+
+async function getSynced(key, fallback) {
+  return engine.get(key, fallback)
+}
+
+async function saveSynced(key, data) {
+  await engine.save(key, data)
 }
 
 export const SYNCED_KEYS = [
@@ -100,7 +63,7 @@ export const SYNCED_KEYS = [
 ]
 
 export async function reconcileAll() {
-  for (const key of SYNCED_KEYS) await reconcileKey(key)
+  await engine.reconcileAll(SYNCED_KEYS)
 }
 
 export async function getSettings() {
@@ -121,10 +84,10 @@ export async function getProgress() {
   return await getSynced('progress', {})
 }
 export async function markProblem(problemId, status, tags) {
-  const progress = await getProgress()
-  progress[problemId] = { status, tags, updatedAt: Date.now() }
-  await saveSynced('progress', progress)
-  return progress
+  return engine.mutate('progress', (progress) => {
+    progress[problemId] = { status, tags, updatedAt: Date.now() }
+    return progress
+  }, {})
 }
 
 export async function getExpenses() {
@@ -195,6 +158,9 @@ export async function getReminders() {
 }
 export async function saveReminders(reminders) {
   await saveSynced('reminders', reminders)
+}
+export async function mutateReminders(fn) {
+  return engine.mutate('reminders', fn, [])
 }
 
 export async function getHabits() {

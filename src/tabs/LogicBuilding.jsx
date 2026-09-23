@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Today, { solvedToday } from './Today.jsx'
 import Puzzles from './Puzzles.jsx'
 import Exams, { EXAMS } from './Exams.jsx'
-import puzzleBank from '../puzzles.json'
+import { loadPuzzles } from '../puzzles.js'
 import { getProgress, getPuzzleProgress, getExamProgress } from '../store.js'
 
 const VIEWS = [
@@ -19,6 +19,13 @@ const TOTAL_EXAM_TOPICS = EXAMS.reduce(
 export default function LogicBuilding({ cfHandle, syncTicks }) {
   const [view, setView] = useState('code')
   const [glance, setGlance] = useState({ solvedToday: 0, puzzlesSolved: 0, examPct: 0 })
+  const [puzzleCount, setPuzzleCount] = useState(0)
+  const [localTick, setLocalTick] = useState(0)
+  const bump = () => setLocalTick((t) => t + 1)
+
+  useEffect(() => {
+    loadPuzzles().then((p) => setPuzzleCount(p.length))
+  }, [])
 
   useEffect(() => {
     Promise.all([getProgress(), getPuzzleProgress(), getExamProgress()]).then(
@@ -32,7 +39,7 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
         })
       }
     )
-  }, [syncTicks.Today, syncTicks.Puzzles, syncTicks.Exams])
+  }, [syncTicks.Today, syncTicks.Puzzles, syncTicks.Exams, localTick])
 
   return (
     <div>
@@ -42,7 +49,7 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
           <div className="stat-label">Solved today</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{glance.puzzlesSolved}/{puzzleBank.length}</div>
+          <div className="stat-value">{glance.puzzlesSolved}/{puzzleCount}</div>
           <div className="stat-label">Puzzles solved</div>
         </div>
         <div className="stat-card">
@@ -72,9 +79,9 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
         📘 DSA Mastery Map
       </a>
 
-      {view === 'code' && <Today key={syncTicks.Today || 0} cfHandle={cfHandle} />}
-      {view === 'puzzles' && <Puzzles key={syncTicks.Puzzles || 0} />}
-      {view === 'exams' && <Exams key={syncTicks.Exams || 0} />}
+      {view === 'code' && <Today syncTick={syncTicks.Today || 0} cfHandle={cfHandle} onChange={bump} />}
+      {view === 'puzzles' && <Puzzles syncTick={syncTicks.Puzzles || 0} onChange={bump} />}
+      {view === 'exams' && <Exams syncTick={syncTicks.Exams || 0} onChange={bump} />}
     </div>
   )
 }

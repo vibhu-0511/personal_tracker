@@ -826,28 +826,28 @@ select { cursor: pointer; }
   padding: 4px 0 12px;
 }
 
-.money-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 199;
-}
-
-.money-sheet {
+.sheet-dialog {
   position: fixed;
   bottom: 0;
+  top: auto;
   left: 0;
   right: 0;
   z-index: 200;
   background: var(--surface);
+  color: inherit;
+  border: none;
   border-top: 1px solid var(--border);
   border-radius: 20px 20px 0 0;
   padding: 20px;
   max-width: 640px;
+  width: 100%;
   margin: 0 auto;
   animation: slideUp 0.25s ease-out;
   max-height: 85vh;
   overflow-y: auto;
+}
+.sheet-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .money-trend-row {
@@ -979,7 +979,7 @@ select { cursor: pointer; }
 .invest-quiz-result.fail { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger); }
 
 /* Research checklist tables */
-.invest-checklist { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 480px; }
+.invest-checklist { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .invest-checklist th, .invest-checklist td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .invest-checklist th { font-size: 10.5px; letter-spacing: 0.06em; color: var(--text-tertiary); text-transform: uppercase; }
 
@@ -1015,7 +1015,7 @@ select { cursor: pointer; }
 }
 .life-row.overdue { border-color: var(--danger); }
 .life-check {
-  width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border-light);
+  width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--border-light);
   background: none; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   color: transparent; font-size: 13px; transition: all 0.15s;
 }
@@ -1024,8 +1024,9 @@ select { cursor: pointer; }
 .life-row.done .life-row-title { color: var(--text-tertiary); text-decoration: line-through; }
 .life-row-due { font-size: 11px; color: var(--text-tertiary); flex-shrink: 0; }
 .life-icon-btn {
-  background: none; border: none; cursor: pointer; font-size: 16px; padding: 2px; flex-shrink: 0;
-  color: inherit; text-decoration: none; display: inline-flex; align-items: center;
+  background: none; border: none; cursor: pointer; font-size: 16px; flex-shrink: 0;
+  color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px;
 }
 
 .life-reminder-banner {
@@ -1112,4 +1113,27 @@ select { cursor: pointer; }
   .pet-mood-happy, .pet-mood-waiting, .pet-mood-sick, .habit-streak-flame, .coin-float, .pop-in, .fade-in {
     animation: none !important;
   }
+}
+
+.drag-handle {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: grab;
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 1;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.drag-handle:active { cursor: grabbing; }
+.drop-over { outline: 2px dashed var(--accent); outline-offset: -2px; border-radius: 8px; }
+.drop-strip {
+  margin: 2px 0 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--text-tertiary);
+  border: 1px dashed var(--border, rgba(128,128,128,.4));
+  border-radius: 8px;
 }

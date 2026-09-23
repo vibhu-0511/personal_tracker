@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
-import puzzles from '../puzzles.json'
+import { useEffect, useMemo, useState } from 'react'
+import { loadPuzzles } from '../puzzles.js'
 import { getPuzzleProgress, savePuzzleProgress } from '../store.js'
+import { useHydrate } from '../useHydrate.js'
 
-const CATEGORIES = [...new Set(puzzles.map((p) => p.category))].sort()
 const DIFFICULTIES = ['easy', 'medium', 'hard']
-const SOURCES = [...new Set(puzzles.map((p) => p.source))].sort()
 
 const DIFF_COLORS = {
   easy: 'var(--success)',
@@ -23,9 +22,10 @@ function shuffleDaily(arr, seed) {
   return copy
 }
 
-export default function Puzzles() {
+export default function Puzzles({ syncTick = 0, onChange }) {
   const [puzzle, setPuzzle] = useState(null)
   const [puzzleError, setPuzzleError] = useState('')
+  const [puzzles, setPuzzles] = useState([])
   const [category, setCategory] = useState('all')
   const [difficulty, setDifficulty] = useState('all')
   const [expanded, setExpanded] = useState({})
@@ -39,7 +39,13 @@ export default function Puzzles() {
       .catch((e) => setPuzzleError(e.message))
   }, [])
 
-  useEffect(() => { getPuzzleProgress().then(setProgress) }, [])
+  useEffect(() => {
+    loadPuzzles().then(setPuzzles)
+  }, [])
+
+  const categories = useMemo(() => [...new Set(puzzles.map((p) => p.category))].sort(), [puzzles])
+
+  const { error: progressError } = useHydrate([() => getPuzzleProgress().then(setProgress)], [syncTick])
 
   const daySeed = Math.floor(Date.now() / 86400000)
   const filtered = puzzles.filter((p) => {
@@ -62,13 +68,14 @@ export default function Puzzles() {
   function toggleSolved(id) {
     const next = { ...progress, [id]: !progress[id] }
     setProgress(next)
-    savePuzzleProgress(next)
+    savePuzzleProgress(next).then(() => onChange?.())
   }
 
   return (
     <div className="fade-in">
       {/* Lichess daily */}
       {puzzleError && <div className="banner-warn">Chess puzzle: {puzzleError}</div>}
+      {progressError && <div className="banner-warn">Couldn't load your puzzle progress: {progressError}</div>}
       {!puzzle && !puzzleError && (
         <div className="loading">
           <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
@@ -103,7 +110,7 @@ export default function Puzzles() {
           style={{ flex: 1, fontSize: 13 }}
         >
           <option value="all">All categories</option>
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>

@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   getExpenses, saveExpenses, getBudgets, saveBudgets, getGoals, saveGoals, getLoans, saveLoans,
-  getReminders, saveReminders,
+  mutateReminders,
 } from '../store.js'
 import { LOAN_ACTIONS, computeLoanBalances } from '../money/logic.js'
-import { showToast } from '../toast.js'
+import Sheet from '../Sheet.jsx'
+import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
+import { newId } from '../id.js'
+import { DndArea, DropList, SortableRow } from '../dnd/Dnd.jsx'
+import { placeItem } from '../dnd/logic.js'
+import { formatAdded, formatTime } from '../time.js'
 
 const CATEGORIES = [
   { id: 'food', emoji: '🍔', label: 'Food' },
@@ -22,6 +29,19 @@ const CATEGORIES = [
 ]
 const CAT_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]))
 const GOAL_ICONS = ['🏦', '🏠', '🚗', '✈️', '📱', '🎓', '💍', '🏥', '🎯', '💰']
+const MAX_AMOUNT = 10_000_000
+
+function toDateInputValue(ts) {
+  const d = new Date(ts)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+function fromDateInputValue(str, fallbackTs) {
+  if (!str) return fallbackTs
+  const [y, m, d] = str.split('-').map(Number)
+  const base = new Date(fallbackTs)
+  return new Date(y, m - 1, d, base.getHours(), base.getMinutes(), base.getSeconds()).getTime()
+}
 
 function monthRange(ts) {
   const d = new Date(ts)
@@ -79,7 +99,7 @@ function monthTotals(expenses, ts) {
   }
 }
 
-export default function Expenses() {
+export default function Expenses({ syncTick = 0 }) {
   const [expenses, setExpenses] = useState([])
   const [budgets, setBudgets] = useState({})
   const [goals, setGoals] = useState([])
@@ -98,6 +118,7 @@ export default function Expenses() {
   const [note, setNote] = useState('')
   const [person, setPerson] = useState('')
   const [editId, setEditId] = useState(null)
+  const [txnDate, setTxnDate] = useState(() => toDateInputValue(Date.now()))
 
   const [loans, setLoans] = useState([])
   const [showLoanForm, setShowLoanForm] = useState(false)
@@ -109,6 +130,7 @@ export default function Expenses() {
   const [expandedPerson, setExpandedPerson] = useState(null)
 
   const [search, setSearch] = useState('')
+  const [showAllCats, setShowAllCats] = useState(false)
   const [typeFilter, setTypeFilter] = useState('all')
   const [loanSearch, setLoanSearch] = useState('')
 
@@ -124,12 +146,16 @@ export default function Expenses() {
 
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    getExpenses().then(setExpenses)
-    getBudgets().then(setBudgets)
-    getGoals().then(setGoals)
-    getLoans().then(setLoans)
-  }, [])
+  const expensesRef = useLatest(expenses)
+  const loansRef = useLatest(loans)
+  const goalsRef = useLatest(goals)
+
+  const { ready, error } = useHydrate([
+    () => getExpenses().then(setExpenses),
+    () => getBudgets().then(setBudgets),
+    () => getGoals().then(setGoals),
+    () => getLoans().then(setLoans),
+  ], [syncTick])
 
   async function persistExpenses(next) {
     setExpenses(next)
@@ -159,7 +185,9 @@ export default function Expenses() {
     setViewMonth((prev) => {
       const d = new Date(prev)
       d.setMonth(d.getMonth() + 1)
-      return d.getTime()
+      const next = d.getTime()
+      const { start: thisMonthStart } = monthRange(Date.now())
+      return next > thisMonthStart ? prev : next
     })
   }
 
@@ -170,6 +198,7 @@ export default function Expenses() {
     setPerson('')
     setEditId(null)
     setTxnType(type)
+    setTxnDate(toDateInputValue(Date.now()))
     setShowAdd(true)
   }
 
@@ -180,13 +209,14 @@ export default function Expenses() {
     setPerson(e.person || '')
     setEditId(e.id)
     setTxnType(e.type || 'expense')
+    setTxnDate(toDateInputValue(e.date))
     setShowAdd(true)
   }
 
   async function handleSave() {
     if (saving) return
     const val = parseFloat(amount)
-    if (!val || val <= 0) return
+    if (!val || val <= 0 || val > MAX_AMOUNT) return
     if (txnType === 'expense' && !category) return
     setSaving(true)
     try {
@@ -196,14 +226,18 @@ export default function Expenses() {
         await persistExpenses(
           expenses.map((e) =>
             e.id === editId
-              ? { ...e, amount: val, category: cat, note: note.trim(), type: txnType, person: withPerson }
+              ? {
+                  ...e, amount: val, category: cat, note: note.trim(), type: txnType, person: withPerson,
+                  date: fromDateInputValue(txnDate, e.date),
+                }
               : e
           )
         )
       } else {
         await persistExpenses([
           {
-            id: Date.now(), amount: val, category: cat, note: note.trim(), date: Date.now(),
+            id: newId(), amount: val, category: cat, note: note.trim(),
+            date: fromDateInputValue(txnDate, Date.now()),
             type: txnType, person: withPerson,
           },
           ...expenses,
@@ -216,32 +250,29 @@ export default function Expenses() {
   }
 
   async function handleDelete(id) {
-    const prev = expenses
-    await persistExpenses(expenses.filter((e) => e.id !== id))
-    showToast('Entry deleted', { undo: () => persistExpenses(prev) })
+    deleteWithUndo({ list: expenses, id, persist: persistExpenses, ref: expensesRef, label: () => 'Entry deleted' })
   }
 
   async function addLoan() {
     if (saving) return
     const val = parseFloat(loanAmount)
     const who = loanPerson.trim()
-    if (!val || val <= 0 || !who) return
+    if (!val || val <= 0 || val > MAX_AMOUNT || !who) return
     setSaving(true)
     try {
       await persistLoans([
-        { id: Date.now(), person: who, amount: val, direction: loanDirection, note: loanNote.trim(), date: Date.now() },
+        { id: newId(), person: who, amount: val, direction: loanDirection, note: loanNote.trim(), date: Date.now() },
         ...loans,
       ])
       if (remindMe) {
-        const reminders = await getReminders()
         const reminder = {
-          id: String(Date.now() + 1),
+          id: newId(),
           title: `Follow up: ₹${val.toLocaleString('en-IN')} loan with ${who}`,
           at: Date.now() + 7 * 86400000,
           done: false,
           createdAt: Date.now(),
         }
-        await saveReminders([...reminders, reminder].sort((a, b) => a.at - b.at))
+        await mutateReminders((reminders) => [...reminders, reminder].sort((a, b) => a.at - b.at))
       }
       setLoanPerson('')
       setLoanAmount('')
@@ -255,30 +286,36 @@ export default function Expenses() {
   }
 
   function deleteLoanEntry(id) {
-    const prev = loans
-    persistLoans(loans.filter((l) => l.id !== id))
-    showToast('Loan entry deleted', { undo: () => persistLoans(prev) })
+    deleteWithUndo({ list: loans, id, persist: persistLoans, ref: loansRef, label: () => 'Loan entry deleted' })
   }
 
-  function saveBudgetFor(catId) {
+  async function saveBudgetFor(catId) {
+    if (saving) return
     const val = parseFloat(budgetAmount)
-    if (!val || val <= 0) {
-      const next = { ...budgets }
-      delete next[catId]
-      persistBudgets(next)
-    } else {
-      persistBudgets({ ...budgets, [catId]: val })
+    if (!val || val <= 0 || val > MAX_AMOUNT) return
+    setSaving(true)
+    try {
+      await persistBudgets({ ...budgets, [catId]: val })
+      setEditBudgetCat(null)
+    } finally {
+      setSaving(false)
     }
+  }
+
+  function removeBudgetFor(catId) {
+    const next = { ...budgets }
+    delete next[catId]
+    persistBudgets(next)
     setEditBudgetCat(null)
   }
 
   async function addGoal() {
     if (saving) return
     const target = parseFloat(goalTarget)
-    if (!goalName.trim() || !target || target <= 0) return
+    if (!goalName.trim() || !target || target <= 0 || target > MAX_AMOUNT) return
     setSaving(true)
     try {
-      await persistGoals([...goals, { id: Date.now(), name: goalName.trim(), target, saved: 0, icon: goalIcon }])
+      await persistGoals([...goals, { id: newId(), name: goalName.trim(), target, saved: 0, icon: goalIcon, createdAt: Date.now() }])
       setShowGoalForm(false)
       setGoalName('')
       setGoalTarget('')
@@ -288,19 +325,37 @@ export default function Expenses() {
     }
   }
 
-  function addFunds() {
+  async function addFunds() {
+    if (saving) return
     const val = parseFloat(fundAmount)
-    if (!val || val <= 0 || !fundGoalId) return
-    persistGoals(goals.map((g) => (g.id === fundGoalId ? { ...g, saved: Math.max(0, g.saved + val) } : g)))
-    setFundGoalId(null)
-    setFundAmount('')
+    if (!val || val <= 0 || val > MAX_AMOUNT || !fundGoalId) return
+    setSaving(true)
+    try {
+      await persistGoals(goals.map((g) => (g.id === fundGoalId ? { ...g, saved: Math.max(0, g.saved + val) } : g)))
+      setFundGoalId(null)
+      setFundAmount('')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function deleteGoal(id) {
-    const goal = goals.find((g) => g.id === id)
-    const prev = goals
-    persistGoals(goals.filter((g) => g.id !== id))
-    if (goal) showToast(`Deleted "${goal.name}"`, { undo: () => persistGoals(prev) })
+    deleteWithUndo({
+      list: goals, id, persist: persistGoals, ref: goalsRef,
+      label: (goal) => `Deleted "${goal.name}"`,
+    })
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">⚠️</div>
+        <div className="empty-text">Couldn't load Money: {error}</div>
+      </div>
+    )
+  }
+  if (!ready) {
+    return <div className="empty-state"><div className="empty-text">Loading…</div></div>
   }
 
   // Computed
@@ -457,7 +512,7 @@ export default function Expenses() {
               <div className="section-header">
                 <span className="section-title">Spending by Category</span>
               </div>
-              {catSorted.slice(0, 6).map(([catId, total]) => {
+              {(showAllCats ? catSorted : catSorted.slice(0, 6)).map(([catId, total]) => {
                 const c = CAT_MAP[catId]
                 const pct = spent > 0 ? Math.round((total / spent) * 100) : 0
                 const overBudget = budgets[catId] && total > budgets[catId]
@@ -484,6 +539,15 @@ export default function Expenses() {
                   </div>
                 )
               })}
+              {catSorted.length > 6 && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: '100%', marginBottom: 10 }}
+                  onClick={() => setShowAllCats((v) => !v)}
+                >
+                  {showAllCats ? 'Show less ▴' : `Show ${catSorted.length - 6} more ▾`}
+                </button>
+              )}
             </>
           )}
 
@@ -591,8 +655,16 @@ export default function Expenses() {
 
           {groups.map(([dayKey, items]) => (
             <div key={dayKey}>
-              <div className="meta" style={{ padding: '6px 0 4px', fontSize: 12, fontWeight: 600 }}>
-                {formatDate(Number(dayKey))}
+              <div
+                className="meta"
+                style={{ padding: '6px 0 4px', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}
+              >
+                <span>{formatDate(Number(dayKey))}</span>
+                {items.some((e) => e.type !== 'income') && (
+                  <span className="down">
+                    ₹{items.reduce((s, e) => s + (e.type === 'income' ? 0 : e.amount), 0).toLocaleString('en-IN')} spent
+                  </span>
+                )}
               </div>
               {items.map((e) => {
                 const c = CAT_MAP[e.category]
@@ -613,20 +685,21 @@ export default function Expenses() {
                             {isIncome ? '+' : '-'}₹{e.amount.toLocaleString('en-IN')}
                           </span>
                         </div>
-                        {(e.note || e.person) && !isIncome && (
-                          <div className="meta" style={{ fontSize: 12, marginTop: 1 }}>
-                            {e.note}
-                            {e.note && e.person && ' · '}
-                            {e.person && `with ${e.person}`}
-                          </div>
-                        )}
+                        <div className="meta" style={{ fontSize: 12, marginTop: 1 }}>
+                          {formatTime(e.date)}
+                          {(e.note || e.person) && !isIncome && ' · '}
+                          {!isIncome && e.note}
+                          {!isIncome && e.note && e.person && ' · '}
+                          {!isIncome && e.person && `with ${e.person}`}
+                        </div>
                       </div>
                       <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                         <button
                           className="btn btn-ghost btn-sm"
                           onClick={() => openEdit(e)}
                           title="Edit"
-                          style={{ padding: '4px 6px', fontSize: 14 }}
+                          aria-label="Edit"
+                          style={{ padding: '4px 6px', fontSize: 14, minWidth: 44, minHeight: 44 }}
                         >
                           ✏️
                         </button>
@@ -634,7 +707,8 @@ export default function Expenses() {
                           className="btn btn-danger-ghost btn-sm"
                           onClick={() => handleDelete(e.id)}
                           title="Delete"
-                          style={{ padding: '4px 6px', fontSize: 14 }}
+                          aria-label="Delete"
+                          style={{ padding: '4px 6px', fontSize: 14, minWidth: 44, minHeight: 44 }}
                         >
                           ×
                         </button>
@@ -722,6 +796,7 @@ export default function Expenses() {
                             value={budgetAmount}
                             onChange={(e) => setBudgetAmount(e.target.value)}
                             placeholder="₹"
+                            max={MAX_AMOUNT}
                             style={{ width: 80, padding: '2px 6px', fontSize: 12, textAlign: 'right' }}
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && saveBudgetFor(cat.id)}
@@ -730,9 +805,19 @@ export default function Expenses() {
                             className="btn btn-primary btn-sm"
                             style={{ padding: '2px 8px', fontSize: 11 }}
                             onClick={() => saveBudgetFor(cat.id)}
+                            disabled={!budgetAmount || parseFloat(budgetAmount) <= 0 || parseFloat(budgetAmount) > MAX_AMOUNT || saving}
                           >
                             ✓
                           </button>
+                          {budget > 0 && (
+                            <button
+                              className="btn btn-danger-ghost btn-sm"
+                              style={{ padding: '2px 8px', fontSize: 11 }}
+                              onClick={() => removeBudgetFor(cat.id)}
+                            >
+                              Remove
+                            </button>
+                          )}
                           <button
                             className="btn btn-ghost btn-sm"
                             style={{ padding: '2px 8px', fontSize: 11 }}
@@ -786,55 +871,50 @@ export default function Expenses() {
             </button>
           </div>
 
-          {showGoalForm && (
-            <>
-              <div className="money-backdrop" onClick={() => setShowGoalForm(false)} />
-              <div className="money-sheet">
-                <div className="h3" style={{ marginBottom: 10 }}>
-                  New Goal
-                </div>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-                  {GOAL_ICONS.map((icon) => (
-                    <button
-                      key={icon}
-                      className={`expense-cat-btn${goalIcon === icon ? ' active' : ''}`}
-                      style={{ padding: 6, width: 40, height: 40 }}
-                      onClick={() => setGoalIcon(icon)}
-                    >
-                      <span style={{ fontSize: 18 }}>{icon}</span>
-                    </button>
-                  ))}
-                </div>
-                <input
-                  placeholder="Goal name"
-                  value={goalName}
-                  onChange={(e) => setGoalName(e.target.value)}
-                  autoFocus
-                  style={{ marginBottom: 8 }}
-                />
-                <input
-                  type="number"
-                  placeholder="Target amount (₹)"
-                  value={goalTarget}
-                  onChange={(e) => setGoalTarget(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addGoal()}
-                />
-                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    style={{ flex: 1 }}
-                    onClick={addGoal}
-                    disabled={!goalName.trim() || !goalTarget || saving}
-                  >
-                    Create
-                  </button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowGoalForm(false)}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+          <Sheet open={showGoalForm} onClose={() => setShowGoalForm(false)}>
+            <div className="h3" style={{ marginBottom: 10 }}>
+              New Goal
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+              {GOAL_ICONS.map((icon) => (
+                <button
+                  key={icon}
+                  className={`expense-cat-btn${goalIcon === icon ? ' active' : ''}`}
+                  style={{ padding: 6, width: 40, height: 40 }}
+                  onClick={() => setGoalIcon(icon)}
+                >
+                  <span style={{ fontSize: 18 }}>{icon}</span>
+                </button>
+              ))}
+            </div>
+            <input
+              placeholder="Goal name"
+              value={goalName}
+              onChange={(e) => setGoalName(e.target.value)}
+              style={{ marginBottom: 8 }}
+            />
+            <input
+              type="number"
+              placeholder="Target amount (₹)"
+              value={goalTarget}
+              onChange={(e) => setGoalTarget(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addGoal()}
+              max={MAX_AMOUNT}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ flex: 1 }}
+                onClick={addGoal}
+                disabled={!goalName.trim() || !goalTarget || parseFloat(goalTarget) > MAX_AMOUNT || saving}
+              >
+                Create
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowGoalForm(false)}>
+                Cancel
+              </button>
+            </div>
+          </Sheet>
 
           {goals.length === 0 && !showGoalForm && (
             <div className="empty-state">
@@ -843,18 +923,24 @@ export default function Expenses() {
             </div>
           )}
 
+          <DndArea onMove={({ id, overId, after }) => persistGoals(placeItem(goals, id, overId, { after }))}>
+          <DropList id="goals" type="goal" items={goals.map((g) => g.id)}>
           {goals.map((g) => {
             const pct = g.target > 0 ? Math.round((g.saved / g.target) * 100) : 0
             const isFunding = fundGoalId === g.id
             return (
-              <div key={g.id} className="card" style={{ marginBottom: 10 }}>
+              <SortableRow key={g.id} id={g.id} type="goal">
+              {(handle) => (
+              <div className="card" style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  {handle}
                   <span style={{ fontSize: 28 }}>{g.icon}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 15 }}>{g.name}</div>
                     <div className="meta" style={{ fontSize: 13 }}>
                       ₹{g.saved.toLocaleString('en-IN')} / ₹{g.target.toLocaleString('en-IN')}
                     </div>
+                    {g.createdAt && <div className="meta" style={{ fontSize: 11 }}>added {formatAdded(g.createdAt)}</div>}
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div
@@ -889,12 +975,13 @@ export default function Expenses() {
                       onChange={(e) => setFundAmount(e.target.value)}
                       style={{ flex: 1, fontSize: 13, padding: '6px 10px' }}
                       autoFocus
+                      max={MAX_AMOUNT}
                       onKeyDown={(e) => e.key === 'Enter' && addFunds()}
                     />
                     <button
                       className="btn btn-success btn-sm"
                       onClick={addFunds}
-                      disabled={!fundAmount || parseFloat(fundAmount) <= 0}
+                      disabled={!fundAmount || parseFloat(fundAmount) <= 0 || parseFloat(fundAmount) > MAX_AMOUNT || saving}
                     >
                       + Add
                     </button>
@@ -926,8 +1013,12 @@ export default function Expenses() {
                   </div>
                 )}
               </div>
+              )}
+              </SortableRow>
             )
           })}
+          </DropList>
+          </DndArea>
         </>
       )}
 
@@ -1018,20 +1109,16 @@ export default function Expenses() {
       )}
 
       {/* ─── LOG A LOAN (bottom sheet) ─── */}
-      {showLoanForm && (
-        <>
-          <div className="money-backdrop" onClick={() => setShowLoanForm(false)} />
-          <div className="money-sheet">
-            <div className="h3" style={{ marginBottom: 10 }}>Log a Loan</div>
+      <Sheet open={showLoanForm} onClose={() => setShowLoanForm(false)}>
+        <div className="h3" style={{ marginBottom: 10 }}>Log a Loan</div>
 
-            <input
-              list="loan-person-suggestions"
-              placeholder="Person (e.g. Raj)"
-              value={loanPerson}
-              onChange={(e) => setLoanPerson(e.target.value)}
-              autoFocus
-              style={{ marginBottom: 10 }}
-            />
+        <input
+          list="loan-person-suggestions"
+          placeholder="Person (e.g. Raj)"
+          value={loanPerson}
+          onChange={(e) => setLoanPerson(e.target.value)}
+          style={{ marginBottom: 10 }}
+        />
             <datalist id="loan-person-suggestions">
               {loanPeopleSuggestions.map((p) => (
                 <option key={p} value={p} />
@@ -1045,6 +1132,7 @@ export default function Expenses() {
               value={loanAmount}
               onChange={(e) => setLoanAmount(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addLoan()}
+              max={MAX_AMOUNT}
               style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', marginBottom: 10 }}
             />
 
@@ -1079,7 +1167,10 @@ export default function Expenses() {
                 className="btn btn-primary btn-sm"
                 style={{ flex: 1 }}
                 onClick={addLoan}
-                disabled={!loanPerson.trim() || !loanAmount || parseFloat(loanAmount) <= 0 || saving}
+                disabled={
+                  !loanPerson.trim() || !loanAmount || parseFloat(loanAmount) <= 0 ||
+                  parseFloat(loanAmount) > MAX_AMOUNT || saving
+                }
               >
                 + Log
               </button>
@@ -1087,15 +1178,10 @@ export default function Expenses() {
                 Cancel
               </button>
             </div>
-          </div>
-        </>
-      )}
+      </Sheet>
 
       {/* ─── ADD FORM (bottom sheet) ─── */}
-      {showAdd && (
-        <>
-          <div className="money-backdrop" onClick={() => setShowAdd(false)} />
-          <div className="money-sheet">
+      <Sheet open={showAdd} onClose={() => setShowAdd(false)}>
             <div className="h3" style={{ marginBottom: 10 }}>
               {editId ? 'Edit' : 'Add'} {txnType === 'income' ? 'Income' : 'Expense'}
             </div>
@@ -1135,8 +1221,16 @@ export default function Expenses() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              autoFocus
+              max={MAX_AMOUNT}
               style={{ fontSize: 24, fontWeight: 700, textAlign: 'center', marginBottom: 12 }}
+            />
+
+            <input
+              type="date"
+              value={txnDate}
+              max={toDateInputValue(Date.now())}
+              onChange={(e) => setTxnDate(e.target.value)}
+              style={{ marginBottom: 10, fontSize: 13 }}
             />
 
             {txnType === 'expense' && (
@@ -1186,7 +1280,10 @@ export default function Expenses() {
                     : {}),
                 }}
                 onClick={handleSave}
-                disabled={!amount || parseFloat(amount) <= 0 || (txnType === 'expense' && !category) || saving}
+                disabled={
+                  !amount || parseFloat(amount) <= 0 || parseFloat(amount) > MAX_AMOUNT ||
+                  (txnType === 'expense' && !category) || saving
+                }
               >
                 {editId ? 'Save' : txnType === 'income' ? '+ Add Income' : '+ Add Expense'}
               </button>
@@ -1194,9 +1291,7 @@ export default function Expenses() {
                 Cancel
               </button>
             </div>
-          </div>
-        </>
-      )}
+      </Sheet>
 
       {/* FAB */}
       {!showAdd && !showLoanForm && view !== 'loans' && (
@@ -1237,7 +1332,7 @@ function LoanPersonCard({ person, balance, loans, expanded, onToggle, onDelete }
                 <div>
                   <div style={{ fontSize: 13 }}>{action?.label || l.direction}</div>
                   <div className="meta" style={{ fontSize: 11 }}>
-                    {formatDate(l.date)}{l.note ? ` · ${l.note}` : ''}
+                    {formatDate(l.date)}, {formatTime(l.date)}{l.note ? ` · ${l.note}` : ''}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

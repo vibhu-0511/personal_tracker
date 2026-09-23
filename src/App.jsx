@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import {
   getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey, SYNCED_KEYS,
-  onSyncStatusChange,
+  onSyncStatusChange, claimOwner, flush,
 } from './store.js'
 import { supabase } from './supabaseClient.js'
 import ToastHost from './Toast.jsx'
-import LogicBuilding from './tabs/LogicBuilding.jsx'
-import Agents from './tabs/Agents.jsx'
-import Expenses from './tabs/Expenses.jsx'
-import Invest from './tabs/Invest.jsx'
-import Life from './tabs/Life.jsx'
+
+const LogicBuilding = lazy(() => import('./tabs/LogicBuilding.jsx'))
+const Agents = lazy(() => import('./tabs/Agents.jsx'))
+const Expenses = lazy(() => import('./tabs/Expenses.jsx'))
+const Invest = lazy(() => import('./tabs/Invest.jsx'))
+const Life = lazy(() => import('./tabs/Life.jsx'))
 
 const TABS = [
   { id: 'Life', icon: '🌱', label: 'Life' },
@@ -61,6 +62,16 @@ export default function App() {
   useEffect(() => onSyncStatusChange(setSyncFailed), [])
 
   useEffect(() => {
+    const onVisibility = () => { if (document.visibilityState === 'hidden') flush() }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('beforeunload', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('beforeunload', flush)
+    }
+  }, [])
+
+  useEffect(() => {
     supabase.auth.getSession()
       .then(({ data }) => setSession(data.session))
       .catch((err) => setInitError(err.message || 'Failed to load session'))
@@ -76,7 +87,8 @@ export default function App() {
     if (!userId) { setSynced(false); return }
     let cancelled = false
 
-    reconcileAll()
+    claimOwner(userId)
+      .then(() => reconcileAll())
       .then(() => getSettings())
       .then((s) => {
         if (cancelled) return
@@ -135,13 +147,11 @@ export default function App() {
     await saveSettings(next)
   }
 
-  async function handleAuth(mode) {
+  async function handleAuth() {
     setAuthError('')
     setAuthBusy(true)
     try {
-      const { error } = mode === 'signup'
-        ? await supabase.auth.signUp({ email: authEmail.trim(), password: authPassword })
-        : await supabase.auth.signInWithPassword({ email: authEmail.trim(), password: authPassword })
+      const { error } = await supabase.auth.signInWithPassword({ email: authEmail.trim(), password: authPassword })
       if (error) setAuthError(error.message)
     } catch (err) {
       setAuthError(err.message || 'Sign-in failed')
@@ -160,7 +170,13 @@ export default function App() {
   }
 
   if (session === undefined || (session && !synced)) {
-    return <div className="app" />
+    return (
+      <div className="app">
+        <div className="loading" style={{ justifyContent: 'center', marginTop: '40vh' }}>
+          <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
+        </div>
+      </div>
+    )
   }
 
   if (!session) {
@@ -186,17 +202,14 @@ export default function App() {
             value={authPassword}
             onChange={(e) => setAuthPassword(e.target.value)}
             style={{ marginTop: 4 }}
-            onKeyDown={(e) => e.key === 'Enter' && handleAuth('signin')}
+            onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
           />
           {authError && (
             <div className="meta" style={{ color: 'var(--danger)', marginTop: 8 }}>{authError}</div>
           )}
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button className="btn btn-primary btn-sm" disabled={authBusy} onClick={() => handleAuth('signin')}>
+            <button className="btn btn-primary btn-sm" disabled={authBusy} onClick={() => handleAuth()}>
               Sign in
-            </button>
-            <button className="btn btn-ghost btn-sm" disabled={authBusy} onClick={() => handleAuth('signup')}>
-              Sign up
             </button>
           </div>
         </div>
@@ -263,11 +276,13 @@ export default function App() {
       )}
 
       <main className="content">
-        {tab === 'Life' && <Life key={syncTicks.Life || 0} />}
-        {tab === 'LogicBuilding' && <LogicBuilding cfHandle={settings.cfHandle} syncTicks={syncTicks} />}
-        {tab === 'Expenses' && <Expenses key={syncTicks.Expenses || 0} />}
-        {tab === 'Invest' && <Invest key={syncTicks.Invest || 0} />}
-        {tab === 'Agents' && <Agents />}
+        <Suspense fallback={<div className="loading"><span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" /></div>}>
+          {tab === 'Life' && <Life syncTick={syncTicks.Life || 0} />}
+          {tab === 'LogicBuilding' && <LogicBuilding cfHandle={settings.cfHandle} syncTicks={syncTicks} />}
+          {tab === 'Expenses' && <Expenses syncTick={syncTicks.Expenses || 0} />}
+          {tab === 'Invest' && <Invest syncTick={syncTicks.Invest || 0} />}
+          {tab === 'Agents' && <Agents />}
+        </Suspense>
       </main>
 
       <nav className="tab-bar">

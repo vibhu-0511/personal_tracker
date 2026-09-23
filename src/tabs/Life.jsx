@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'motion/react'
 import {
   getTasks, saveTasks, getReminders, saveReminders, getHabits, saveHabits, getMoodLog, saveMoodLog,
+  getChecklists, saveChecklists,
 } from '../store.js'
+import { showToast } from '../toast.js'
+import { DndArea, DropList, SortableRow, useDragging } from '../dnd/Dnd.jsx'
+import { placeItem, taskDropPatch, moveSubtask } from '../dnd/logic.js'
+import { formatAdded } from '../time.js'
 import {
   dateKey,
   streaks,
@@ -22,17 +27,24 @@ import {
   emotionSummary,
 } from '../life/logic.js'
 import Notes from './Notes.jsx'
-import Checklist from './Checklist.jsx'
-import { showToast } from '../toast.js'
+import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
+import { newId } from '../id.js'
 
 const VIEWS = [
-  { id: 'tasks', icon: '✅', label: 'Tasks' },
-  { id: 'reminders', icon: '⏰', label: 'Reminders' },
-  { id: 'habits', icon: '🐾', label: 'Habits' },
-  { id: 'growth', icon: '🌟', label: 'Growth' },
-  { id: 'checklist', icon: '☑️', label: 'Checklist' },
-  { id: 'notes', icon: '📝', label: 'Notes' },
+  { id: 'planning', icon: '🗂️', label: 'Planning', children: [
+    { id: 'tasks', icon: '✅', label: 'Tasks' },
+    { id: 'reminders', icon: '⏰', label: 'Reminders' },
+    { id: 'notes', icon: '📝', label: 'Notes' },
+  ] },
+  { id: 'wellbeing', icon: '🌱', label: 'Wellbeing', children: [
+    { id: 'habits', icon: '🐾', label: 'Habits' },
+    { id: 'growth', icon: '🌟', label: 'Growth' },
+  ] },
 ]
+
+const activeGroup = (view) => VIEWS.find((g) => g.children.some((c) => c.id === view))
 
 const URGENCY_FILTERS = [
   { id: 'all', label: 'All' },
@@ -64,7 +76,7 @@ async function fireConfetti() {
   confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 }, disableForReducedMotion: true })
 }
 
-export default function Life() {
+export default function Life({ syncTick = 0 }) {
   const [view, setView] = useState('tasks')
   const [tasks, setTasks] = useState([])
   const [reminders, setReminders] = useState([])
@@ -72,22 +84,47 @@ export default function Life() {
   const [moodLog, setMoodLog] = useState([])
   const [now, setNow] = useState(() => new Date())
 
-  useEffect(() => {
-    getTasks().then(setTasks)
-    getReminders().then(setReminders)
-    getHabits().then(setHabits)
-    getMoodLog().then(setMoodLog)
-  }, [])
+  const { ready, error } = useHydrate([
+    () => getTasks().then(setTasks),
+    () => getReminders().then(setReminders),
+    () => getHabits().then(setHabits),
+    () => getMoodLog().then(setMoodLog),
+  ], [syncTick])
 
-  // Auto-derive today's mood entry from habit behavior, once, unless already logged.
+  // Auto-derive today's mood entry from habit behavior, once, unless already
+  // logged. Gated on `ready`: habits and moodLog hydrate from independent
+  // promises, and racing ahead on a partial load (e.g. habits resolved,
+  // moodLog didn't yet) would derive from an empty moodLog and overwrite the
+  // real history.
   useEffect(() => {
+    if (!ready) return
     const next = ensureTodayEntry(moodLog, habits, now)
     if (next !== moodLog) {
       setMoodLog(next)
       saveMoodLog(next)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [habits, now])
+  }, [ready, habits, now])
+
+  // One-time merge of legacy checklists into tasks (as subtasks). Tasks are
+  // saved before checklists are cleared; stable ids make a re-run a no-op.
+  const tasksLatest = useLatest(tasks)
+  useEffect(() => {
+    if (!ready) return
+    getChecklists().then(async (sections) => {
+      if (!sections.length) return
+      const have = new Set(tasksLatest.current.map((t) => t.id))
+      const added = sections
+        .filter((s) => !have.has(s.id))
+        .map((s) => ({
+          id: s.id, title: s.name, due: null, dueAt: null, done: false, doneAt: null,
+          createdAt: s.createdAt, urgent: false, important: false, subtasks: s.items,
+        }))
+      if (added.length) await updateTasks([...added, ...tasksLatest.current])
+      await saveChecklists([])
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
@@ -127,6 +164,20 @@ export default function Life() {
   const tasksDueToday = tasks.filter((t) => !t.done && t.due === dateKey(now)).length
   const remindersDue = reminders.filter((r) => !r.done && r.at <= now.getTime()).length
 
+  if (error) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">⚠️</div>
+        <div className="empty-text">Couldn't load Life: {error}</div>
+      </div>
+    )
+  }
+  if (!ready) {
+    return <div className="empty-state"><div className="empty-text">Loading…</div></div>
+  }
+
+  const group = activeGroup(view)
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="fade-in">
@@ -146,7 +197,19 @@ export default function Life() {
         </div>
 
         <div className="agent-bar">
-          {VIEWS.map((v) => (
+          {VIEWS.map((g) => (
+            <button
+              key={g.id}
+              className={`agent-pill${group === g ? ' active' : ''}`}
+              onClick={() => group !== g && setView(g.children[0].id)}
+            >
+              <span className="agent-pill-icon">{g.icon}</span>
+              {g.label}
+            </button>
+          ))}
+        </div>
+        <div className="agent-bar">
+          {group.children.map((v) => (
             <button
               key={v.id}
               className={`agent-pill${view === v.id ? ' active' : ''}`}
@@ -164,8 +227,7 @@ export default function Life() {
         {view === 'growth' && (
           <GrowthView habits={habits} moodLog={moodLog} onMoodLog={updateMoodLog} now={now} />
         )}
-        {view === 'checklist' && <Checklist />}
-        {view === 'notes' && <Notes />}
+        {view === 'notes' && <Notes syncTick={syncTick} />}
       </div>
     </MotionConfig>
   )
@@ -178,25 +240,30 @@ function TasksView({ tasks, onUpdate, now }) {
   const [editingId, setEditingId] = useState(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDue, setEditDue] = useState('')
+  const [newUrgent, setNewUrgent] = useState(false)
+  const [newImportant, setNewImportant] = useState(false)
   const todayKey = dateKey(now)
+  const tasksRef = useLatest(tasks)
 
   function addTask() {
     const text = quick.trim()
     if (!text) return
     const { title, date, at } = parseQuick(text, now)
     const task = {
-      id: String(Date.now()),
+      id: newId(),
       title: title || text,
       due: date ? dateKey(date) : null,
       dueAt: at ? at.getTime() : null,
       done: false,
       doneAt: null,
       createdAt: Date.now(),
-      urgent: false,
-      important: false,
+      urgent: newUrgent,
+      important: newImportant,
     }
     onUpdate([task, ...tasks])
     setQuick('')
+    setNewUrgent(false)
+    setNewImportant(false)
   }
 
   function toggleFlag(id, flag) {
@@ -218,10 +285,37 @@ function TasksView({ tasks, onUpdate, now }) {
   }
 
   function remove(id) {
-    const task = tasks.find((t) => t.id === id)
-    const prev = tasks
-    onUpdate(tasks.filter((t) => t.id !== id))
-    if (task) showToast(`Deleted "${task.title}"`, { undo: () => onUpdate(prev) })
+    deleteWithUndo({
+      list: tasks, id, persist: onUpdate, ref: tasksRef,
+      label: (task) => `Deleted "${task.title}"`,
+    })
+  }
+
+  function setSubtasks(id, subtasks) {
+    onUpdate(tasks.map((t) => (t.id === id ? { ...t, subtasks } : t)))
+  }
+  function removeSubtask(id, subId) {
+    const item = tasks.find((t) => t.id === id)?.subtasks?.find((s) => s.id === subId)
+    onUpdate(tasks.map((t) => (t.id === id ? { ...t, subtasks: t.subtasks.filter((s) => s.id !== subId) } : t)))
+    if (item) {
+      showToast(`Deleted "${item.text}"`, {
+        undo: () => onUpdate(
+          tasksRef.current.map((t) => (t.id === id ? { ...t, subtasks: [item, ...(t.subtasks || [])] } : t))
+        ),
+      })
+    }
+  }
+
+  function onMove({ type, id, from, to, overId, after }) {
+    if (type === 'sub') {
+      onUpdate(moveSubtask(tasks, id, from.slice(4), to.slice(4), overId, after))
+      return
+    }
+    if (to === 'overdue' && from !== 'overdue') return
+    if (to === 'upcoming' && from === 'upcoming') return
+    const tomorrowKey = dateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
+    const patch = from === to ? {} : taskDropPatch(to, tasks.find((t) => t.id === id), todayKey, tomorrowKey)
+    onUpdate(placeItem(tasks, id, overId, { patch, after }))
   }
 
   function startEdit(t) {
@@ -254,6 +348,7 @@ function TasksView({ tasks, onUpdate, now }) {
   const editProps = {
     editingId, editTitle, setEditTitle, editDue, setEditDue,
     onStartEdit: startEdit, onSaveEdit: saveEdit, onCancelEdit: cancelEdit,
+    onSubtasks: setSubtasks, onRemoveSubtask: removeSubtask,
   }
 
   return (
@@ -265,6 +360,24 @@ function TasksView({ tasks, onUpdate, now }) {
           placeholder='Add a task… "gym tomorrow 5pm"'
           onKeyDown={(e) => e.key === 'Enter' && addTask()}
         />
+        <button
+          className="life-icon-btn"
+          title="Urgent"
+          aria-label="New task urgent"
+          style={{ opacity: newUrgent ? 1 : 0.3 }}
+          onClick={() => setNewUrgent((v) => !v)}
+        >
+          🔥
+        </button>
+        <button
+          className="life-icon-btn"
+          title="Important"
+          aria-label="New task important"
+          style={{ opacity: newImportant ? 1 : 0.3 }}
+          onClick={() => setNewImportant((v) => !v)}
+        >
+          ⭐
+        </button>
         <button className="btn btn-primary btn-sm" onClick={addTask} disabled={!quick.trim()}>
           Add
         </button>
@@ -293,10 +406,12 @@ function TasksView({ tasks, onUpdate, now }) {
         </>
       )}
 
-      <TaskSection label="Overdue" items={overdue} overdue {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
-      <TaskSection label="Today" items={dueToday} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
-      <TaskSection label="Upcoming" items={upcoming} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
-      <TaskSection label="No date" items={noDate} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+      <DndArea onMove={onMove}>
+        <TaskSection id="overdue" label="Overdue" items={overdue} overdue {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+        <TaskSection id="today" label="Today" items={dueToday} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+        <TaskSection id="upcoming" label="Upcoming" items={upcoming} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+        <TaskSection id="nodate" label="No date" items={noDate} {...editProps} onToggle={toggle} onRemove={remove} onToggleFlag={toggleFlag} />
+      </DndArea>
       {done.length > 0 && <DoneTaskSection items={done} onToggle={toggle} onRemove={remove} />}
 
       {visible.length === 0 && (
@@ -310,17 +425,30 @@ function TasksView({ tasks, onUpdate, now }) {
 }
 
 function TaskSection({
-  label, items, overdue, onToggle, onRemove, onToggleFlag,
+  id, label, items, overdue, onToggle, onRemove, onToggleFlag,
   editingId, editTitle, setEditTitle, editDue, setEditDue, onStartEdit, onSaveEdit, onCancelEdit,
+  onSubtasks, onRemoveSubtask,
 }) {
-  if (items.length === 0) return null
+  const [open, setOpen] = useState({})
+  const [drafts, setDrafts] = useState({})
+  const dragging = useDragging()
+  if (items.length === 0 && !(dragging?.type === 'task' && id !== 'overdue')) return null
+
+  function addSub(t) {
+    const text = (drafts[t.id] || '').trim()
+    if (!text) return
+    onSubtasks(t.id, [...(t.subtasks || []), { id: newId(), text, checked: false, createdAt: Date.now() }])
+    setDrafts((d) => ({ ...d, [t.id]: '' }))
+  }
   return (
     <>
       <div className="life-section-label">{label}</div>
+      <DropList id={id} type="task" items={items.map((t) => t.id)} dropDisabled={id === 'overdue'}>
       <AnimatePresence initial={false}>
-        {items.map((t) =>
-          editingId === t.id ? (
-            <motion.div key={t.id} layout className="life-row">
+        {items.map((t) => (
+          <SortableRow key={t.id} id={t.id} type="task" disabled={editingId === t.id}>
+          {(handle) => editingId === t.id ? (
+            <motion.div className="life-row">
               <input
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
@@ -334,20 +462,28 @@ function TaskSection({
                 onChange={(e) => setEditDue(e.target.value)}
                 style={{ width: 140 }}
               />
-              <button className="btn btn-primary btn-sm" onClick={() => onSaveEdit(t.id)}>Save</button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => onSaveEdit(t.id)}
+                disabled={!editTitle.trim()}
+              >
+                Save
+              </button>
               <button className="btn btn-ghost btn-sm" onClick={onCancelEdit}>Cancel</button>
             </motion.div>
           ) : (
             <motion.div
-              key={t.id}
-              layout
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: 40 }}
-              className={`life-row${overdue ? ' overdue' : ''}`}
             >
+            <div className={`life-row${overdue ? ' overdue' : ''}`}>
+              {handle}
               <button className="life-check" onClick={() => onToggle(t.id)} aria-label="Mark done" />
-              <div className="life-row-title">{t.title}</div>
+              <div className="life-row-title">
+                {t.title}
+                <div className="meta" style={{ fontSize: 11 }}>added {formatAdded(t.createdAt)}</div>
+              </div>
               {quadrantLabel(t) && (
                 <span className={quadrantLabel(t).cls} style={{ flexShrink: 0 }}>
                   {quadrantLabel(t).label}
@@ -362,6 +498,7 @@ function TaskSection({
               <button
                 className="life-icon-btn"
                 title="Urgent"
+                aria-label="Toggle urgent"
                 style={{ opacity: t.urgent ? 1 : 0.3 }}
                 onClick={() => onToggleFlag(t.id, 'urgent')}
               >
@@ -370,21 +507,75 @@ function TaskSection({
               <button
                 className="life-icon-btn"
                 title="Important"
+                aria-label="Toggle important"
                 style={{ opacity: t.important ? 1 : 0.3 }}
                 onClick={() => onToggleFlag(t.id, 'important')}
               >
                 ⭐
               </button>
-              <button className="life-icon-btn" title="Edit" onClick={() => onStartEdit(t)}>
+              <button
+                className="life-icon-btn"
+                title="Subtasks"
+                aria-label="Toggle subtasks"
+                style={{ opacity: t.subtasks?.length ? 1 : 0.4, fontSize: 12 }}
+                onClick={() => setOpen((o) => ({ ...o, [t.id]: !o[t.id] }))}
+              >
+                {t.subtasks?.length ? `${t.subtasks.filter((s) => s.checked).length}/${t.subtasks.length}` : '☰'} {open[t.id] ? '▴' : '▾'}
+              </button>
+              <button className="life-icon-btn" title="Edit" aria-label="Edit" onClick={() => onStartEdit(t)}>
                 ✎
               </button>
-              <button className="life-icon-btn" title="Delete" onClick={() => onRemove(t.id)}>
+              <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => onRemove(t.id)}>
                 🗑️
               </button>
+            </div>
+            {open[t.id] && (
+              <div style={{ padding: '2px 12px 10px 40px' }}>
+                <DropList id={`sub:${t.id}`} type="sub" items={(t.subtasks || []).map((s) => s.id)}>
+                  {(t.subtasks || []).map((s) => (
+                    <SortableRow key={s.id} id={s.id} type="sub">
+                      {(subHandle) => (
+                        <div className="exam-topic-row">
+                          {subHandle}
+                          <input
+                            type="checkbox"
+                            checked={s.checked}
+                            onChange={() =>
+                              onSubtasks(t.id, t.subtasks.map((x) => (x.id === s.id ? { ...x, checked: !x.checked } : x)))
+                            }
+                          />
+                          <span style={{ flex: 1, textDecoration: s.checked ? 'line-through' : 'none', opacity: s.checked ? 0.5 : 1 }}>
+                            {s.text}
+                            <span className="meta" style={{ fontSize: 11, marginLeft: 6 }}>{formatAdded(s.createdAt)}</span>
+                          </span>
+                          <button className="life-icon-btn" title="Delete item" onClick={() => onRemoveSubtask(t.id, s.id)}>
+                            🗑️
+                          </button>
+                        </div>
+                      )}
+                    </SortableRow>
+                  ))}
+                </DropList>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <input
+                    value={drafts[t.id] || ''}
+                    onChange={(e) => setDrafts((d) => ({ ...d, [t.id]: e.target.value }))}
+                    placeholder="Add item..."
+                    style={{ flex: 1 }}
+                    onKeyDown={(e) => e.key === 'Enter' && addSub(t)}
+                  />
+                  <button className="btn btn-primary btn-sm" onClick={() => addSub(t)} disabled={!(drafts[t.id] || '').trim()}>
+                    Add
+                  </button>
+                </div>
+              </div>
+            )}
             </motion.div>
-          )
-        )}
+          )}
+          </SortableRow>
+        ))}
       </AnimatePresence>
+      </DropList>
     </>
   )
 }
@@ -411,11 +602,11 @@ function DoneTaskSection({ items, onToggle, onRemove }) {
               exit={{ opacity: 0 }}
               className="life-row done"
             >
-              <button className="life-check done" onClick={() => onToggle(t.id)}>
+              <button className="life-check done" aria-label="Mark not done" onClick={() => onToggle(t.id)}>
                 ✓
               </button>
               <div className="life-row-title">{t.title}</div>
-              <button className="life-icon-btn" title="Delete" onClick={() => onRemove(t.id)}>
+              <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => onRemove(t.id)}>
                 🗑️
               </button>
             </motion.div>
@@ -429,6 +620,7 @@ function DoneTaskSection({ items, onToggle, onRemove }) {
 function RemindersView({ reminders, onUpdate, now }) {
   const [quick, setQuick] = useState('')
   const [filter, setFilter] = useState('')
+  const remindersRef = useLatest(reminders)
 
   function addReminder() {
     const text = quick.trim()
@@ -439,7 +631,7 @@ function RemindersView({ reminders, onUpdate, now }) {
       (date ? new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9, 0) : null) ||
       new Date(now.getTime() + 3_600_000)
     const reminder = {
-      id: String(Date.now()),
+      id: newId(),
       title: title || text,
       at: when.getTime(),
       done: false,
@@ -453,10 +645,10 @@ function RemindersView({ reminders, onUpdate, now }) {
     onUpdate(reminders.map((r) => (r.id === id ? { ...r, done: !r.done } : r)))
   }
   function remove(id) {
-    const reminder = reminders.find((r) => r.id === id)
-    const prev = reminders
-    onUpdate(reminders.filter((r) => r.id !== id))
-    if (reminder) showToast(`Deleted "${reminder.title}"`, { undo: () => onUpdate(prev) })
+    deleteWithUndo({
+      list: reminders, id, persist: onUpdate, ref: remindersRef,
+      label: (reminder) => `Deleted "${reminder.title}"`,
+    })
   }
 
   function icsHref(r) {
@@ -520,10 +712,10 @@ function RemindersView({ reminders, onUpdate, now }) {
                 minute: '2-digit',
               })}
             </div>
-            <a className="life-icon-btn" href={icsHref(r)} title="Add to Calendar">
+            <a className="life-icon-btn" href={icsHref(r)} title="Add to Calendar" aria-label="Add to Calendar">
               📅
             </a>
-            <button className="life-icon-btn" title="Delete" onClick={() => remove(r.id)}>
+            <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => remove(r.id)}>
               🗑️
             </button>
           </motion.div>
@@ -544,11 +736,11 @@ function RemindersView({ reminders, onUpdate, now }) {
           <div className="life-section-label">Done ({done.length})</div>
           {done.map((r) => (
             <div key={r.id} className="life-row done">
-              <button className="life-check done" onClick={() => toggle(r.id)}>
+              <button className="life-check done" aria-label="Mark not done" onClick={() => toggle(r.id)}>
                 ✓
               </button>
               <div className="life-row-title">{r.title}</div>
-              <button className="life-icon-btn" title="Delete" onClick={() => remove(r.id)}>
+              <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => remove(r.id)}>
                 🗑️
               </button>
             </div>
@@ -570,11 +762,12 @@ function HabitsView({ habits, onUpdate, now }) {
   const [editName, setEditName] = useState('')
   const [editCategory, setEditCategory] = useState('exercise')
   const [editDomain, setEditDomain] = useState('other')
+  const habitsRef = useLatest(habits)
 
   function addHabit() {
     const n = name.trim()
     if (!n) return
-    const habit = { id: String(Date.now()), name: n, category, species, domain, createdAt: Date.now(), checkins: [] }
+    const habit = { id: newId(), name: n, category, species, domain, createdAt: Date.now(), checkins: [] }
     onUpdate([...habits, habit])
     setName('')
     setDomain('other')
@@ -582,10 +775,10 @@ function HabitsView({ habits, onUpdate, now }) {
   }
 
   function removeHabit(id) {
-    const habit = habits.find((h) => h.id === id)
-    const prev = habits
-    onUpdate(habits.filter((h) => h.id !== id))
-    if (habit) showToast(`Deleted "${habit.name}"`, { undo: () => onUpdate(prev) })
+    deleteWithUndo({
+      list: habits, id, persist: onUpdate, ref: habitsRef,
+      label: (habit) => `Deleted "${habit.name}"`,
+    })
   }
 
   function startEditHabit(h) {
@@ -624,6 +817,8 @@ function HabitsView({ habits, onUpdate, now }) {
 
   return (
     <div>
+      <DndArea onMove={({ id, overId, after }) => onUpdate(placeItem(habits, id, overId, { after }))}>
+      <DropList id="habits" type="habit" items={habits.map((h) => h.id)}>
       <AnimatePresence initial={false}>
         {habits.map((h) => {
           const pet = petState(h, now)
@@ -631,9 +826,9 @@ function HabitsView({ habits, onUpdate, now }) {
           const money = earnings(h, now)
           const checkedToday = h.checkins.includes(dateKey(now))
           return (
+            <SortableRow key={h.id} id={h.id} type="habit" disabled={editingId === h.id}>
+            {(handle) => (
             <motion.div
-              key={h.id}
-              layout
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -661,12 +856,19 @@ function HabitsView({ habits, onUpdate, now }) {
                     ))}
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-primary btn-sm" onClick={() => saveEditHabit(h.id)}>Save</button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => saveEditHabit(h.id)}
+                      disabled={!editName.trim()}
+                    >
+                      Save
+                    </button>
                     <button className="btn btn-ghost btn-sm" onClick={cancelEditHabit}>Cancel</button>
                   </div>
                 </div>
               ) : (
                 <div className="habit-head">
+                  {handle}
                   <span className={`pet-avatar pet-mood-${pet.mood}`}>
                     {h.species}
                     {pet.accessory && <span className="pet-accessory">{pet.accessory}</span>}
@@ -678,11 +880,12 @@ function HabitsView({ habits, onUpdate, now }) {
                       {best > current ? ` · best ${best}` : ''} ·{' '}
                       {CATEGORY_LABELS[h.category] || CATEGORY_LABELS.custom}
                     </div>
+                    <div className="habit-meta">added {formatAdded(h.createdAt)}</div>
                   </div>
-                  <button className="life-icon-btn" title="Edit habit" onClick={() => startEditHabit(h)}>
+                  <button className="life-icon-btn" title="Edit habit" aria-label="Edit habit" onClick={() => startEditHabit(h)}>
                     ✎
                   </button>
-                  <button className="life-icon-btn" title="Remove habit" onClick={() => removeHabit(h.id)}>
+                  <button className="life-icon-btn" title="Remove habit" aria-label="Remove habit" onClick={() => removeHabit(h.id)}>
                     🗑️
                   </button>
                 </div>
@@ -712,9 +915,13 @@ function HabitsView({ habits, onUpdate, now }) {
                 {checkedToday ? '✓ Checked in today (tap to undo)' : 'Check in'}
               </button>
             </motion.div>
+            )}
+            </SortableRow>
           )
         })}
       </AnimatePresence>
+      </DropList>
+      </DndArea>
 
       {habits.length === 0 && !showAdd && (
         <div className="empty-state">

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import agents from '../agents.json'
+import { supabase } from '../supabaseClient.js'
 
 const AGENT_ICONS = {
   explain: '💡',
@@ -15,6 +16,12 @@ const AGENT_ICONS = {
 const topicAgents = agents.filter((a) => a.kind === 'topic')
 const toolAgents = agents.filter((a) => a.kind !== 'topic')
 
+// Module-scope, not component state, so the conversation survives a tab
+// switch (Agents unmounts on every tab change) without needing full
+// cross-session persistence — lost only on a page reload.
+let savedAgentId = agents[0].id
+let savedMessages = []
+
 export default function Agents() {
   const [agent, setAgent] = useState(topicAgents[0] || agents[0])
   const [messages, setMessages] = useState([])
@@ -27,24 +34,26 @@ export default function Agents() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, busy])
 
+  useEffect(() => {
+    savedAgentId = agent.id
+    savedMessages = messages
+  }, [agent, messages])
+
   function switchAgent(id) {
     setAgent(agents.find((a) => a.id === id))
     setMessages([])
     setError('')
   }
 
-  async function send() {
-    const text = input.trim()
-    if (!text || busy) return
-    const next = [...messages, { role: 'user', content: text }]
-    setMessages(next)
-    setInput('')
+  async function sendMessages(next) {
     setBusy(true)
     setError('')
     try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
       const r = await fetch('/api/agent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ systemPrompt: agent.systemPrompt, messages: next }),
       })
       const j = await r.json()
@@ -55,6 +64,20 @@ export default function Agents() {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function send() {
+    const text = input.trim()
+    if (!text || busy) return
+    const next = [...messages, { role: 'user', content: text }]
+    setMessages(next)
+    setInput('')
+    await sendMessages(next)
+  }
+
+  function retry() {
+    if (busy) return
+    sendMessages(messages)
   }
 
   function handleKeyDown(e) {
@@ -118,7 +141,12 @@ export default function Agents() {
             </div>
           </div>
         )}
-        {error && <div className="banner-warn" style={{ fontSize: 13 }}>{error}</div>}
+        {error && (
+          <div className="banner-warn" style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ flex: 1 }}>{error}</span>
+            <button className="btn btn-ghost btn-sm" onClick={retry} disabled={busy}>Retry</button>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 

@@ -10,6 +10,7 @@ export default async function handler(req, res) {
       url: `https://lichess.org/training/${puzzle.id}`,
     })
   } catch (e) {
-    res.status(502).json({ error: String((e && e.message) || e) })
+    console.error('puzzle handler error', e)
+    res.status(502).json({ error: 'Could not fetch today\'s puzzle' })
   }
 }

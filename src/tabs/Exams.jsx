@@ -1,5 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { getExamProgress, saveExamProgress, getExamNotes, saveExamNotes } from '../store.js'
+import { useHydrate } from '../useHydrate.js'
+import { useLatest } from '../useLatest.js'
+import { deleteWithUndo } from '../undo.js'
+import { newId } from '../id.js'
 
 export const EXAMS = [
   {
@@ -84,7 +88,7 @@ export const EXAMS = [
   },
 ]
 
-export default function Exams() {
+export default function Exams({ syncTick = 0, onChange }) {
   const [exam, setExam] = useState(EXAMS[0])
   const [progress, setProgress] = useState({})
   const [notes, setNotes] = useState([])
@@ -92,10 +96,11 @@ export default function Exams() {
   const [noteText, setNoteText] = useState('')
   const [noteTopic, setNoteTopic] = useState('')
 
-  useEffect(() => {
-    getExamProgress().then(setProgress)
-    getExamNotes().then(setNotes)
-  }, [])
+  const { ready, error } = useHydrate([
+    () => getExamProgress().then(setProgress),
+    () => getExamNotes().then(setNotes),
+  ], [syncTick])
+  const notesRef = useLatest(notes)
 
   function topicKey(examId, section, topic) {
     return `${examId}::${section}::${topic}`
@@ -106,6 +111,7 @@ export default function Exams() {
     const next = { ...progress, [key]: !progress[key] }
     setProgress(next)
     await saveExamProgress(next)
+    onChange?.()
   }
 
   function sectionProgress(examId, section) {
@@ -130,17 +136,32 @@ export default function Exams() {
   async function addNote() {
     const text = noteText.trim()
     if (!text) return
-    const next = [{ id: Date.now(), examId: exam.id, topic: noteTopic, text, ts: Date.now() }, ...notes]
+    const next = [{ id: newId(), examId: exam.id, topic: noteTopic, text, ts: Date.now() }, ...notes]
     setNotes(next)
     setNoteText('')
     setNoteTopic('')
     await saveExamNotes(next)
   }
 
-  async function deleteNote(id) {
-    const next = notes.filter((n) => n.id !== id)
+  async function persistNotes(next) {
     setNotes(next)
     await saveExamNotes(next)
+  }
+
+  function deleteNote(id) {
+    deleteWithUndo({ list: notes, id, persist: persistNotes, ref: notesRef, label: () => 'Note deleted' })
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">⚠️</div>
+        <div className="empty-text">Couldn't load exams: {error}</div>
+      </div>
+    )
+  }
+  if (!ready) {
+    return <div className="empty-state"><div className="empty-text">Loading…</div></div>
   }
 
   const ep = examProgress(exam)

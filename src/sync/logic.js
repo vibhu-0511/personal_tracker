@@ -8,8 +8,8 @@ export function readLocalShape(raw) {
   return { data: raw, updatedAt: 0 } // legacy value written before sync existed
 }
 
-export function wrapForSave(data) {
-  return { data, updatedAt: Date.now() }
+export function wrapForSave(data, now = Date.now) {
+  return { data, updatedAt: now() }
 }
 
 // local: { data, updatedAt } | null — already passed through readLocalShape
