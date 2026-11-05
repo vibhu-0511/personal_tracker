@@ -60,6 +60,7 @@ export const SYNCED_KEYS = [
   'settings', 'notes', 'progress', 'expenses', 'budgets', 'goals',
   'examProgress', 'examNotes', 'investProgress', 'watchlist',
   'tasks', 'reminders', 'habits', 'moodLog', 'loans', 'puzzleProgress', 'checklists',
+  'tokenUsage', 'tokenBudget',
 ]
 
 export async function reconcileAll() {
@@ -189,4 +190,19 @@ export async function getChecklists() {
 }
 export async function saveChecklists(checklists) {
   await saveSynced('checklists', checklists)
+}
+
+export async function getTokenUsage() {
+  return await getSynced('tokenUsage', [])
+}
+export async function saveTokenUsage(entries) {
+  await saveSynced('tokenUsage', entries)
+}
+
+// { weekly: number } — 0 = no limit set
+export async function getTokenBudget() {
+  return await getSynced('tokenBudget', { weekly: 0 })
+}
+export async function saveTokenBudget(budget) {
+  await saveSynced('tokenBudget', budget)
 }

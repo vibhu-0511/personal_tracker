@@ -11,6 +11,7 @@ const Agents = lazy(() => import('./tabs/Agents.jsx'))
 const Expenses = lazy(() => import('./tabs/Expenses.jsx'))
 const Invest = lazy(() => import('./tabs/Invest.jsx'))
 const Life = lazy(() => import('./tabs/Life.jsx'))
+const Tokens = lazy(() => import('./tabs/Tokens.jsx'))
 
 const TABS = [
   { id: 'Life', icon: '🌱', label: 'Life' },
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'Expenses', icon: '💰', label: 'Money' },
   { id: 'Invest', icon: '📈', label: 'Invest' },
   { id: 'Agents', icon: '🤖', label: 'Agents' },
+  { id: 'Tokens', icon: '🪙', label: 'Tokens' },
 ]
 
 const THEMES = [
@@ -39,6 +41,7 @@ const KEY_TO_TAB = {
   investProgress: 'Invest', watchlist: 'Invest',
   tasks: 'Life', reminders: 'Life', habits: 'Life', moodLog: 'Life', notes: 'Life', checklists: 'Life',
   puzzleProgress: 'Puzzles',
+  tokenUsage: 'Tokens', tokenBudget: 'Tokens',
 }
 
 export default function App() {
@@ -282,6 +285,7 @@ export default function App() {
           {tab === 'Expenses' && <Expenses syncTick={syncTicks.Expenses || 0} />}
           {tab === 'Invest' && <Invest syncTick={syncTicks.Invest || 0} />}
           {tab === 'Agents' && <Agents />}
+          {tab === 'Tokens' && <Tokens syncTick={syncTicks.Tokens || 0} />}
         </Suspense>
       </main>
 
