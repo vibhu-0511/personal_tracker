@@ -1,0 +1,1563 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Forge Blueprint</title>
+<meta name="description" content="Forge app blueprint: responsive plan, architecture, learning graph and three UI designs.">
+<style>
+:root{
+  --bg:#f6f7fb;--s1:#ffffff;--s2:#eef1f7;--bd:#d8deea;--tx:#161b27;--mu:#5d6780;
+  --ac:#2563eb;--ac2:#7c3aed;--ok:#15803d;--wn:#b45309;--er:#dc2626;
+  --c-web:#2f7de1;--c-ui:#d6458c;--c-pwa:#e0701c;--c-data:#12a06b;--c-be:#5b63e8;
+  --c-sec:#dc3f3f;--c-nat:#b98900;--c-ops:#0e9fb0;--c-ai:#9a4de0;
+  --sh:0 1px 2px rgba(20,30,60,.06),0 8px 24px rgba(20,30,60,.06);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0d12;--s1:#12151c;--s2:#181c26;--bd:#262c3a;--tx:#e8ebf2;--mu:#8d97ab;
+    --ac:#6ea8fe;--ac2:#a78bfa;--ok:#4ade80;--wn:#fbbf24;--er:#f87171;
+    --c-web:#4f9cf9;--c-ui:#ec6aa8;--c-pwa:#f08a3c;--c-data:#2fbf84;--c-be:#8a90f7;
+    --c-sec:#ef6b6b;--c-nat:#e0b020;--c-ops:#2cc2d2;--c-ai:#bb78f2;
+    --sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d12;--s1:#12151c;--s2:#181c26;--bd:#262c3a;--tx:#e8ebf2;--mu:#8d97ab;
+  --ac:#6ea8fe;--ac2:#a78bfa;--ok:#4ade80;--wn:#fbbf24;--er:#f87171;
+  --c-web:#4f9cf9;--c-ui:#ec6aa8;--c-pwa:#f08a3c;--c-data:#2fbf84;--c-be:#8a90f7;
+  --c-sec:#ef6b6b;--c-nat:#e0b020;--c-ops:#2cc2d2;--c-ai:#bb78f2;
+  --sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{background:var(--bg);color:var(--tx);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--ac)}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+code{font-size:.88em;background:var(--s2);padding:1px 6px;border-radius:5px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+
+/* top nav */
+.top{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--bd)}
+.top .wrap{display:flex;align-items:center;gap:12px;height:52px}
+.brand{font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.brand i{font-style:normal}
+.top nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
+.top nav::-webkit-scrollbar{display:none}
+.top nav a{padding:6px 12px;border-radius:999px;text-decoration:none;color:var(--mu);font-size:13px;font-weight:600;white-space:nowrap}
+.top nav a:hover,.top nav a.on{background:var(--s2);color:var(--tx)}
+.tbtn{border:1px solid var(--bd);background:var(--s1);border-radius:999px;padding:5px 12px;font-size:13px;min-height:34px}
+
+/* hero */
+.hero{padding:40px 0 20px}
+.hero h1{font-size:clamp(28px,5vw,48px);line-height:1.08;letter-spacing:-.03em;max-width:18ch}
+.hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--mu);max-width:62ch;margin-top:14px;font-size:16px}
+.asks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:24px}
+.ask{display:block;text-decoration:none;color:inherit;background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;box-shadow:var(--sh);transition:transform .15s}
+.ask:hover{transform:translateY(-2px)}
+.ask b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ac)}
+.ask span{display:block;margin-top:4px;font-size:14px}
+.assume{margin-top:18px;font-size:13px;color:var(--mu);border-left:3px solid var(--wn);padding:4px 12px;max-width:80ch}
+
+/* sections */
+.sec{padding:56px 0 8px;border-top:1px solid var(--bd);margin-top:40px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ac)}
+.sec h2{font-size:clamp(24px,3.4vw,34px);letter-spacing:-.02em;line-height:1.15;margin:6px 0 10px}
+.sec h3{font-size:18px;margin:36px 0 8px;letter-spacing:-.01em}
+.lead{color:var(--mu);max-width:70ch;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;box-shadow:var(--sh)}
+.card h4{font-size:14px;margin-bottom:8px}
+.card ul{padding-left:18px;display:grid;gap:5px;font-size:14px}
+.card li::marker{color:var(--mu)}
+.good{color:var(--ok)}.bad{color:var(--er)}.warn{color:var(--wn)}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--s2);color:var(--mu);letter-spacing:.02em}
+.tag.new{background:color-mix(in srgb,var(--ac) 16%,transparent);color:var(--ac)}
+
+/* tables + code */
+.tscroll{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;background:var(--s1)}
+table.t{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+.t th,.t td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--bd)}
+.t th{background:var(--s2);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--mu);white-space:nowrap}
+.t tr:last-child td{border-bottom:0}
+.t td:first-child{font-weight:600}
+pre.code{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;overflow-x:auto;font-size:12.5px;line-height:1.55}
+.cm{color:var(--mu)}
+
+/* figures */
+figure.fig{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:12px;box-shadow:var(--sh);margin:12px 0}
+figure.fig svg{display:block;width:100%;height:auto;max-width:100%}
+figure.fig.scrollx{overflow-x:auto}
+figure.fig.scrollx svg{min-width:720px}
+figcaption{font-size:13px;color:var(--mu);margin-top:8px;max-width:90ch}
+svg text{font-family:inherit;fill:currentColor;font-size:12px}
+svg .bx rect{fill:var(--s2);stroke:var(--bd);stroke-width:1.2}
+svg .bx text.t1{font-weight:700;font-size:12.5px}
+svg .bx text.t2{font-size:10.5px;fill:var(--mu)}
+svg .bx.new rect{stroke:var(--ac);stroke-dasharray:5 3;fill:color-mix(in srgb,var(--ac) 8%,var(--s2))}
+svg .bx.hot rect{stroke:var(--ac);stroke-width:1.8}
+svg .grp{fill:none;stroke:var(--bd);stroke-width:1.2;stroke-dasharray:2 4}
+svg .glabel{font-size:10.5px;font-weight:700;letter-spacing:.08em;fill:var(--mu)}
+svg .ar{fill:none;stroke:currentColor;stroke-width:1.5;opacity:.75}
+svg .ar.dash{stroke-dasharray:5 4}
+svg .lb{font-size:10.5px;fill:var(--mu)}
+svg .lb.bg{paint-order:stroke;stroke:var(--s1);stroke-width:4px}
+svg .c-blue{color:var(--ac)}svg .c-green{color:var(--c-data)}svg .c-violet{color:var(--c-ai)}svg .c-amber{color:var(--c-nat)}
+svg .dot{fill:currentColor}
+@media (prefers-reduced-motion:reduce){svg .dot{display:none}}
+
+/* controls */
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.seg{display:inline-flex;border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--s1)}
+.seg button{border:0;background:transparent;padding:8px 12px;font-size:13px;font-weight:600;color:var(--mu);min-height:38px}
+.seg button[aria-pressed="true"],.seg button.on{background:var(--ac);color:#fff}
+.btn{border:1px solid var(--bd);background:var(--s1);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;min-height:38px}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+input[type=range]{accent-color:var(--ac);flex:1;min-width:140px;max-width:420px;min-height:32px}
+.readout{font-size:13px;color:var(--mu)}
+.readout b{color:var(--tx)}
+
+/* device frame */
+.dv{width:100%;position:relative}
+.dv-s{transform-origin:top left;width:max-content}
+.dv-f{background:var(--s1);border:1px solid var(--bd);box-shadow:var(--sh);overflow:hidden;position:relative;container-type:inline-size;container-name:dev}
+.dv-f.k-phone{border-radius:38px;border-width:7px;border-color:#20242e}
+.dv-f.k-tablet{border-radius:26px;border-width:8px;border-color:#20242e}
+.dv-f.k-desktop{border-radius:10px}
+.dvwrap{background:repeating-linear-gradient(45deg,transparent 0 10px,color-mix(in srgb,var(--bd) 35%,transparent) 10px 11px);border:1px dashed var(--bd);border-radius:14px;padding:14px;overflow:hidden}
+
+/* timeline roadmap */
+.road{display:grid;gap:8px;min-width:680px}
+.rrow{display:grid;grid-template-columns:200px 1fr;gap:12px;align-items:center}
+.rname{font-size:13px;font-weight:600}
+.rname small{display:block;color:var(--mu);font-weight:400;font-size:12px}
+.rtrack{position:relative;height:30px;background:var(--s2);border-radius:8px;background-image:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),var(--bd) calc(10% - 1px) 10%)}
+.rbar{position:absolute;top:4px;bottom:4px;border-radius:6px;font-size:11px;font-weight:700;color:#fff;display:flex;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden}
+.rwk{display:grid;grid-template-columns:200px 1fr;gap:12px;font-size:11px;color:var(--mu)}
+.rwk div:last-child{display:grid;grid-template-columns:repeat(10,1fr)}
+
+footer{padding:40px 0 70px;color:var(--mu);font-size:13px;border-top:1px solid var(--bd);margin-top:60px}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><i>🔥</i> Forge Blueprint</div>
+  <nav aria-label="Sections">
+    <a href="#s1">1 · Responsive</a><a href="#s2">2 · Architecture</a><a href="#s3">3 · Learning graph</a><a href="#s4">4 · UI designs</a>
+  </nav>
+  <button class="tbtn" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+</div></header>
+
+<div class="wrap">
+<div class="hero">
+  <div class="eyebrow">Pre-build blueprint · sample data only</div>
+  <h1>Make Forge feel <em>native</em> on phone, iPad and desktop.</h1>
+  <p>Everything below is derived from the current repo (React 18 + Vite, IndexedDB-first store, Supabase sync, Vercel <code>/api</code>). Nothing here is built yet — this page is the thing we agree on first.</p>
+  <div class="asks">
+    <a class="ask" href="#s1"><b>Ask 1</b><span>Responsive across phone / iPad / desktop — audit, breakpoints, live adaptive shell</span></a>
+    <a class="ask" href="#s2"><b>Ask 2a</b><span>The app: delivery path, HLD, sync sequence, architecture, roadmap</span></a>
+    <a class="ask" href="#s3"><b>Ask 2b</b><span>Learning graph of 55 industry concepts + 4 animated labs</span></a>
+    <a class="ask" href="#s4"><b>Ask 3</b><span>3 clickable UI designs covering every feature, on all 3 form factors</span></a>
+  </div>
+  <p class="assume">Assuming "create an app" = an installable app on iPhone/iPad/desktop built from the existing React code (PWA first, Capacitor shell second), not a rewrite in Swift or React Native. Section 2 compares the options so you can overrule that.</p>
+</div>
+<section id="s1" class="sec">
+  <div class="eyebrow">Ask 1 · Responsive</div>
+  <h2>One codebase, three form factors</h2>
+  <p class="lead">Today Forge is a phone app that happens to open on bigger screens. The fix is not three layouts — it is one shell that changes its navigation pattern and column count based on <b>container width</b>, plus an input model that stops assuming a mouse or a finger.</p>
+
+  <h3 style="margin-top:8px">What the audit found</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4 class="bad">Blocks desktop / iPad today</h4>
+      <ul>
+        <li><code>.app { max-width: 640px }</code> and <code>.tab-bar-inner { max-width: 640px }</code> — on a 1440px monitor Forge is a 640px strip; on an iPad Pro it is a phone column with dead margins.</li>
+        <li><b>1</b> <code>@media</code> rule in 1,139 lines of CSS (<code>prefers-reduced-motion</code>). <b>0</b> width breakpoints.</li>
+        <li>20+ <code>:hover</code> rules with no <code>(hover: hover)</code> guard → hover state sticks after a tap on iPad.</li>
+        <li>No <code>:focus-visible</code> styles → keyboard / Magic Keyboard users get browser defaults only.</li>
+        <li>FAB offset is <code>calc(64px + safe-area)</code> — hard-codes the tab-bar height, so it breaks the moment nav moves to a side rail.</li>
+        <li>DSA Mastery Map is a separate 8,320-line page outside the shell, with its own layout.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 class="good">Already right — keep</h4>
+      <ul>
+        <li><code>viewport-fit=cover</code> + <code>env(safe-area-inset-*)</code> on the shell and tab bar.</li>
+        <li><code>100dvh</code> app height (survives iOS Safari toolbar collapse).</li>
+        <li>CSS custom-property tokens + <code>data-accent</code> themes → theming is already centralised.</li>
+        <li><code>prefers-reduced-motion</code> honoured.</li>
+        <li>Tabs are code-split (<code>lazy()</code>) → desktop adds panes, not weight.</li>
+        <li>Local-first store → a second device is just another client of the same sync path.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Design rule: by container width and input type, never by device name</h3>
+  <p class="lead">iPad windows can be anywhere from a ~320px Slide Over to a 1366px full screen, and rotate live. A "tablet layout" keyed to <code>iPad</code> is wrong half the time; a layout keyed to available width is right all the time.</p>
+  <div class="tscroll"><table class="t">
+    <thead><tr><th>Width (container)</th><th>Typical</th><th>Navigation</th><th>Content columns</th><th>Density / input</th></tr></thead>
+    <tbody>
+      <tr><td>&lt; 600</td><td>iPhone, iPad Slide Over / ⅓ Split</td><td>Bottom tab bar (5 tabs), FAB</td><td>1 — list → push detail as sheet</td><td>44px targets, thumb-zone actions, sheets for forms</td></tr>
+      <tr><td>600 – 1023</td><td>iPad portrait, iPad ½ Split, small laptop window</td><td>72px icon rail (left)</td><td>1–2 — list, cards flow 2-up; detail as side sheet</td><td>Touch-first (44px) but hover-safe; pointer + keyboard supported</td></tr>
+      <tr><td>1024 – 1279</td><td>iPad landscape, laptop</td><td>220px labelled sidebar</td><td>2 — master list + detail pane</td><td>Keyboard shortcuts visible, <code>(hover:hover)</code> affordances only if fine pointer</td></tr>
+      <tr><td>≥ 1280</td><td>Desktop, iPad Pro 13" landscape</td><td>Sidebar + command palette (⌘K)</td><td>3 — list · detail · inspector (stats, notes, Pencil)</td><td>Dense rows (36px), multi-select, drag-drop between panes</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Live adaptive shell</h3>
+  <p class="lead">Drag the slider (or pick a preset). This is a real container-query layout — the same markup, no JS layout logic. Watch the nav move from bottom tabs → rail → sidebar and the content go 1 → 2 → 3 panes.</p>
+  <div class="ctl">
+    <div class="seg" id="s1presets" role="group" aria-label="Width presets"></div>
+  </div>
+  <div class="ctl">
+    <label for="s1range" class="readout">Width</label>
+    <input type="range" id="s1range" min="320" max="1600" step="1" value="390">
+    <span class="readout" id="s1read"></span>
+  </div>
+  <div class="dvwrap"><div class="dv" id="s1dev"></div></div>
+
+  <h3>Shell CSS to drop in</h3>
+  <pre class="code"><span class="cm">/* container = the app root, so Split View / Slide Over / resized desktop windows all work */</span>
+.app-root { container: app / inline-size; min-height: 100dvh; }
+.shell    { display: grid; grid-template-rows: 1fr auto; }               <span class="cm">/* phone: content + bottom tabs */</span>
+.nav-rail, .nav-side { display: none; }
+
+@container app (min-width: 600px) {
+  .shell { grid-template-columns: 72px 1fr; grid-template-rows: 1fr; }  <span class="cm">/* tablet: rail */</span>
+  .tabs  { display: none; }  .nav-rail { display: flex; }
+}
+@container app (min-width: 1024px) {
+  .shell { grid-template-columns: 220px 1fr; }                          <span class="cm">/* sidebar + master/detail */</span>
+  .nav-rail { display: none; } .nav-side { display: flex; }
+  .page  { display: grid; grid-template-columns: minmax(320px, 400px) 1fr; }
+}
+@container app (min-width: 1280px) { .page { grid-template-columns: 360px 1fr 300px; } }
+
+<span class="cm">/* input model */</span>
+@media (hover: hover) and (pointer: fine) { .row:hover { background: var(--hover); } }
+@media (pointer: coarse) { .btn, .row { min-height: 44px; } }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fab { bottom: calc(var(--tabbar-h, 0px) + env(safe-area-inset-bottom) + 16px); }  <span class="cm">/* var set to 0 when rail/sidebar active */</span></pre>
+  <p class="lead" style="margin-top:8px">Tabs become routes (<code>/life/tasks</code>) so desktop panes, iPad windows and deep links share one URL scheme — today tabs are component state with no router.</p>
+
+  <h3>How we will know it works</h3>
+  <div class="tscroll"><table class="t">
+    <thead><tr><th>Playwright project</th><th>Viewport</th><th>Must assert</th></tr></thead>
+    <tbody>
+      <tr><td>iPhone 14</td><td>390×844, touch</td><td>bottom tabs visible; no horizontal scroll; FAB clears tab bar + home indicator</td></tr>
+      <tr><td>iPad 11" portrait</td><td>834×1194, touch</td><td>rail visible, tabs hidden; no sticky hover; targets ≥ 44px</td></tr>
+      <tr><td>iPad 11" landscape</td><td>1194×834, touch</td><td>sidebar + 2 panes; rotate mid-session keeps selected item</td></tr>
+      <tr><td>iPad Split ⅓</td><td>~375×1024</td><td>falls back to phone shell (container query, not device)</td></tr>
+      <tr><td>Desktop Chrome</td><td>1440×900, mouse</td><td>3 panes; ⌘K opens palette; Tab order and focus ring visible</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<style>
+/* live adaptive-shell mock — real container queries against .dv-f (container "dev") */
+.m1{height:100%;display:grid;grid-template-rows:1fr auto;background:var(--bg);font-size:13px;color:var(--tx)}
+.m1-nav{display:none;flex-direction:column;gap:4px;padding:12px 8px;background:var(--s1);border-right:1px solid var(--bd)}
+.m1-nav .logo{font-weight:800;padding:6px 8px 10px;white-space:nowrap}
+.m1-nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;color:var(--mu);font-weight:600;text-decoration:none;white-space:nowrap}
+.m1-nav a.on{background:color-mix(in srgb,var(--ac) 14%,transparent);color:var(--ac)}
+.m1-nav a span.l{display:none}
+.m1-main{display:flex;flex-direction:column;min-height:0;min-width:0}
+.m1-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--bd);gap:8px}
+.m1-top b{font-size:16px}
+.m1-state{font-size:11px;color:var(--mu);background:var(--s2);padding:3px 8px;border-radius:999px;white-space:nowrap}
+.m1-body{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:1fr;gap:10px;padding:12px;align-content:start}
+.m1-col{display:grid;gap:8px;align-content:start;min-width:0}
+.m1-row{display:flex;gap:10px;align-items:center;background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:11px 12px;min-height:44px}
+.m1-row.sel{border-color:var(--ac)}
+.m1-row .ck{width:18px;height:18px;border-radius:6px;border:2px solid var(--mu);flex:none}
+.m1-row .ck.d{background:var(--ok);border-color:var(--ok)}
+.m1-row small{margin-left:auto;color:var(--mu);white-space:nowrap}
+.m1-detail,.m1-insp{display:none;background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:14px;align-content:start;gap:8px}
+.m1-detail h5,.m1-insp h5{font-size:14px;margin-bottom:4px}
+.m1-bar{height:8px;border-radius:6px;background:var(--s2);overflow:hidden}.m1-bar i{display:block;height:100%;background:var(--ac)}
+.m1-tabs{display:flex;border-top:1px solid var(--bd);background:var(--s1);padding-bottom:10px}
+.m1-tabs a{flex:1;text-align:center;padding:8px 0 4px;font-size:10px;color:var(--mu);font-weight:600;text-decoration:none}
+.m1-tabs a.on{color:var(--ac)}.m1-tabs a span{display:block;font-size:19px;line-height:1.2}
+.m1-fab{position:absolute;right:16px;bottom:78px;width:50px;height:50px;border-radius:50%;background:var(--ac);color:#fff;font-size:26px;display:grid;place-items:center;box-shadow:var(--sh)}
+@container dev (min-width:600px){
+  .m1{grid-template-columns:72px 1fr;grid-template-rows:1fr}
+  .m1-nav{display:flex;align-items:center}.m1-nav .logo{padding-inline:0}
+  .m1-tabs,.m1-fab{display:none}
+  .m1-body{grid-template-columns:1fr 1fr}
+  .m1-col{grid-column:1/-1;grid-template-columns:1fr 1fr}
+}
+@container dev (min-width:1024px){
+  .m1{grid-template-columns:220px 1fr}
+  .m1-nav{align-items:stretch}.m1-nav a span.l{display:inline}
+  .m1-body{grid-template-columns:minmax(300px,380px) 1fr}
+  .m1-col{grid-column:auto;grid-template-columns:1fr}
+  .m1-detail{display:grid}
+}
+@container dev (min-width:1280px){
+  .m1-body{grid-template-columns:360px 1fr 300px}
+  .m1-insp{display:grid}
+}
+</style>
+<section id="s2" class="sec">
+  <div class="eyebrow">Ask 2a · The app</div>
+  <h2>From web page to installable app — and what has to change underneath</h2>
+  <p class="lead">Forge is already local-first with cloud sync, which is the hard 70% of an app. What is missing is delivery (install, offline shell, native hooks), a sync model that survives two devices editing the same list, and a shell that scales past a phone.</p>
+
+  <h3 style="margin-top:8px">2.1 Which kind of "app"?</h3>
+  <div class="tscroll"><table class="t">
+    <thead><tr><th>Option</th><th>Reuses today's React code</th><th>Install on iPhone / iPad</th><th>Native hooks</th><th>Effort (solo)</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>PWA (add service worker)</td><td>~100%</td><td>Add to Home Screen; Web Push needs iOS 16.4+ and an installed app</td><td>Pointer Events incl. Apple Pencil pressure; no Keychain, no widgets</td><td>S</td><td class="good"><b>Phase 1 — ship first</b></td></tr>
+      <tr><td>Capacitor (WKWebView shell)</td><td>~95%</td><td>TestFlight / App Store (Apple Developer Program, $99/yr)</td><td>APNs, Keychain, haptics, share sheet via plugins; widgets need a Swift extension</td><td>M</td><td class="good"><b>Phase 3 — iOS + iPadOS</b></td></tr>
+      <tr><td>Tauri 2 (desktop)</td><td>~95%</td><td>n/a (desktop); mobile targets exist but are younger</td><td>Tray, global shortcuts, file system</td><td>M</td><td>Optional — desktop PWA install covers most of it</td></tr>
+      <tr><td>React Native / Expo</td><td>~30% (logic only, UI rewritten)</td><td>App Store</td><td>Fully native views</td><td>L</td><td class="warn">Only if native UI feel matters more than velocity</td></tr>
+      <tr><td>SwiftUI native</td><td>0% UI</td><td>App Store</td><td>Best Pencil / widgets / Live Activities</td><td>XL</td><td class="bad">Skip — Apple-only, second codebase</td></tr>
+    </tbody>
+  </table></div>
+  <figure class="fig" id="fShells"><figcaption>One React build, three delivery shells. The only per-platform code is the thin adapter layer on the right — storage, notifications, haptics and pencil input — which is why Phase 1 comes before any App Store work.</figcaption></figure>
+
+  <h3>2.2 High-level design</h3>
+  <p class="lead">Solid boxes exist today. <span class="tag new">dashed = new</span> Moving dots show the three live paths: <b style="color:var(--ac)">local → cloud writes</b>, <b style="color:var(--c-data)">cloud → other device</b>, <b style="color:var(--c-ai)">LLM calls</b>.</p>
+  <figure class="fig scrollx" id="fHLD"><figcaption>Reads and writes never wait on the network: the UI talks to <code>store.js</code>/IndexedDB, and the sync engine moves data in the background. The serverless proxy exists only for things the browser cannot do safely (hold the Groq key, bypass Codeforces CORS).</figcaption></figure>
+
+  <h3>2.3 Write path — step through one edit across two devices</h3>
+  <div class="ctl">
+    <button class="btn" id="seqPrev">← Prev</button>
+    <button class="btn pri" id="seqNext">Next →</button>
+    <button class="btn" id="seqPlay">▶ Auto-play</button>
+    <span class="readout" id="seqStep"></span>
+  </div>
+  <figure class="fig scrollx" id="fSeq"><figcaption id="seqCap"></figcaption></figure>
+
+  <h3>2.4 Reconcile rule, and where it loses data</h3>
+  <p class="lead">This is <code>decideSync()</code> from <code>src/sync/logic.js</code>. It is correct and well tested — for one writer per key at a time. Two devices editing different tasks in the same list fall into the "newer wins" branch and one edit disappears.</p>
+  <figure class="fig scrollx" id="fFlow"><figcaption>The decision runs on boot and on every Realtime event. The unit of comparison is the whole key (<code>tasks</code>, <code>habits</code>, <code>expenses</code>…) — that granularity is the weakness, not the logic.</figcaption></figure>
+  <div class="grid2">
+    <div class="card">
+      <h4 class="bad">Weak points of sync v1</h4>
+      <ul>
+        <li><b>Lost edits:</b> phone renames task A offline, laptop adds task B offline → whichever syncs last overwrites the other's whole list. <a href="#lab-conflict" data-lab="conflict">Try it in Lab 1 →</a></li>
+        <li><b>Payload grows with history:</b> every keystroke-level save re-uploads the entire <code>expenses</code> blob; a year of spends is pushed to change one row.</li>
+        <li><b>Clock trust:</b> <code>Date.now()</code> from each device decides the winner; a phone with a wrong clock silently wins forever.</li>
+        <li><b>No history:</b> no way to see or undo "what did sync overwrite?" beyond the one-time <code>__pre_sync_backup</code>.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 class="good">Sync v2 — per-record rows, same LWW idea, finer grain</h4>
+<pre class="code" style="border:0;padding:0;background:none">create table tasks (
+  id          uuid primary key,
+  user_id     uuid not null references auth.users,
+  body        jsonb not null,
+  updated_at  timestamptz not null,   <span class="cm">-- server clock wins ties</span>
+  deleted_at  timestamptz,            <span class="cm">-- tombstone, not DELETE</span>
+  device_id   text not null,
+  rev         bigint generated always as identity
+);
+<span class="cm">-- same shape for habits, expenses, loans, goals, notes…
+-- client pulls "where rev > last_seen_rev" (cheap delta)</span></pre>
+    </div>
+  </div>
+
+  <h3>2.5 Frontend architecture</h3>
+  <figure class="fig scrollx" id="fLayers"><figcaption>Dependencies point down only. Domain logic stays pure (it is what <code>node --test</code> covers today); the platform adapter is the one seam where the web build and the Capacitor build differ.</figcaption></figure>
+
+  <h3>2.6 Decisions and what they cost</h3>
+  <div class="tscroll"><table class="t">
+    <thead><tr><th>Decision</th><th>Why</th><th>Cost / risk</th><th>Reversible?</th></tr></thead>
+    <tbody>
+      <tr><td>PWA first, Capacitor second</td><td>Reuses 100% of the code; proves responsive + offline before paying for an Apple account</td><td>iOS Safari has no Background Sync; Web Push only for installed apps</td><td>Yes</td></tr>
+      <tr><td>Keep Supabase (Auth + Postgres + Realtime)</td><td>Already wired, RLS gives per-user isolation without a custom backend</td><td>Free projects pause after about a week idle → add a keep-alive and a periodic JSON export</td><td>Mostly — it is plain Postgres</td></tr>
+      <tr><td>Sync v2: per-record rows + tombstones, still LWW</td><td>Removes the lost-edit class of bug for a single user on 2–3 devices</td><td>One-time migration from <code>kv_store</code>; more rows; schema per entity</td><td>Partly (keep <code>kv_store</code> as backup)</td></tr>
+      <tr><td>No CRDT yet</td><td>Hybrid logical clock + per-record LWW is enough for one user</td><td>Revisit for collaborative notes or per-stroke Pencil data</td><td>Yes</td></tr>
+      <tr><td>Container queries + one route per screen</td><td>Correct in Split View / Slide Over; deep links and desktop panes share URLs</td><td>Needs a tiny router; tab state refactor</td><td>Yes</td></tr>
+      <tr><td>LLM stays behind <code>/api/agent</code> (owner-gated)</td><td>An app bundle is inspectable — a key in a Capacitor build is a leaked key</td><td>Extra hop; add SSE streaming later</td><td>Yes</td></tr>
+      <tr><td>Platform adapter interface</td><td>Web and Capacitor implement the same <code>storage / notify / haptics / pencil</code> contract</td><td>Small up-front abstraction</td><td>Yes</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>2.7 Build order <span class="tag">rough solo estimate — not a commitment</span></h3>
+  <div class="tscroll" style="padding:14px">
+    <div class="road" id="road"></div>
+  </div>
+</section>
+<section id="s3" class="sec">
+  <div class="eyebrow">Ask 2b · Learning graph</div>
+  <h2>55 industry concepts, in the order the build needs them</h2>
+  <p class="lead">Arrows mean "learn this first". Click a concept to light up its prerequisite chain (flowing lines) and everything it unlocks, see why Forge needs it and which phase uses it. Mark concepts learned — progress is kept in this browser only.</p>
+
+  <div class="ctl" id="gCats" role="group" aria-label="Filter by category"></div>
+  <div class="ctl">
+    <div class="seg" id="gView" role="group" aria-label="View">
+      <button data-v="graph" aria-pressed="true">Graph</button><button data-v="list" aria-pressed="false">List by phase</button>
+    </div>
+    <span class="readout" id="gProg"></span>
+    <button class="btn" id="gReset">Reset progress</button>
+  </div>
+
+  <div class="gwrap">
+    <div class="gscroll" id="gScroll"><svg id="gSvg" role="img" aria-label="Prerequisite graph of 55 concepts grouped in columns by dependency depth"></svg></div>
+    <div class="glist" id="gList" hidden></div>
+    <aside class="gdet card" id="gDet" aria-live="polite"></aside>
+  </div>
+
+  <h3 id="labs">Concept labs <span class="tag">interactive</span></h3>
+  <p class="lead">Four of the concepts are easier to feel than read. Each lab is a small working model, not a screenshot.</p>
+  <div class="ctl"><div class="seg" id="labTabs" role="tablist" aria-label="Labs">
+    <button data-l="conflict" aria-pressed="true">1 · Sync conflicts</button>
+    <button data-l="cache" aria-pressed="false">2 · Cache strategies</button>
+    <button data-l="outbox" aria-pressed="false">3 · Offline outbox</button>
+    <button data-l="rls" aria-pressed="false">4 · Auth &amp; RLS</button>
+  </div></div>
+  <div class="card lab" id="lab-conflict"></div>
+  <div class="card lab" id="lab-cache" hidden></div>
+  <div class="card lab" id="lab-outbox" hidden></div>
+  <div class="card lab" id="lab-rls" hidden></div>
+</section>
+
+<style>
+.gwrap{display:grid;grid-template-columns:1fr;gap:14px;align-items:start}
+@media (min-width:980px){.gwrap{grid-template-columns:1fr 320px}.gdet{position:sticky;top:64px}}
+.gscroll{overflow:auto;border:1px solid var(--bd);border-radius:14px;background:var(--s1);max-height:640px;-webkit-overflow-scrolling:touch}
+#gSvg{display:block}
+#gSvg .nd rect{fill:var(--s2);stroke:var(--bd);stroke-width:1.2;transition:opacity .2s}
+#gSvg .nd .stripe{stroke:none}
+#gSvg .nd text{font-size:11.5px;pointer-events:none}
+#gSvg .nd{cursor:pointer;transition:opacity .2s}
+#gSvg .nd:focus-visible rect.box{stroke:var(--ac);stroke-width:2.4}
+#gSvg .nd.done rect.box{fill:color-mix(in srgb,var(--ok) 16%,var(--s2))}
+#gSvg .nd.sel rect.box{stroke:var(--ac);stroke-width:2.4}
+#gSvg .nd.dim,#gSvg .ed.dim{opacity:.13}
+#gSvg .ed{fill:none;stroke:var(--mu);stroke-width:1.2;opacity:.45;transition:opacity .2s}
+#gSvg .ed.up{stroke:var(--ac);stroke-width:2;opacity:1;stroke-dasharray:6 5;animation:flow .9s linear infinite}
+#gSvg .ed.down{stroke:var(--c-data);stroke-width:2;opacity:1;stroke-dasharray:6 5;animation:flow .9s linear infinite reverse}
+@keyframes flow{to{stroke-dashoffset:-22}}
+@media (prefers-reduced-motion:reduce){#gSvg .ed.up,#gSvg .ed.down{animation:none}}
+#gSvg .colh{font-size:10.5px;font-weight:700;letter-spacing:.08em;fill:var(--mu)}
+.gcat{border:1px solid var(--bd);background:var(--s1);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;display:inline-flex;gap:6px;align-items:center;min-height:34px}
+.gcat i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.gcat[aria-pressed="false"]{opacity:.45}
+.gdet h4{font-size:16px;margin:6px 0 4px}
+.gdet p{font-size:13.5px;margin:6px 0}
+.gdet .k{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mu);margin-top:10px}
+.gdet .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.gdet .chips button{border:1px solid var(--bd);background:var(--s2);border-radius:999px;padding:3px 9px;font-size:12px}
+.glist{display:grid;gap:12px}
+.gph h4{font-size:14px;margin-bottom:6px}
+.gph .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.gph button{text-align:left;border:1px solid var(--bd);border-left:4px solid var(--cc);background:var(--s1);border-radius:10px;padding:7px 10px;font-size:13px;min-height:40px}
+.gph button.done{background:color-mix(in srgb,var(--ok) 14%,var(--s1))}
+.lab{padding:18px}
+.lab h4{font-size:16px;margin-bottom:4px}
+.lab .sub{color:var(--mu);font-size:13.5px;max-width:75ch;margin-bottom:12px}
+.devs{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.dcard{border:1px solid var(--bd);border-radius:12px;background:var(--s2);padding:12px}
+.dcard h5{font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between}
+.tl{display:flex;align-items:center;gap:8px;background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:6px 9px;margin-bottom:5px;font-size:13px}
+.tl.lost{border-color:var(--er)}.tl.zombie{border-color:var(--wn);background:color-mix(in srgb,var(--wn) 12%,var(--s1))}
+.tl.keep{border-color:var(--ok)}.tl.pend{opacity:.75;border-style:dashed}
+.tl .st{margin-left:auto;font-size:11px;font-weight:700}
+.tl.pend .st{color:var(--wn)}.tl.keep .st{color:var(--ok)}.tl.lost .st{color:var(--er)}.tl.zombie .st{color:var(--wn)}
+.verdict{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--s2);font-size:13.5px;border-left:3px solid var(--ac)}
+.row2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.lbl{font-size:12px;font-weight:700;color:var(--mu);letter-spacing:.05em;text-transform:uppercase;margin-right:2px}
+.rtab{border-collapse:collapse;width:100%;font-size:13px}
+.rtab th,.rtab td{border-bottom:1px solid var(--bd);padding:6px 8px;text-align:left}
+.rtab tr.mine{background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.rtab tr.theirs{opacity:.4}
+.rtab tr.hide{display:none}
+.qchip{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--s2);margin:2px}
+.qchip.p{background:color-mix(in srgb,var(--wn) 20%,transparent);color:var(--wn)}
+.qchip.o{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}
+.qchip.f{background:color-mix(in srgb,var(--er) 20%,transparent);color:var(--er)}
+</style>
+<section id="s4" class="sec">
+  <div class="eyebrow">Ask 3 · UI designs</div>
+  <h2>Three directions, every feature, three form factors</h2>
+  <p class="lead">Each design is a clickable prototype covering the 5 existing tabs, a new cross-domain <b>Today</b> home, and all 17 existing sub-views (Tasks, Reminders, Notes, Habits, Growth · Code, Puzzles, Exams, DSA map · Spend, Budgets, Goals, Loans · Learn, Research, Watchlist · Agents). Switch design and device below, then click around inside the frame. All numbers are sample data.</p>
+
+  <div class="dcards" id="dCards"></div>
+
+  <div class="ctl" style="margin-top:18px">
+    <div class="seg" id="dSel" role="group" aria-label="Design"></div>
+    <div class="seg" id="dDev" role="group" aria-label="Device"></div>
+  </div>
+  <div class="readout" id="dRead" style="margin-bottom:8px"></div>
+  <div class="dvwrap"><div class="dv" id="s4dev"></div><div class="cmp" id="s4cmp" hidden></div></div>
+
+  <h3>Choosing between them</h3>
+  <div class="tscroll"><table class="t">
+    <thead><tr><th>Criterion</th><th>A · Command</th><th>B · Bento</th><th>C · Journal</th></tr></thead>
+    <tbody>
+      <tr><td>Core idea</td><td>Everything is a fast list you act on with keys</td><td>Everything is a glanceable tile you tap</td><td>Your day is one chronological page</td></tr>
+      <tr><td>Strongest on</td><td>Desktop, power use, dense data (Money, Logic)</td><td>Phone, motivation, pets and streaks</td><td>iPad + Apple Pencil, reflection, notes</td></tr>
+      <tr><td>Weakest on</td><td>Feels clinical; pets look out of place</td><td>Low information density; tiles need curation</td><td>Domain screens (Invest, Logic) are less scannable</td></tr>
+      <tr><td>Build cost vs today</td><td>Low — mostly layout + palette, closest to current UI</td><td>Medium — tile system + new Home</td><td>High — timeline view merges 5 data keys by time</td></tr>
+      <tr><td>Navigation model</td><td>Bottom tabs → rail → sidebar + ⌘K</td><td>Floating dock → top pills → vertical dock</td><td>Tabs → top text tabs → contents column</td></tr>
+      <tr><td>New data it needs</td><td>None</td><td>XP / level derived from existing streaks</td><td>Per-item timestamps (partly exist) + day-level mood</td></tr>
+    </tbody>
+  </table></div>
+  <p class="lead" style="margin-top:10px"><b>Suggestion:</b> A's shell and B's Home are compatible — a hybrid (A navigation + B tiles on Home only) is the cheapest path that still fixes iPad and desktop. C is the most distinctive and the best home for the Pencil-notes idea in <code>IDEAS.md</code>, but is a bigger build.</p>
+</section>
+
+<style>
+.dcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.dcd{text-align:left;background:var(--s1);border:1.5px solid var(--bd);border-radius:14px;padding:14px;display:grid;gap:6px;box-shadow:var(--sh)}
+.dcd[aria-pressed="true"]{border-color:var(--ac)}
+.dcd .sw{display:flex;gap:4px;margin-bottom:2px}.dcd .sw i{width:22px;height:22px;border-radius:7px;border:1px solid rgba(128,128,128,.3)}
+.dcd b{font-size:16px}.dcd em{font-style:normal;color:var(--mu);font-size:13px}
+.dcd ul{padding-left:16px;font-size:13px;display:grid;gap:3px}
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cmp .dv{min-width:0}
+@media (max-width:760px){.cmp{grid-template-columns:1fr}}
+
+/* ===== shared design scaffolding (inside the frame) ===== */
+.dsn{height:100%;font-family:var(--ff);color:var(--tx);background:var(--bg);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.dsn button{font-family:inherit;color:inherit;cursor:pointer}
+.bk{min-width:0}
+.bk-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px}
+.bk-h b{font-size:var(--h,14px)}.bk-h span{color:var(--mu);font-size:11.5px;white-space:nowrap}
+.rw{display:flex;align-items:center;gap:10px;padding:var(--rp,8px) 0;border-bottom:1px solid var(--bd);min-width:0}
+.rw:last-child{border-bottom:0}
+.rw .tx{flex:1;min-width:0}
+.rw .tx b{display:block;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rw .tx small{color:var(--mu);font-size:11.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rw .rt{color:var(--mu);font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rw .em{font-size:var(--emsz,20px);width:30px;text-align:center;flex:none}
+.cb{width:18px;height:18px;border-radius:var(--cbr,5px);border:2px solid var(--mu);flex:none;display:grid;place-items:center;font-size:11px;color:#fff;background:transparent;padding:0}
+.cb.on{background:var(--ac);border-color:var(--ac)}
+.ch{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--chbg);color:var(--chtx);white-space:nowrap}
+.ch.hot{background:var(--hotbg);color:var(--hot)}
+.pb{height:6px;border-radius:6px;background:var(--trk);overflow:hidden;min-width:40px}.pb i{display:block;height:100%;background:var(--ac);border-radius:6px}
+.big{font-size:var(--bigsz,26px);font-weight:800;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums}
+.mu{color:var(--mu)}.up{color:var(--up)}.dn{color:var(--dn)}
+.kv{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0}
+.donut{width:104px;height:104px;border-radius:50%;display:grid;place-items:center;flex:none}
+.donut>div{width:70px;height:70px;border-radius:50%;background:var(--sf);display:grid;place-items:center;text-align:center;font-size:11px;line-height:1.15}
+.legend{display:grid;gap:3px;font-size:12px;flex:1;min-width:0}.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.bub{max-width:88%;padding:8px 11px;border-radius:var(--bubr,14px);font-size:12.5px;margin-bottom:6px}
+.bub.me{margin-left:auto;background:var(--ac);color:var(--onac,#fff)}.bub.ai{background:var(--sf2);border:1px solid var(--bd)}
+.bub ul{padding-left:16px}
+.pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}
+.pills::-webkit-scrollbar{display:none}
+.pills button{white-space:nowrap}
+.pencil{height:96px;border:1.5px dashed var(--bd);border-radius:var(--r);display:grid;place-items:center;color:var(--mu);font-size:12px;background:repeating-linear-gradient(0deg,transparent 0 21px,var(--bd) 21px 22px)}
+.hero-ring{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;flex:none;background:conic-gradient(var(--ac) calc(var(--p)*1%),var(--trk) 0)}
+.hero-ring>div{width:68px;height:68px;border-radius:50%;background:var(--sf);display:grid;place-items:center;text-align:center;font-size:11px;line-height:1.1}
+.hero-ring b{font-size:20px;display:block}
+
+/* ===== A · Command ===== */
+.dA{--ff:Inter,-apple-system,"Segoe UI",system-ui,sans-serif;--bg:#0e1015;--sf:#151821;--sf2:#1b1f2b;--bd:#262b38;--tx:#e6e9f0;--mu:#8a93a6;--ac:#7c8cff;--r:8px;--rp:8px;--cbr:5px;--chbg:#232838;--chtx:#aab3c8;--hotbg:rgba(255,107,107,.15);--hot:#ff8a8a;--trk:#252a38;--up:#4ade80;--dn:#f87171;--onac:#0e1015;--bubr:10px;--h:12px;
+  display:grid;grid-template-rows:minmax(0,1fr) auto;position:relative}
+.dA .bk-h b{text-transform:uppercase;letter-spacing:.08em;color:var(--mu);font-size:11px}
+.dA .bk{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px}
+.dA .rw .tx b{font-weight:500}
+.a-side{display:none;flex-direction:column;gap:2px;padding:12px 8px;background:var(--sf);border-right:1px solid var(--bd)}
+.a-side .logo{font-weight:800;padding:4px 8px 12px;white-space:nowrap;letter-spacing:-.02em}
+.a-side button{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;background:none;border:0;color:var(--mu);font-weight:500;text-align:left;white-space:nowrap}
+.a-side button.on{background:#222740;color:#fff}
+.a-side button .l,.a-side button kbd{display:none}
+.a-side kbd{margin-left:auto;font:10px ui-monospace,monospace;color:var(--mu);border:1px solid var(--bd);border-radius:4px;padding:0 4px}
+.a-side .sp{flex:1}
+.a-main{display:flex;flex-direction:column;min-height:0;min-width:0}
+.a-top{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--bd)}
+.a-top b{font-size:14px}
+.a-top .srch{margin-left:auto;display:flex;gap:6px;align-items:center;background:var(--sf2);border:1px solid var(--bd);border-radius:7px;padding:4px 10px;color:var(--mu);font-size:12px}
+.a-top .dot{width:7px;height:7px;border-radius:50%;background:var(--up)}
+.a-sub{display:flex;gap:4px;padding:8px 14px;border-bottom:1px solid var(--bd);overflow-x:auto;scrollbar-width:none}
+.a-sub button{background:none;border:0;border-radius:6px;padding:5px 10px;color:var(--mu);font-weight:600;font-size:12px;white-space:nowrap}
+.a-sub button.on{background:var(--sf2);color:var(--tx)}
+.a-body{flex:1;min-height:0;overflow:auto;padding:12px 14px;display:grid;gap:10px;align-content:start;grid-template-columns:minmax(0,1fr)}
+.a-col{display:grid;gap:10px;align-content:start;min-width:0}
+.a-detail{display:none}
+.a-tabs{display:flex;background:var(--sf);border-top:1px solid var(--bd);padding-bottom:8px}
+.a-tabs button{flex:1;background:none;border:0;padding:8px 0 4px;color:var(--mu);font-size:10px;font-weight:600}
+.a-tabs button span{display:block;font-size:18px}.a-tabs button.on{color:var(--ac)}
+.a-fab{position:absolute;right:14px;bottom:70px;height:44px;padding:0 16px;border-radius:22px;border:0;background:var(--ac);color:#0e1015;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.a-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.a-stat{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:9px 11px}
+.a-stat small{display:block;color:var(--mu);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em}
+.a-focus{background:linear-gradient(135deg,#1c2142,#151821);border:1px solid #2c3463;border-radius:var(--r);padding:14px}
+.a-focus small{color:#9aa6ff;font-weight:700;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.a-focus h3{font-size:17px;margin:4px 0 8px;letter-spacing:-.01em}
+.a-focus .go{display:flex;gap:8px;margin-top:8px}
+.a-focus .go button{border:1px solid #38408a;background:#2a3170;border-radius:7px;padding:6px 12px;font-weight:600}
+.a-focus .go button.ghost{background:none}
+@container dev (min-width:600px){
+  .dA{grid-template-columns:64px minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  .a-side{display:flex;align-items:center}.a-side .logo{padding-inline:0}
+  .a-tabs,.a-fab{display:none}
+  .a-col.two{grid-template-columns:1fr 1fr}
+}
+@container dev (min-width:1024px){
+  .dA{grid-template-columns:216px minmax(0,1fr)}
+  .a-side{align-items:stretch}.a-side button .l,.a-side button kbd{display:inline}
+  .a-body{grid-template-columns:minmax(0,1fr) 300px}
+  .a-detail{display:grid;gap:10px;align-content:start}
+}
+
+/* ===== B · Bento ===== */
+.dB{--ff:ui-rounded,"SF Pro Rounded","Nunito",system-ui,sans-serif;--bg:#fff6e9;--sf:#ffffff;--sf2:#fff0dc;--bd:#f0e3d0;--tx:#2b2438;--mu:#82788f;--ac:#ff6b57;--r:24px;--rp:9px;--cbr:50%;--chbg:#fff0dc;--chtx:#b05a2c;--hotbg:#ffd9d2;--hot:#c2321f;--trk:#f2e6d4;--up:#1f9d62;--dn:#d6453a;--bubr:20px;--h:14px;--bigsz:30px;--emsz:26px;
+  display:flex;flex-direction:column;position:relative}
+.dB .bk{background:var(--sf);border-radius:var(--r);padding:14px;box-shadow:0 2px 0 rgba(120,80,30,.08),0 10px 24px rgba(120,80,30,.07)}
+.dB .tile:nth-child(5n+1){background:#ffe3d6}.dB .tile:nth-child(5n+2){background:#dcf3e8}.dB .tile:nth-child(5n+3){background:#fff1bd}
+.dB .tile:nth-child(5n+4){background:#e8e0ff}.dB .tile:nth-child(5n){background:#d9edff}
+.dB .tile{--sf:rgba(255,255,255,.6);--trk:rgba(255,255,255,.7)}
+.dB .tile.plain{background:var(--sf)!important}
+.dB .rw{border-bottom:0;background:rgba(255,255,255,.65);border-radius:16px;padding:8px 10px;margin-bottom:6px}
+.dB .tile.plain .rw{background:var(--sf2)}
+.dB .bk-h b{font-size:15px}
+.b-col{flex:1;min-height:0;min-width:0;overflow:auto;display:flex;flex-direction:column}
+.b-top{display:flex;align-items:center;gap:8px;padding:14px 14px 4px}
+.b-top h2{font-size:21px;letter-spacing:-.02em;flex:1;line-height:1.15}.b-top h2 small{display:block;font-size:12px;color:var(--mu);font-weight:600;letter-spacing:0}
+.b-pill{background:var(--sf);border-radius:999px;padding:6px 12px;font-weight:800;font-size:12px;box-shadow:0 2px 0 rgba(120,80,30,.1);white-space:nowrap}
+.b-sub{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;scrollbar-width:none}
+.b-sub button{border:0;background:var(--sf);border-radius:999px;padding:7px 14px;font-weight:800;font-size:12px;color:var(--mu);white-space:nowrap;box-shadow:0 2px 0 rgba(120,80,30,.1)}
+.b-sub button.on{background:var(--tx);color:#fff}
+.b-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:6px 14px 18px;align-content:start}
+.tile.w1,.tile.w2{grid-column:span 1}.tile.w3,.tile.wf{grid-column:span 2}
+.b-dock{display:flex;justify-content:space-around;gap:2px;margin:0 14px 12px;padding:6px;background:var(--tx);border-radius:999px;box-shadow:0 10px 24px rgba(40,20,60,.3);flex:none}
+.b-dock button{flex:1;border:0;background:none;color:#cfc6dc;border-radius:999px;padding:7px 4px;font-size:10px;font-weight:800;display:grid;gap:0;justify-items:center}
+.b-dock button span{font-size:19px;line-height:1.15}
+.b-dock button.on{background:var(--ac);color:#fff}
+.b-streak{display:flex;align-items:center;gap:12px}
+.b-streak .fl{font-size:44px;line-height:1}
+.b-pets{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.b-pet{background:rgba(255,255,255,.7);border-radius:20px;padding:10px;text-align:center}
+.b-pet .em{font-size:38px;line-height:1.1}.b-pet b{display:block;font-size:12px}.b-pet small{color:var(--mu);font-size:11px}
+@container dev (min-width:600px){
+  .dB .b-dock{order:-1;margin:12px auto 0;width:max-content;max-width:calc(100% - 28px)}
+  .dB .b-dock button{padding:7px 14px;font-size:12px;grid-auto-flow:column;gap:6px;align-items:center}
+  .dB .b-dock button span{font-size:16px}
+  .b-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .tile.w2{grid-column:span 2}.tile.w3{grid-column:span 3}.tile.wf{grid-column:span 4}
+  .b-pets{grid-template-columns:repeat(4,1fr)}
+}
+@container dev (min-width:1024px){
+  .dB{flex-direction:row}
+  .dB .b-dock{order:-1;flex-direction:column;margin:16px 0 16px 16px;width:84px;align-self:flex-start;border-radius:34px;padding:10px 6px;gap:6px}
+  .dB .b-dock button{grid-auto-flow:row;gap:0;padding:10px 4px;font-size:10px}
+  .dB .b-dock button span{font-size:22px}
+  .b-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .tile.w1{grid-column:span 2}.tile.w2{grid-column:span 3}.tile.w3{grid-column:span 4}.tile.wf{grid-column:span 6}
+}
+
+/* ===== C · Journal ===== */
+.dC{--ff:-apple-system,"Segoe UI",system-ui,sans-serif;--fd:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;--bg:#f4efe6;--sf:#fbf8f1;--sf2:#efe8da;--bd:#d9d0be;--tx:#2a2622;--mu:#7d7469;--ac:#8a3b2e;--r:3px;--rp:9px;--cbr:50%;--chbg:#ebe3d2;--chtx:#6a5f50;--hotbg:#f3d9d3;--hot:#8a3b2e;--trk:#e3dac8;--up:#2f6b4f;--dn:#a23b2c;--onac:#fff;--bubr:4px;--h:15px;--bigsz:34px;
+  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+.dC .bk-h b{font-family:var(--fd);font-size:17px;font-weight:600}
+.dC .bk{padding:4px 0 10px}
+.dC .rw{border-bottom:1px dotted var(--bd)}
+.dC .big{font-family:var(--fd);font-weight:500}
+.dC .bub.ai{background:transparent;border:0;border-left:2px solid var(--ac);border-radius:0;padding-left:10px}
+.dC .bub.me{background:var(--sf2);color:var(--tx);font-style:italic}
+.c-head{padding:14px 16px 8px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;border-bottom:1px solid var(--tx)}
+.c-head h2{font-family:var(--fd);font-size:25px;font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.c-head h2 small{display:block;font:600 10.5px var(--ff);letter-spacing:.14em;text-transform:uppercase;color:var(--mu);margin-bottom:3px}
+.c-head .mood{font-size:12px;color:var(--mu);text-align:right}
+.c-nav{display:flex;background:var(--sf);border-top:1px solid var(--bd);padding-bottom:8px}
+.c-nav button{flex:1;background:none;border:0;padding:8px 0 4px;color:var(--mu);font-size:10px;font-weight:600;letter-spacing:.04em}
+.c-nav button span{display:block;font-size:17px}.c-nav button.on{color:var(--ac)}
+.c-page{overflow:auto;padding:12px 16px 20px;min-height:0;min-width:0}
+.c-intro{font-family:var(--fd);font-size:17px;line-height:1.4;margin:2px 0 10px}
+.c-intro b{color:var(--ac);font-weight:600}
+.c-sub{display:flex;gap:14px;border-bottom:1px solid var(--bd);margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
+.c-sub button{background:none;border:0;border-bottom:2px solid transparent;padding:6px 0;color:var(--mu);font-weight:600;font-size:12.5px;white-space:nowrap}
+.c-sub button.on{color:var(--tx);border-color:var(--ac)}
+.c-blocks{display:grid;gap:14px}
+.c-head{grid-row:1}.c-page{grid-row:2}.c-nav{grid-row:3}
+.c-blocks.two .bk.full{grid-column:1/-1}
+.c-margin{display:none;border-left:1px solid var(--bd);padding:14px;overflow:auto;background:var(--sf)}
+.c-margin h6{font:700 10.5px var(--ff);letter-spacing:.14em;text-transform:uppercase;color:var(--mu);margin:0 0 6px}
+.c-margin .note{font-family:var(--fd);font-style:italic;font-size:13.5px;margin-bottom:12px;line-height:1.4}
+.c-time{position:relative;padding-left:56px;margin-bottom:2px}
+.c-time h5{background:var(--bg);position:relative;z-index:1;width:max-content;padding-right:8px;font:700 10.5px var(--ff);letter-spacing:.14em;text-transform:uppercase;color:var(--mu);margin:10px 0 4px -56px}
+.c-ev{position:relative;padding:7px 0;border-bottom:1px dotted var(--bd);display:flex;gap:10px;align-items:center}
+.c-ev time{position:absolute;left:-56px;width:46px;text-align:right;font-size:11px;color:var(--mu);font-variant-numeric:tabular-nums}
+.c-ev::before{content:"";position:absolute;left:-8px;top:50%;width:7px;height:7px;margin-top:-3px;border-radius:50%;background:var(--ac)}
+.c-ev.s::before{background:var(--mu)}.c-ev .tx{flex:1;min-width:0}.c-ev .tx b{font-weight:600}
+.c-ev .amt{font-variant-numeric:tabular-nums;color:var(--mu)}
+.c-time::before{content:"";position:absolute;left:48px;top:0;bottom:0;border-left:1px solid var(--bd)}
+.c-ref{border:1px solid var(--tx);padding:12px;margin-top:10px;background:var(--sf)}
+.c-ref .moods{display:flex;gap:10px;font-size:22px;margin-top:6px}
+@container dev (min-width:600px){
+  .dC{grid-template-rows:auto auto minmax(0,1fr)}
+  .c-nav{order:0;grid-row:2;border-top:0;border-bottom:1px solid var(--bd);justify-content:center;gap:4px;padding:0}
+  .c-nav button{flex:none;padding:9px 18px;font-size:12px}.c-nav button span{display:inline;margin-right:5px;font-size:13px}
+  .c-page{grid-row:3}
+  .c-blocks.two{grid-template-columns:1fr 1fr;column-gap:26px}
+}
+@container dev (min-width:1024px){
+  .dC{grid-template-columns:190px minmax(0,1fr) 270px;grid-template-rows:auto minmax(0,1fr)}
+  .c-head{grid-column:1/-1}
+  .c-nav{grid-row:2;grid-column:1;flex-direction:column;justify-content:flex-start;border-bottom:0;border-right:1px solid var(--bd);padding:14px 10px;gap:2px}
+  .c-nav button{text-align:left;padding:8px 10px;border-radius:3px;font-size:13px}
+  .c-nav button.on{background:var(--sf2)}
+  .c-page{grid-row:2;grid-column:2}
+  .c-margin{display:block;grid-row:2;grid-column:3}
+}
+</style>
+<footer>
+  <b>Next step:</b> pick a direction for each ask (delivery path in 2.1, sync v2 in 2.4, design A/B/C or a hybrid) and the build order in 2.7 becomes the plan. Sample data throughout; no live Forge data is read or sent by this page.
+</footer>
+</div>
+<script>
+/* ============ shared helpers ============ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage may be blocked */ } };
+
+/* theme toggle: system -> light -> dark */
+(() => {
+  const root = document.documentElement;
+  const saved = lsGet('fb-theme', null);
+  if (saved) root.dataset.theme = saved;
+  $('#themeBtn').addEventListener('click', () => {
+    const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+    const cur = root.dataset.theme || (dark ? 'dark' : 'light');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next; lsSet('fb-theme', next);
+  });
+})();
+
+/* active nav link */
+(() => {
+  const links = $$('.top nav a');
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) links.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id));
+  }), { rootMargin: '-40% 0px -55% 0px' });
+  $$('section.sec').forEach((s) => io.observe(s));
+})();
+
+/* ============ scaled device frame ============ */
+function mountDev(host) {
+  host.innerHTML = '<div class="dv-s"><div class="dv-f"></div></div>';
+  const s = $('.dv-s', host), f = $('.dv-f', host);
+  let W = 390, H = 700, kind = 'phone';
+  const fit = () => {
+    const avail = host.clientWidth || W;
+    const k = Math.min(1, avail / (W + (kind === 'desktop' ? 2 : 16)));
+    s.style.transform = `scale(${k})`;
+    host.style.height = Math.ceil((H + 16) * k) + 'px';
+  };
+  new ResizeObserver(fit).observe(host);
+  return {
+    el: f,
+    size(w, h, k) { W = w; H = h; kind = k || kind; f.style.width = w + 'px'; f.style.height = h + 'px'; f.className = 'dv-f k-' + kind; fit(); },
+  };
+}
+
+/* ============ SVG diagram helpers (inline SVG, currentColor, marker arrows) ============ */
+const SV = {
+  open(w, h, label, id) {
+    return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(label)}"><defs><marker id="ah-${id}" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 1 L10 5 L0 9 z" fill="currentColor"/></marker></defs>`;
+  },
+  box(x, y, w, h, t1, t2, cls = '') {
+    const ty = t2 ? y + h / 2 - 3 : y + h / 2 + 4;
+    return `<g class="bx ${cls}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/><text class="t1" x="${x + w / 2}" y="${ty}" text-anchor="middle">${esc(t1)}</text>${t2 ? `<text class="t2" x="${x + w / 2}" y="${y + h / 2 + 12}" text-anchor="middle">${esc(t2)}</text>` : ''}</g>`;
+  },
+  grp(x, y, w, h, label) {
+    return `<rect class="grp" x="${x}" y="${y}" width="${w}" height="${h}" rx="14"/><text class="glabel" x="${x + 12}" y="${y + 17}">${esc(label)}</text>`;
+  },
+  /* pts: [[x,y],...] orthogonal polyline; opts: id (marker), label, at:[x,y], anchor, cls, dash, dots */
+  arrow(id, pts, o = {}) {
+    const d = 'M' + pts.map((p) => p.join(' ')).join(' L');
+    let s = `<path class="ar ${o.dash ? 'dash' : ''} ${o.cls || ''}" d="${d}" marker-end="url(#ah-${id})"${o.attr || ''}/>`;
+    if (o.label) {
+      const a = o.at || pts[Math.floor(pts.length / 2)];
+      s += `<text class="lb bg" x="${a[0]}" y="${a[1]}" text-anchor="${o.anchor || 'middle'}">${esc(o.label)}</text>`;
+    }
+    if (o.dots) {
+      for (let i = 0; i < o.dots; i++) s += `<circle class="dot ${o.cls || ''}" r="3.6"><animateMotion dur="${o.dur || 3.2}s" begin="${(i * (o.dur || 3.2) / o.dots).toFixed(2)}s" repeatCount="indefinite" path="${d}"/></circle>`;
+    }
+    return s;
+  },
+};
+function fig(id, svg) { const f = $(id); f.insertAdjacentHTML('afterbegin', svg + '</svg>'); }
+
+/* ============ SECTION 1 · live adaptive shell ============ */
+(() => {
+  const PRESETS = [['iPhone', 390], ['iPad ½', 507], ['iPad portrait', 834], ['iPad landscape', 1194], ['Desktop', 1440]];
+  const dev = mountDev($('#s1dev'));
+  const range = $('#s1range'), read = $('#s1read'), pre = $('#s1presets');
+  const NAV = [['🌱', 'Life'], ['🧠', 'Logic'], ['💰', 'Money'], ['📈', 'Invest'], ['🤖', 'Agents']];
+  const tasks = [['Pay credit card bill', 'Today', 0], ['Gym · push day', '6:00 pm', 1], ['Read DDIA ch. 5', 'Tomorrow', 0], ['Renew passport slot', 'Fri', 0]];
+  dev.el.innerHTML = `<div class="m1">
+    <aside class="m1-nav"><div class="logo">🔥<span class="l"> Forge</span></div>${NAV.map((n, i) => `<a href="#s1" class="${i ? '' : 'on'}" onclick="return false"><span>${n[0]}</span><span class="l">${n[1]}</span></a>`).join('')}</aside>
+    <main class="m1-main">
+      <header class="m1-top"><b>Life · Tasks</b><span class="m1-state" id="s1state"></span></header>
+      <div class="m1-body">
+        <div class="m1-col">${tasks.map((t, i) => `<div class="m1-row ${i === 0 ? 'sel' : ''}"><span class="ck ${t[2] ? 'd' : ''}"></span><span>${t[0]}</span><small>${t[1]}</small></div>`).join('')}</div>
+        <div class="m1-detail"><h5>Pay credit card bill</h5><div class="mu" style="color:var(--mu)">Urgent · Important · due today</div><div class="m1-bar"><i style="width:40%"></i></div><div style="color:var(--mu)">Detail pane appears at ≥ 1024px — selecting a row no longer pushes a new screen.</div></div>
+        <div class="m1-insp"><h5>Inspector</h5><div>Open 4 · Urgent 2</div><div class="m1-bar"><i style="width:75%"></i></div><div style="color:var(--mu)">Third pane appears at ≥ 1280px: stats, linked notes, Pencil sketch.</div></div>
+      </div>
+    </main>
+    <nav class="m1-tabs">${NAV.map((n, i) => `<a href="#s1" class="${i ? '' : 'on'}" onclick="return false"><span>${n[0]}</span>${n[1]}</a>`).join('')}</nav>
+    <div class="m1-fab">+</div>
+  </div>`;
+  function update() {
+    const w = +range.value;
+    const k = w >= 1024 ? 'desktop' : w >= 600 ? 'tablet' : 'phone';
+    dev.size(w, k === 'desktop' ? 560 : 640, w >= 1024 ? 'desktop' : w >= 600 ? 'tablet' : 'phone');
+    const nav = w >= 1024 ? 'sidebar' : w >= 600 ? 'icon rail' : 'bottom tabs';
+    const cols = w >= 1280 ? 3 : w >= 1024 ? 2 : w >= 600 ? '1–2' : 1;
+    $('#s1state').textContent = `${nav} · ${cols} pane${cols === 1 ? '' : 's'}`;
+    read.innerHTML = `<b>${w}px</b> → ${nav}, ${cols} pane${cols === 1 ? '' : 's'}`;
+    $$('button', pre).forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.w === w)));
+  }
+  pre.innerHTML = PRESETS.map((p) => `<button data-w="${p[1]}" aria-pressed="false">${p[0]}</button>`).join('');
+  pre.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { range.value = b.dataset.w; update(); } });
+  range.addEventListener('input', update);
+  update();
+})();
+
+/* ============ SECTION 2 · diagrams ============ */
+/* 2.1 one build, three shells */
+(() => {
+  const id = 'sh';
+  let s = SV.open(900, 300, 'The same React build is delivered as a browser PWA, an iOS and iPadOS Capacitor app, and an optional Tauri desktop app, each using a small platform adapter.', id);
+  s += SV.box(20, 108, 200, 84, 'React SPA', 'Vite build · UI + domain + store', 'hot');
+  const rows = [[24, 'PWA · browser + Home Screen', 'ships as-is + service worker', 'Web Push · SW cache · IndexedDB', ''], [118, 'Capacitor · iOS + iPadOS', 'wrapped in WKWebView', 'APNs · Keychain · haptics · Pencil canvas', 'new'], [212, 'Tauri · desktop (optional)', 'wrapped in system webview', 'tray · file access · global shortcuts', 'new']];
+  rows.forEach((r, i) => {
+    const y = r[0];
+    s += SV.box(340, y, 250, 64, r[1], r[2], i === 0 ? 'new' : 'new');
+    s += SV.arrow(id, [[220, 150], [280, 150], [280, y + 32], [340, y + 32]], { label: i === 0 ? 'static assets' : 'bundled', at: [280, y + 32 - 6], anchor: 'middle' });
+    s += SV.box(670, y, 214, 64, 'Platform adapter', r[3]);
+    s += SV.arrow(id, [[590, y + 32], [670, y + 32]], { label: 'uses', at: [630, y + 24] });
+  });
+  fig('#fShells', s);
+})();
+
+/* 2.2 HLD */
+(() => {
+  const id = 'hld';
+  let s = SV.open(1000, 520, 'High-level design: clients run the React app over a local IndexedDB store and sync engine; the sync engine talks to Supabase; a Vercel proxy fronts Groq, Codeforces, Lichess and Yahoo.', id);
+  s += SV.grp(10, 30, 168, 300, 'CLIENTS');
+  s += SV.box(24, 56, 140, 56, 'iPhone', 'PWA → Capacitor');
+  s += SV.box(24, 138, 140, 56, 'iPad', 'PWA → Capacitor');
+  s += SV.box(24, 220, 140, 56, 'Desktop', 'browser / PWA');
+  s += SV.grp(220, 30, 262, 440, 'ONE DEVICE (SAME CODE ON ALL THREE)');
+  s += SV.box(240, 56, 222, 62, 'UI features', 'Life · Logic · Money · Invest · Agents');
+  s += SV.box(240, 150, 222, 62, 'store.js · IndexedDB', 'local-first reads/writes');
+  s += SV.box(240, 244, 222, 62, 'Sync engine', 'pending map · debounce 700ms · reconcile', 'hot');
+  s += SV.box(240, 330, 222, 44, 'Platform adapter', 'storage · notify · haptics · pencil', 'new');
+  s += SV.box(240, 398, 222, 56, 'Service worker + cache', 'intercepts fetches · offline shell', 'new');
+  s += SV.grp(560, 210, 210, 210, 'SUPABASE');
+  s += SV.box(576, 236, 178, 46, 'Auth', 'JWT session');
+  s += SV.box(576, 296, 178, 46, 'Postgres + RLS', 'kv_store → per-record (v2)', 'hot');
+  s += SV.box(576, 356, 178, 46, 'Realtime', 'change events per row');
+  s += SV.grp(560, 30, 210, 165, 'VERCEL FUNCTIONS /api');
+  s += SV.box(576, 52, 178, 46, '/api/agent', 'owner-gated LLM proxy');
+  s += SV.box(576, 110, 178, 60, '/api/cf · puzzle · quote · ics', 'fetch, join, trim');
+  s += SV.grp(840, 30, 150, 300, 'EXTERNAL');
+  s += SV.box(852, 52, 126, 44, 'Groq LLM');
+  s += SV.box(852, 112, 126, 44, 'Codeforces');
+  s += SV.box(852, 172, 126, 44, 'Lichess');
+  s += SV.box(852, 232, 126, 44, 'Yahoo Finance');
+  s += SV.box(840, 360, 150, 56, 'Push relay', 'APNs / Web Push', 'new');
+  s += SV.arrow(id, [[164, 84], [202, 84], [202, 87], [240, 87]], { label: 'runs', at: [203, 76] });
+  s += SV.arrow(id, [[164, 166], [202, 166], [202, 100], [240, 100]], {});
+  s += SV.arrow(id, [[164, 248], [202, 248], [202, 110], [240, 110]], {});
+  s += SV.arrow(id, [[351, 118], [351, 150]], { label: 'read / write', at: [358, 138], anchor: 'start' });
+  s += SV.arrow(id, [[351, 212], [351, 244]], { label: 'dirty key', at: [358, 232], anchor: 'start' });
+  s += SV.arrow(id, [[462, 268], [540, 268], [540, 319], [576, 319]], { label: 'upsert', at: [500, 262], cls: 'c-blue', dots: 3, dur: 3.2 });
+  s += SV.arrow(id, [[576, 379], [500, 379], [500, 290], [462, 290]], { label: 'change event', at: [532, 396], cls: 'c-green', dots: 3, dur: 3.6 });
+  s += SV.arrow(id, [[576, 252], [462, 252]], { label: 'JWT', at: [519, 246], dash: true });
+  s += SV.arrow(id, [[462, 80], [520, 80], [520, 75], [576, 75]], { label: 'JWT + prompt', at: [519, 66], cls: 'c-violet', dots: 3, dur: 3 });
+  s += SV.arrow(id, [[462, 104], [505, 104], [505, 140], [576, 140]], { label: 'data fetch', at: [512, 158], anchor: 'start' });
+  s += SV.arrow(id, [[754, 75], [852, 74]], { label: 'completion', at: [804, 66], cls: 'c-violet' });
+  s += SV.arrow(id, [[754, 140], [803, 140], [803, 134], [852, 134]], { label: 'fetch', at: [803, 128] });
+  s += SV.arrow(id, [[803, 140], [803, 194], [852, 194]], {});
+  s += SV.arrow(id, [[803, 194], [803, 254], [852, 254]], {});
+  s += SV.arrow(id, [[840, 388], [790, 388], [790, 486], [351, 486], [351, 454]], { label: 'push → wakes service worker', at: [570, 500], dash: true });
+  fig('#fHLD', s);
+})();
+
+/* 2.3 write-path sequence */
+(() => {
+  const id = 'sq';
+  const L = [['UI', 80], ['store.js', 215], ['IndexedDB', 350], ['Sync engine', 495], ['Supabase', 655], ['Device B', 820]];
+  const X = Object.fromEntries(L.map((l) => [l[0], l[1]]));
+  const steps = [
+    ['UI', 'store.js', 'save(key, data)', 'You tick a task. The UI updates from local state immediately — no spinner, no network.', 'Nothing can fail here; this is pure in-memory state.'],
+    ['store.js', 'IndexedDB', 'setItem {data, updatedAt}', 'The value is wrapped with Date.now() and committed locally. This is the durable commit point — everything after is replication.', 'If IndexedDB throws (private mode, quota) the key is flagged failed and the "storage unavailable" banner shows.'],
+    ['store.js', 'Sync engine', 'pending.set(key); schedulePush', 'The wrapped value goes in the pending map and a 700 ms debounce timer starts, so ten quick taps become one upload.', 'Closing the tab inside the 700 ms window: flush() runs on visibilitychange/beforeunload.'],
+    ['Sync engine', 'Supabase', 'upsert kv_store (RLS: uid = user_id)', 'After the debounce the whole key is upserted. Row-level security checks the JWT\'s user id matches the row.', 'Offline or 5xx: key stays in pending, "Cloud sync failed" banner shows, and the next flush/reconcile retries.'],
+    ['Supabase', 'Device B', 'Realtime: key changed', 'Postgres commit fires a change event to every subscribed client of this user, filtered by user_id.', 'If Device B is offline it misses the event; it reconciles every key on its next boot instead.'],
+    ['Device B', 'Supabase', 'select value, updated_at', 'Device B does not trust the event payload — it re-reads the row and runs decideSync(local, cloudRow).', 'Row missing → seed push; same timestamp → no-op.'],
+    ['Device B', 'Device B', 'cloud newer → write local', 'Cloud updatedAt is greater, so the local copy is replaced. If Device B has its own edit in pending it pushes instead of pulling (no clobber).', 'This is the line where v1 loses edits: both devices edited the same key offline, newer timestamp wins the whole value.'],
+    ['Device B', 'Device B', 'syncTick++ → tab remounts', 'Only the tab that owns this key (via KEY_TO_TAB) remounts and re-reads IndexedDB, so you see the tick appear without a refresh.', 'Unsaved form drafts are separate React state and are not touched.'],
+  ];
+  const y0 = 108, dy = 40, H = y0 + steps.length * dy + 20;
+  let s = SV.open(920, H, 'Sequence of one edit: UI to store to IndexedDB, debounced push to Supabase, realtime event to a second device, reconcile and tab remount.', id);
+  L.forEach(([n, x]) => { s += SV.box(x - 52, 14, 104, 34, n, '', 'hot'); s += `<line x1="${x}" y1="48" x2="${x}" y2="${H - 8}" stroke="currentColor" stroke-opacity=".25" stroke-dasharray="3 5"/>`; });
+  steps.forEach((st, i) => {
+    const y = y0 + i * dy, a = X[st[0]], b = X[st[1]];
+    s += `<g class="sq" data-i="${i}">`;
+    if (a === b) {
+      s += `<path class="ar" d="M${a} ${y - 10} L${a - 36} ${y - 10} L${a - 36} ${y + 6} L${a - 2} ${y + 6}" marker-end="url(#ah-${id})"/><text class="lb bg" x="${a - 44}" y="${y + 2}" text-anchor="end">${esc(st[2])}</text>`;
+    } else {
+      const lx = (a + b) / 2;
+      s += `<path class="ar" d="M${a} ${y} L${b} ${y}" marker-end="url(#ah-${id})"/><text class="lb bg" x="${lx}" y="${y - 6}" text-anchor="middle">${esc(st[2])}</text>`;
+    }
+    s += '</g>';
+  });
+  fig('#fSeq', s);
+  const svg = $('#fSeq svg');
+  const style = document.createElement('style');
+  style.textContent = '#fSeq .sq{opacity:.28;transition:opacity .25s}#fSeq .sq.done{opacity:.6}#fSeq .sq.on{opacity:1}#fSeq .sq.on .ar{stroke:var(--ac);stroke-width:2.4;opacity:1}#fSeq .sq.on .lb{fill:var(--tx);font-weight:700}';
+  document.head.appendChild(style);
+  let cur = 0, timer = null;
+  const cap = $('#seqCap');
+  function show(i) {
+    cur = (i + steps.length) % steps.length;
+    $$('.sq', svg).forEach((g, k) => { g.classList.toggle('on', k === cur); g.classList.toggle('done', k < cur); });
+    $('#seqStep').innerHTML = `Step <b>${cur + 1}</b> / ${steps.length}`;
+    cap.innerHTML = `<b style="color:var(--tx)">${cur + 1}. ${esc(steps[cur][2])}</b> — ${esc(steps[cur][3])}<br><span style="color:var(--wn)">If it goes wrong:</span> ${esc(steps[cur][4])}`;
+  }
+  $('#seqPrev').onclick = () => { stop(); show(cur - 1); };
+  $('#seqNext').onclick = () => { stop(); show(cur + 1); };
+  function stop() { clearInterval(timer); timer = null; $('#seqPlay').textContent = '▶ Auto-play'; }
+  $('#seqPlay').onclick = () => { if (timer) return stop(); $('#seqPlay').textContent = '⏸ Pause'; timer = setInterval(() => show(cur + 1), 2600); };
+  show(0);
+})();
+
+/* 2.4 reconcile flowchart */
+(() => {
+  const id = 'fl';
+  let s = SV.open(900, 330, 'Flowchart of decideSync: if no cloud row, seed by pushing local; otherwise compare updatedAt and pull, push or do nothing.', id);
+  s += SV.box(10, 118, 150, 56, 'Boot or Realtime', 'event for one key', 'hot');
+  s += SV.box(210, 118, 150, 56, 'Read both', 'local {data,updatedAt} + cloud row');
+  s += `<g class="bx hot"><path d="M470 100 L550 146 L470 192 L390 146 Z" fill="var(--s2)" stroke="var(--bd)" stroke-width="1.2"/><text class="t1" x="470" y="143" text-anchor="middle">cloud row</text><text class="t1" x="470" y="158" text-anchor="middle">exists?</text></g>`;
+  s += SV.box(390, 14, 160, 50, 'Seed: push local', 'first sign-in never loses data');
+  s += `<g class="bx hot"><path d="M690 100 L770 146 L690 192 L610 146 Z" fill="var(--s2)" stroke="var(--bd)" stroke-width="1.2"/><text class="t1" x="690" y="143" text-anchor="middle">compare</text><text class="t1" x="690" y="158" text-anchor="middle">updatedAt</text></g>`;
+  s += SV.box(610, 14, 160, 50, 'Equal → no-op');
+  s += SV.box(790, 100, 100, 62, 'Cloud newer', 'pull: write local');
+  s += SV.box(610, 250, 160, 56, 'Local newer', 'push: upsert cloud');
+  s += SV.arrow(id, [[160, 146], [210, 146]], {});
+  s += SV.arrow(id, [[360, 146], [390, 146]], {});
+  s += SV.arrow(id, [[470, 100], [470, 64]], { label: 'no', at: [484, 86], anchor: 'start' });
+  s += SV.arrow(id, [[550, 146], [610, 146]], { label: 'yes', at: [580, 138] });
+  s += SV.arrow(id, [[690, 100], [690, 64]], { label: '=', at: [702, 86], anchor: 'start' });
+  s += SV.arrow(id, [[770, 146], [790, 131]], { label: 'cloud >', at: [812, 182] });
+  s += SV.arrow(id, [[690, 192], [690, 250]], { label: 'local >', at: [704, 226], anchor: 'start' });
+  s += SV.box(210, 232, 340, 74, 'Guard: pending in-flight edit?', 'then pull becomes push — an incoming event can never erase an unsent edit', 'hot');
+  s += SV.arrow(id, [[840, 162], [840, 200], [550, 200], [550, 232]], { label: 'before applying a pull', at: [740, 194], dash: true });
+  fig('#fFlow', s);
+})();
+
+/* 2.5 architecture layers */
+(() => {
+  const id = 'ly';
+  let s = SV.open(900, 400, 'Layered frontend: shell, feature modules, pure domain logic, data access hooks, and platform adapters, with dependencies pointing downward.', id);
+  const bands = [
+    ['SHELL', 'Responsive layout · router · command palette · theming tokens · toasts', 'new', 14],
+    ['FEATURES', 'life/ · logic/ · money/ · invest/ · agents/   (one folder per tab, lazy-loaded)', '', 90],
+    ['DOMAIN (PURE)', 'life/logic.js · money/logic.js · sync/logic.js · invest/research.js — no DOM, no I/O', 'hot', 166],
+    ['DATA ACCESS', 'useSynced(key) · store.js · sync engine · supabaseClient', '', 242],
+    ['PLATFORM ADAPTERS', 'storage · notifications · haptics · pencil — web impl ⇄ Capacitor impl', 'new', 318],
+  ];
+  bands.forEach(([t, d, c, y]) => {
+    s += SV.box(20, y, 640, 56, t, d, c);
+  });
+  [70, 146, 222, 298].forEach((y) => { s += SV.arrow(id, [[340, y], [340, y + 20]], { label: y === 70 ? 'renders' : y === 146 ? 'calls pure fns' : y === 222 ? 'reads / writes' : 'delegates to', at: [352, y + 13], anchor: 'start' }); });
+  s += `<text class="lb" x="680" y="190" style="font-size:11.5px">unit-tested today with</text><text x="680" y="206" style="font-weight:700;font-size:12px">node --test</text>`;
+  s += `<text class="lb" x="680" y="338" style="font-size:11.5px">the only layer that</text><text class="lb" x="680" y="353" style="font-size:11.5px">differs per platform</text>`;
+  fig('#fLayers', s);
+})();
+
+/* 2.7 roadmap */
+(() => {
+  const rows = [
+    ['P0 · Responsive shell', 'router, tokens, container-query layout', 0, 20, 'var(--c-ui)'],
+    ['P1 · PWA', 'manifest, SW precache, offline shell, install', 15, 30, 'var(--c-pwa)'],
+    ['P2 · Sync v2', 'per-record tables, tombstones, HLC, migration', 25, 35, 'var(--c-data)'],
+    ['P3 · Capacitor app', 'iOS/iPadOS shell, APNs, Keychain, Pencil', 55, 25, 'var(--c-nat)'],
+    ['P4 · Quality & ops', 'Playwright device matrix, CI, error tracking', 0, 100, 'var(--c-ops)'],
+    ['P5 · AI upgrades', 'SSE streaming, notes RAG, evals', 75, 25, 'var(--c-ai)'],
+  ];
+  $('#road').innerHTML = `<div class="rwk"><div></div><div>${Array.from({ length: 10 }, (_, i) => `<span>wk ${i + 1}</span>`).join('')}</div></div>` +
+    rows.map((r) => `<div class="rrow"><div class="rname">${r[0]}<small>${r[1]}</small></div><div class="rtrack"><div class="rbar" style="left:${r[2]}%;width:${r[3]}%;background:${r[4]}">${r[3] >= 25 ? r[0].split(' · ')[0] : ''}</div></div></div>`).join('');
+})();
+/* ============ SECTION 3 · learning graph ============ */
+const CATS = { web: 'Web platform', ui: 'UI & responsive', pwa: 'PWA', data: 'Data & sync', be: 'Backend', sec: 'Security', nat: 'Native', ops: 'Quality & ops', ai: 'AI / LLM' };
+const PHASES = { P0: 'P0 · Responsive shell', P1: 'P1 · PWA', P2: 'P2 · Sync v2', P3: 'P3 · Native app', P4: 'P4 · Quality & ops', P5: 'P5 · AI upgrades' };
+const LVL = { 1: 'Foundation', 2: 'Working knowledge', 3: 'Advanced' };
+const LABOF = { lww: 'conflict', cachestrat: 'cache', sw: 'cache', outbox: 'outbox', optim: 'outbox', rls: 'rls', auth: 'rls' };
+const RAW = `http|HTTP & REST|web|P0|1||Every /api route and every Supabase call is an HTTP request; status codes and caching headers decide how errors surface in the UI.|What is the difference between 401 and 403, and which one does /api/agent return for a non-owner?|http methods, status codes, idempotent methods
+evloop|Event loop & rendering|web|P0|1||Janky animations and slow scrolling come from long tasks on the main thread; sync work must never block it.|Why does a long-running loop freeze a CSS transition?|event loop, microtask, requestAnimationFrame
+css|CSS flex & grid|web|P0|1||The adaptive shell is CSS grid; rails, panes and bento tiles are grid areas.|When would you choose grid over flexbox for a 3-pane layout?|css grid areas, minmax, flexbox
+idb|IndexedDB & storage|web|P0|1|evloop|Forge's on-device source of truth (via localforage). Know quotas, eviction and transactions.|What can make Safari delete IndexedDB data, and how does an installed app change that?|indexeddb, storage quota, navigator.storage.persist
+a11y|Accessibility|web|P0|2|css|Dense desktop UI and keyboard / Pencil use need focus rings, roles and 44px targets.|How do you make a custom checkbox usable with VoiceOver?|wcag 2.2, aria roles, focus-visible
+resp|Fluid & responsive design|ui|P0|1|css|Phone, iPad and desktop from one codebase: fluid type and spacing instead of per-device CSS.|Why is min-width plus clamp() better than device-specific breakpoints?|mobile-first, clamp, dvh units
+cq|Container queries|ui|P0|2|resp|iPad Split View and resized windows change width without changing device, so layouts must answer to their container.|How does a container query differ from a media query in Slide Over?|@container, container-type, intrinsic layout
+tokens|Design tokens & theming|ui|P0|2|css|Forge already has CSS variables and six themes; tokens make the three UI directions swappable.|What is a semantic token versus a raw colour?|css custom properties, design tokens, theming
+adapt|Adaptive app shell|ui|P0|2|cq,tokens|Bottom tabs to rail to sidebar plus master/detail is the central change of Ask 1.|Which pane should keep its selection when the iPad rotates?|master detail, navigation rail, responsive nav
+touch|Pointer, touch & hover|ui|P0|2|resp|An iPad is touch plus pointer plus keyboard; hover-only affordances and tiny targets break there.|What do (hover: hover) and (pointer: fine) guard against?|pointer events, touch-action, hover media query
+motion|Animation & reduced motion|ui|P1|2|evloop,css|Springs, FLIP list moves and layout transitions, with prefers-reduced-motion respected.|Which CSS properties animate on the compositor?|FLIP, spring, will-change, prefers-reduced-motion
+gest|Gestures & drag-drop|ui|P1|3|touch,motion|Reordering tasks and swipe actions must work with finger, mouse and Pencil (dnd-kit sensors).|How does a drag sensor tell a scroll from a drag on touch?|dnd-kit sensors, long-press, swipe actions
+react|React components & hooks|ui|P0|1|evloop|The whole UI; a useSynced(key) hook hides the sync layer from every screen.|Why must a hook that subscribes also unsubscribe?|useEffect, memo, custom hooks
+state|State & derived state|ui|P1|2|react|UI state, persisted state and server state need different homes; derive, do not duplicate.|Which of Forge's state belongs in IndexedDB versus React state?|derived state, reducer, state colocation
+split|Code splitting|ui|P1|2|react|Tabs are already lazy; desktop panes must not pull every tab into the first load.|What is a good split point in a tabbed app?|dynamic import, lazy, suspense, bundle analyzer
+virt|List virtualization|ui|P2|3|react,evloop|Years of expenses and notes make long lists; render only the visible window.|At what row count does virtualization start to pay off?|windowing, react-virtual, overscan
+manifest|Manifest & installability|pwa|P1|1|http|Icons, display: standalone and theme colour make Add to Home Screen look like an app. Forge's manifest uses an inline emoji icon; real PNG icons are needed.|Which manifest fields does iOS actually read?|web app manifest, apple-touch-icon, standalone
+sw|Service workers|pwa|P1|2|http,evloop|Offline shell, caching and push all live here; it is a separate thread with its own lifecycle.|What happens to open pages when a new service worker is installed but not yet active?|service worker lifecycle, skipWaiting, scope
+cachestrat|Cache strategies|pwa|P1|2|sw|Precache the shell, stale-while-revalidate assets, never cache authenticated /api calls.|Which strategy for the app shell and which for /api/quote?|workbox, stale-while-revalidate, cache-first
+bgsync|Background sync|pwa|P2|3|sw,idb|Retry queued writes after reconnect; it exists on Chromium, not iOS Safari, so a foreground fallback is required.|Why can't Forge rely on Background Sync on iPhone?|background sync api, online event, periodic sync
+push|Web Push & notifications|pwa|P3|3|sw,manifest|Reminders and habit nudges while the app is closed; iOS needs an installed app (16.4+).|What must happen before iOS shows a web push permission prompt?|web push, VAPID, notification permission
+perf|Core Web Vitals & budgets|pwa|P1|2|split,cachestrat|A fast first paint on a mid-range iPhone is the real definition of "feels native".|What do LCP, INP and CLS each measure?|LCP INP CLS, lighthouse, performance budget
+localfirst|Local-first architecture|data|P2|2|idb|Forge's defining property: reads and writes hit the device; the network is replication, not a dependency.|What can you still do in airplane mode today?|local-first software, offline-first, sync engine
+optim|Optimistic UI|data|P2|2|state,localfirst|Show the result before the server confirms; roll back or flag when it fails.|How do you show a write is saved locally but not yet in the cloud?|optimistic update, rollback, pending state
+lww|Last-write-wins & clocks|data|P2|2|localfirst|The current conflict rule, applied per key. Simple, predictable, and lossy at the wrong grain.|Two devices edit different tasks offline: what does per-key LWW keep?|last write wins, conflict resolution, updatedAt
+lamport|Lamport & hybrid logical clocks|data|P2|3|lww|Stops a phone with a wrong clock from winning forever; orders events without trusting wall time.|What does a hybrid logical clock add to Date.now()?|lamport timestamp, hybrid logical clock, clock skew
+tomb|Tombstones & soft delete|data|P2|2|lww|Without a deleted_at marker, a deleted task is resurrected by the other device's copy.|Why can't a delete be a plain row removal in a synced system?|tombstone, soft delete, garbage collection
+crdt|CRDTs|data|P3|3|lamport|The "no conflicts ever" family; likely overkill for one user, right for collaborative notes or Pencil strokes.|When is a last-writer-wins register not enough?|crdt, yjs, automerge, convergence
+outbox|Outbox & idempotent writes|data|P2|3|localfirst,bgsync|Queue every mutation locally and replay with client-generated ids so retries never double-insert.|Why must a retried create carry the same id?|outbox pattern, idempotency key, at-least-once
+debounce|Debounce, batching, backoff|data|P1|1|evloop|Forge's 700 ms push debounce today; add exponential backoff with jitter for retries.|Why add jitter to a retry delay?|debounce, throttle, exponential backoff, jitter
+rt|Realtime & change data capture|data|P2|2|http|Supabase Realtime says which key changed; the client then re-reads instead of trusting the payload.|Why re-fetch the row instead of using the event body?|websocket, postgres changes, replication
+pgmodel|Relational modelling & migrations|data|P2|2|http|Moving from kv_store blobs to per-record tables is a real migration with a rollback plan.|How do you migrate a JSON blob into rows with zero downtime?|normalization, migration, expand-contract
+serverless|Serverless functions|be|P0|1|http|/api/* runs on Vercel; cold starts, timeouts and statelessness shape what a handler may do.|Why can't a serverless handler keep a rate-limit counter in a variable?|vercel functions, cold start, stateless
+proxy|API proxy / BFF|be|P1|2|serverless|/api/cf and /api/quote exist because of CORS and server-side trimming of multi-MB payloads.|What belongs in the proxy versus in the browser?|backend for frontend, cors, aggregation
+ratelimit|Rate limiting & quotas|be|P1|2|proxy|The LLM proxy spends your Groq quota; limit per user and per minute even as the only user.|Where do you keep a rate-limit counter on serverless?|token bucket, kv store, quota
+cdn|HTTP caching & CDN|be|P1|2|http,cachestrat|Cache-Control and ETag on /api/puzzle (changes daily) and static assets cut latency and cost.|Which Cache-Control fits a response that changes once a day?|cache-control, etag, s-maxage
+auth|Authentication|sec|P1|2|http|Supabase sessions and JWTs gate every call; a native app adds secure token storage and refresh.|Where should a mobile app store a refresh token?|jwt, refresh token, oauth pkce, session
+rls|Row-level security|sec|P2|2|auth,pgmodel|The only thing between your data and anyone holding the public anon key.|Why is the anon key safe to ship but a service-role key is not?|row level security, policy, auth.uid()
+csp|CSP, XSS & secrets hygiene|sec|P4|2|http|User-written notes get rendered; a strict CSP and escaped output keep them from becoming script. Keys never ship in a bundle.|What is the XSS risk of rendering a note as HTML?|content security policy, xss, owasp
+backup|Backups, export & recovery|sec|P2|2|pgmodel|Free Supabase projects can pause; schedule a JSON export and rehearse a restore.|When did you last restore from a backup rather than just take one?|pg_dump, restore drill, rpo rto
+cap|Capacitor & WebView bridges|nat|P3|2|manifest,react|Wraps the existing build in WKWebView and exposes native APIs through plugins.|What crosses the JS-to-native bridge, and what does it cost?|capacitor, wkwebview, plugin, bridge
+nativeapi|Keychain, haptics, biometrics|nat|P3|3|cap|Token in Keychain, a light haptic on check-in, Face ID before money screens.|Why is Keychain safer than localStorage for a token?|keychain, haptics, local authentication
+deeplink|Deep links, share sheet, widgets|nat|P3|3|cap|forge://tasks/new from a Shortcut, share a note out, a streak widget (needs Swift).|What does a universal link need on the server?|universal links, app intents, widgetkit
+store|TestFlight & App Store|nat|P3|2|cap|Signing, provisioning, review guidelines and phased release for a personal app.|What is the difference between TestFlight and App Store distribution?|testflight, provisioning profile, app review
+pencil|Pencil & canvas input|nat|P3|3|touch|Handwritten notes on iPad: Pointer Events with pressure and palm rejection; strokes stored as data.|How do you separate pen input from finger input?|pointer events pressure, canvas, palm rejection
+testpyr|Testing pyramid|ops|P4|1||Solid unit tests for pure logic exist; add component and E2E layers where bugs really appeared (sync, undo, dnd).|Which layer would have caught the lost-edit bug?|unit integration e2e, test pyramid
+e2e|E2E & device matrix|ops|P4|2|testpyr,resp|Playwright projects for iPhone, iPad portrait/landscape and desktop catch layout regressions.|How do you emulate touch and hover in Playwright?|playwright, device emulation, visual regression
+ci|CI/CD & preview deploys|ops|P4|2|testpyr,serverless|Every push builds, tests and gets a preview URL you can open on your iPad.|What should block a merge versus only warn?|github actions, vercel preview, required checks
+obs|Observability|ops|P4|2|ci|Error tracking, sync-failure counters and API latency, so "cloud sync failed" is a metric and not a banner you happen to see.|What would you alert on for a one-user app?|error tracking, structured logs, slo
+flags|Feature flags & staged rollout|ops|P4|2|ci|Ship sync v2 behind a flag, migrate one key at a time, roll back instantly.|How do you roll back a data migration that already ran?|feature flags, canary, dark launch
+prompt|Prompt design|ai|P5|1||agents.json holds the system prompts; scope, format rules and refusal behaviour are the product.|What makes a system prompt testable?|system prompt, few-shot, structured output
+llmgw|LLM gateway, cost & caching|ai|P5|2|proxy,prompt,ratelimit|/api/agent is a gateway: auth, quotas, model switching, response caching.|Which LLM calls are safe to cache?|llm gateway, prompt caching, token budget
+sse|Streaming (SSE)|ai|P5|2|http,llmgw|Token-by-token replies feel instant; needs a streaming handler and incremental rendering.|Why SSE over WebSocket for one-way token streams?|server-sent events, streaming fetch, backpressure
+rag|RAG & embeddings|ai|P5|3|llmgw,pgmodel|Ask questions over your own notes with pgvector in the same Supabase Postgres.|How do you keep retrieved notes from carrying prompt-injection text?|embeddings, pgvector, chunking, retrieval
+evals|Evals & guardrails|ai|P5|3|prompt,testpyr|A fixed question set with expected properties, so a prompt or model change cannot silently regress a tutor.|How do you grade an open-ended answer automatically?|llm evals, rubric, regression set`;
+const NODES = RAW.split('\n').map((l) => { const [id, label, cat, ph, lv, req, why, q, kw] = l.split('|'); return { id, label, cat, ph, lv: +lv, req: req ? req.split(',') : [], why, q, kw }; });
+
+(() => {
+  const byId = Object.fromEntries(NODES.map((n) => [n.id, n]));
+  NODES.forEach((n) => { n.out = []; });
+  NODES.forEach((n) => n.req.forEach((r) => byId[r].out.push(n.id)));
+  const layerOf = {};
+  const lay = (n) => layerOf[n.id] ?? (layerOf[n.id] = n.req.length ? 1 + Math.max(...n.req.map((r) => lay(byId[r]))) : 0);
+  NODES.forEach(lay);
+  const nL = Math.max(...Object.values(layerOf)) + 1;
+  const catOrder = Object.keys(CATS);
+  const NW = 178, NH = 32, GX = 58, GY = 10, PX = 18, PY = 38;
+  const cols = Array.from({ length: nL }, () => []);
+  NODES.forEach((n) => cols[layerOf[n.id]].push(n));
+  cols.forEach((c) => c.sort((a, b) => catOrder.indexOf(a.cat) - catOrder.indexOf(b.cat) || a.label.localeCompare(b.label)));
+  cols.forEach((c, x) => c.forEach((n, y) => { n.x = PX + x * (NW + GX); n.y = PY + y * (NH + GY); }));
+  const W = PX * 2 + nL * NW + (nL - 1) * GX, H = PY + Math.max(...cols.map((c) => c.length)) * (NH + GY) + 10;
+  const svg = $('#gSvg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', W); svg.setAttribute('height', H);
+  const colName = ['Foundations', 'Level 2', 'Level 3', 'Level 4', 'Level 5', 'Level 6', 'Level 7', 'Level 8'];
+  let html = cols.map((_, x) => `<text class="colh" x="${PX + x * (NW + GX)}" y="22">${x === 0 ? 'START HERE' : 'AFTER ' + x + ' STEP' + (x > 1 ? 'S' : '')}</text>`).join('');
+  const edges = [];
+  NODES.forEach((n) => n.req.forEach((r) => {
+    const a = byId[r], x1 = a.x + NW, y1 = a.y + NH / 2, x2 = n.x, y2 = n.y + NH / 2, mx = (x1 + x2) / 2;
+    edges.push({ from: r, to: n.id });
+    html += `<path class="ed" data-f="${r}" data-t="${n.id}" d="M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}"/>`;
+  }));
+  NODES.forEach((n) => {
+    html += `<g class="nd" data-id="${n.id}" tabindex="0" role="button" aria-label="${esc(n.label)}, ${CATS[n.cat]}">
+      <rect class="box" x="${n.x}" y="${n.y}" width="${NW}" height="${NH}" rx="8"/>
+      <rect class="stripe" x="${n.x}" y="${n.y}" width="5" height="${NH}" rx="2" style="fill:var(--c-${n.cat})"/>
+      <text x="${n.x + 14}" y="${n.y + 20}">${esc(n.label.length > 26 ? n.label.slice(0, 25) + '…' : n.label)}</text></g>`;
+  });
+  svg.innerHTML = html;
+
+  let learned = new Set(lsGet('fb-learned', []));
+  let sel = null, view = 'graph';
+  const hiddenCats = new Set();
+  const anc = (id, s = new Set()) => { byId[id].req.forEach((r) => { if (!s.has(r)) { s.add(r); anc(r, s); } }); return s; };
+  const desc = (id, s = new Set()) => { byId[id].out.forEach((r) => { if (!s.has(r)) { s.add(r); desc(r, s); } }); return s; };
+
+  function paint() {
+    const A = sel ? anc(sel) : null, D = sel ? desc(sel) : null;
+    $$('.nd', svg).forEach((g) => {
+      const n = byId[g.dataset.id];
+      const inSel = sel && (n.id === sel || A.has(n.id) || D.has(n.id));
+      g.classList.toggle('done', learned.has(n.id));
+      g.classList.toggle('sel', n.id === sel);
+      g.classList.toggle('dim', hiddenCats.has(n.cat) || (sel && !inSel));
+    });
+    $$('.ed', svg).forEach((p) => {
+      const f = p.dataset.f, t = p.dataset.t;
+      const up = sel && (t === sel || A.has(t)) && (f === sel || A.has(f));
+      const down = sel && (f === sel || D.has(f)) && (t === sel || D.has(t));
+      p.classList.toggle('up', !!up);
+      p.classList.toggle('down', !!down && !up);
+      p.classList.toggle('dim', hiddenCats.has(byId[f].cat) || hiddenCats.has(byId[t].cat) || (sel && !up && !down));
+    });
+    $('#gProg').innerHTML = `<b>${learned.size}</b> / ${NODES.length} learned`;
+    renderDetail(); renderList();
+  }
+  const chip = (id) => `<button data-go="${id}" style="border-left:3px solid var(--c-${byId[id].cat})">${esc(byId[id].label)}</button>`;
+  function renderDetail() {
+    const el = $('#gDet');
+    if (!sel) {
+      const next = NODES.filter((n) => !learned.has(n.id) && n.req.every((r) => learned.has(r))).slice(0, 8);
+      el.innerHTML = `<div class="tag">Nothing selected</div><h4>Where to start</h4><p>These have no unlearned prerequisites. Click any node in the graph to see why Forge needs it.</p><div class="chips">${next.map((n) => chip(n.id)).join('')}</div>
+        <div class="k">Reading the graph</div><p>Blue flowing lines = what you must learn first. Green = what it unlocks. Green-filled nodes = learned.</p>`;
+      return;
+    }
+    const n = byId[sel], lab = LABOF[n.id];
+    el.innerHTML = `<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="tag" style="background:color-mix(in srgb,var(--c-${n.cat}) 20%,transparent);color:var(--c-${n.cat})">${CATS[n.cat]}</span><span class="tag">${LVL[n.lv]}</span><span class="tag new">${PHASES[n.ph]}</span></div>
+      <h4>${esc(n.label)}</h4>
+      <div class="k">Why Forge needs it</div><p>${esc(n.why)}</p>
+      <div class="k">Learn first</div><div class="chips">${n.req.length ? n.req.map(chip).join('') : '<span class="mu" style="color:var(--mu);font-size:13px">Nothing — start here</span>'}</div>
+      <div class="k">Unlocks</div><div class="chips">${n.out.length ? n.out.map(chip).join('') : '<span style="color:var(--mu);font-size:13px">End of this branch</span>'}</div>
+      <div class="k">Check yourself</div><p>${esc(n.q)}</p>
+      <div class="k">Search terms</div><p class="mono" style="font-size:12px;color:var(--mu)">${esc(n.kw)}</p>
+      <div class="ctl"><button class="btn ${learned.has(n.id) ? '' : 'pri'}" data-learn="${n.id}">${learned.has(n.id) ? '✓ Learned — undo' : 'Mark learned'}</button>${lab ? `<button class="btn" data-lab="${lab}">Open lab →</button>` : ''}</div>`;
+  }
+  function renderList() {
+    $('#gList').innerHTML = Object.entries(PHASES).map(([k, v]) => `<div class="gph"><h4>${v}</h4><div class="items">${NODES.filter((n) => n.ph === k && !hiddenCats.has(n.cat)).sort((a, b) => a.lv - b.lv).map((n) => `<button data-go="${n.id}" class="${learned.has(n.id) ? 'done' : ''}" style="--cc:var(--c-${n.cat})">${esc(n.label)}<br><small style="color:var(--mu)">${LVL[n.lv]}</small></button>`).join('')}</div></div>`).join('');
+  }
+  function select(id) { sel = sel === id ? null : id; paint(); if (sel && view === 'graph') { const n = byId[sel]; const sc = $('#gScroll'); sc.scrollTo({ left: Math.max(0, n.x - sc.clientWidth / 2 + NW / 2), behavior: 'smooth' }); } }
+  svg.addEventListener('click', (e) => { const g = e.target.closest('.nd'); if (g) select(g.dataset.id); else if (!e.target.closest('.nd')) { sel = null; paint(); } });
+  svg.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.nd')) { e.preventDefault(); select(e.target.closest('.nd').dataset.id); } });
+  $('#gDet').addEventListener('click', (e) => {
+    const go = e.target.closest('[data-go]'), lr = e.target.closest('[data-learn]'), lb = e.target.closest('[data-lab]');
+    if (go) { sel = go.dataset.go; paint(); }
+    if (lr) { const id = lr.dataset.learn; learned.has(id) ? learned.delete(id) : learned.add(id); lsSet('fb-learned', [...learned]); paint(); }
+    if (lb) openLab(lb.dataset.lab, true);
+  });
+  $('#gList').addEventListener('click', (e) => { const go = e.target.closest('[data-go]'); if (go) { sel = go.dataset.go; paint(); $('#gDet').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } });
+  $('#gView').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return; view = b.dataset.v;
+    $$('#gView button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('#gScroll').hidden = view !== 'graph'; $('#gList').hidden = view !== 'list';
+  });
+  $('#gReset').onclick = () => { learned = new Set(); lsSet('fb-learned', []); paint(); };
+  $('#gCats').innerHTML = Object.entries(CATS).map(([k, v]) => `<button class="gcat" data-c="${k}" aria-pressed="true"><i style="background:var(--c-${k})"></i>${v}</button>`).join('');
+  $('#gCats').addEventListener('click', (e) => {
+    const b = e.target.closest('.gcat'); if (!b) return; const c = b.dataset.c;
+    hiddenCats.has(c) ? hiddenCats.delete(c) : hiddenCats.add(c);
+    b.setAttribute('aria-pressed', String(!hiddenCats.has(c))); paint();
+  });
+  document.addEventListener('click', (e) => { const a = e.target.closest('a[data-lab]'); if (a) { e.preventDefault(); openLab(a.dataset.lab, true); } });
+  window.__graph = { select, NODES };
+  paint();
+})();
+
+/* ============ concept labs ============ */
+function openLab(name, scroll) {
+  $$('#labTabs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.l === name)));
+  $$('.lab').forEach((l) => { l.hidden = l.id !== 'lab-' + name; });
+  if (scroll) $('#labs').scrollIntoView({ behavior: 'smooth' });
+}
+$('#labTabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) openLab(b.dataset.l); });
+const segHtml = (id, opts, cur) => `<div class="seg" id="${id}" role="group">${opts.map(([v, l]) => `<button data-v="${v}" aria-pressed="${v === cur}">${l}</button>`).join('')}</div>`;
+const segBind = (root, id, fn) => $('#' + id, root).addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; $$('button', $('#' + id, root)).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fn(b.dataset.v); });
+
+/* Lab 1 · sync conflicts */
+(() => {
+  const root = $('#lab-conflict');
+  const st = { pr: true, pd: false, le: false, la: true, later: 'laptop', strat: 'key', synced: false };
+  const base = [{ id: 1, t: 'Pay rent' }, { id: 2, t: 'Gym 6pm' }, { id: 3, t: 'Read ch. 4' }];
+  const tsP = () => (st.later === 'phone' ? 20 : 10), tsL = () => (st.later === 'laptop' ? 20 : 10);
+  function lists() {
+    const P = base.map((x) => ({ ...x })), L = base.map((x) => ({ ...x }));
+    const touchedP = new Set(), touchedL = new Set();
+    if (st.pr) { P[0].t = 'Pay rent ₹18k'; touchedP.add(1); }
+    let Pl = P; if (st.pd) { Pl = P.filter((x) => x.id !== 2); touchedP.add(2); }
+    if (st.le) { L[1].t = 'Gym 7pm'; touchedL.add(2); }
+    if (st.la) { L.push({ id: 4, t: 'Call bank' }); touchedL.add(4); }
+    return { P: Pl, L, touchedP, touchedL };
+  }
+  function merge() {
+    const { P, L, touchedP, touchedL } = lists();
+    if (st.strat === 'key') return (st.later === 'phone' ? P : L).map((x) => ({ ...x }));
+    const out = [];
+    for (const id of [1, 2, 3, 4]) {
+      const p = P.find((x) => x.id === id), l = L.find((x) => x.id === id);
+      const pt = touchedP.has(id) ? tsP() : 0, lt = touchedL.has(id) ? tsL() : 0;
+      let pick;
+      if (st.strat === 'rec') { pick = p && l ? (pt >= lt ? p : l) : p || l; if (!p && l && st.pd && id === 2 && st.later === 'phone') pick = { ...l, zombie: true }; }
+      else { // tombstones: a delete is a versioned record
+        const pv = p ? { ...p, ts: pt } : st.pd && id === 2 ? { dead: true, ts: pt } : null, lv = l ? { ...l, ts: lt } : null;
+        const w = pv && lv ? (pv.ts >= lv.ts ? pv : lv) : pv || lv; pick = w && !w.dead ? w : null;
+      }
+      if (pick) out.push({ ...pick });
+    }
+    return out;
+  }
+  function render() {
+    const { P, L } = lists();
+    const li = (x, c = '') => `<div class="tl ${c}"><span>☐</span>${esc(x.t)}</div>`;
+    const res = st.synced ? merge() : null;
+    let verdict = '';
+    if (res) {
+      const has = (id, t) => res.some((x) => x.id === id && (!t || x.t === t));
+      const checks = [];
+      if (st.pr) checks.push(['Phone: renamed rent', has(1, 'Pay rent ₹18k')]);
+      if (st.pd) checks.push(['Phone: deleted gym', !has(2)]);
+      if (st.le) checks.push(['Laptop: moved gym to 7pm', has(2, 'Gym 7pm')]);
+      if (st.la) checks.push(['Laptop: added “Call bank”', has(4)]);
+      const lost = checks.filter((c) => !c[1]);
+      const conflict = st.pd && st.le;
+      verdict = `<div class="verdict">${checks.map((c) => `<span class="qchip ${c[1] ? 'o' : 'f'}">${c[1] ? '✓ kept' : '✗ lost'} · ${c[0]}</span>`).join('')}<br><b>${lost.length ? lost.length + ' of ' + checks.length + ' edits lost.' : 'No edits lost.'}</b> ${st.strat === 'key' && lost.length ? 'Per-key LWW replaced the whole list with the newer device’s copy — this is today’s behaviour.' : ''}${st.strat === 'rec' && st.pd && res.some((x) => x.zombie) ? ' Deleted task came back (👻) because a missing row looks identical to “never seen”.' : ''}${conflict && lost.length ? ' (Delete vs edit of the same task is a true conflict — one must lose; LWW picks the later.)' : ''}</div>`;
+    }
+    root.innerHTML = `<h4>Lab 1 · Two devices, one list, no network</h4><p class="sub">Both devices go offline and each edits the list. When they reconnect, the merge strategy decides what survives. Toggle edits, who edited last, and the strategy.</p>
+      <div class="devs">
+        <div class="dcard"><h5>📱 Phone <span class="tag">offline · t=${tsP()}</span></h5>${P.map((x) => li(x)).join('')}
+          <label class="row2"><input type="checkbox" data-k="pr" ${st.pr ? 'checked' : ''}> rename “Pay rent”</label>
+          <label class="row2"><input type="checkbox" data-k="pd" ${st.pd ? 'checked' : ''}> delete “Gym 6pm”</label></div>
+        <div class="dcard"><h5>💻 Laptop <span class="tag">offline · t=${tsL()}</span></h5>${L.map((x) => li(x)).join('')}
+          <label class="row2"><input type="checkbox" data-k="le" ${st.le ? 'checked' : ''}> edit “Gym 6pm” → 7pm</label>
+          <label class="row2"><input type="checkbox" data-k="la" ${st.la ? 'checked' : ''}> add “Call bank”</label></div>
+        <div class="dcard"><h5>☁️ After reconnect ${st.synced ? '' : '<span class="tag">waiting</span>'}</h5>${res ? res.map((x) => li(x, x.zombie ? 'zombie' : 'keep')).join('') || '<div class="tl">(empty)</div>' : '<div style="color:var(--mu);font-size:13px">Press “Reconnect both” to merge.</div>'}</div>
+      </div>
+      <div class="row2"><span class="lbl">Edited last</span>${segHtml('c-later', [['phone', 'Phone'], ['laptop', 'Laptop']], st.later)}<span class="lbl">Strategy</span>${segHtml('c-strat', [['key', 'Per key (today)'], ['rec', 'Per record'], ['tomb', 'Per record + tombstone']], st.strat)}<button class="btn pri" id="c-go">Reconnect both</button></div>${verdict}`;
+    $$('input[type=checkbox]', root).forEach((c) => c.addEventListener('change', () => { st[c.dataset.k] = c.checked; render(); }));
+    segBind(root, 'c-later', (v) => { st.later = v; render(); });
+    segBind(root, 'c-strat', (v) => { st.strat = v; render(); });
+    $('#c-go', root).onclick = () => { st.synced = true; render(); };
+  }
+  render();
+})();
+
+/* Lab 2 · cache strategies */
+(() => {
+  const root = $('#lab-cache'), NS = 'http://www.w3.org/2000/svg';
+  const st = { strat: 'swr', net: 'fast', cache: 'v1', busy: false };
+  const P = { page: [70, 120], sw: [270, 120], cache: [490, 40], net: [490, 200] };
+  root.innerHTML = `<h4>Lab 2 · What does the service worker answer with?</h4><p class="sub">The network always has <b>v2</b> of the asset; the cache starts with <b>v1</b>. Pick a strategy and a network, then request. Watch which store answers, how long it takes, and whether you see stale data.</p>
+    <div class="row2"><span class="lbl">Strategy</span>${segHtml('k-strat', [['cache', 'Cache-first'], ['net', 'Network-first'], ['swr', 'Stale-while-revalidate']], 'swr')}<span class="lbl">Network</span>${segHtml('k-net', [['fast', 'Fast'], ['slow', 'Slow'], ['off', 'Offline']], 'fast')}</div>
+    <div class="row2"><button class="btn pri" id="k-go">Request asset</button><button class="btn" id="k-reset">Reset cache to v1</button></div>
+    <figure class="fig" style="box-shadow:none;margin:6px 0"><svg id="k-svg" viewBox="0 0 620 260" role="img" aria-label="Request flows from the page through the service worker to the cache and the network"><defs><marker id="ah-k" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 1 L10 5 L0 9 z" fill="currentColor"/></marker></defs>
+      ${SV.box(10, 90, 120, 60, 'Page', 'fetch(asset)')}${SV.box(210, 90, 120, 60, 'Service worker', 'picks strategy', 'hot')}
+      <g class="bx" id="k-cb"><rect x="430" y="10" width="170" height="60" rx="9"/><text class="t1" x="515" y="36" text-anchor="middle">Cache storage</text><text class="t2" id="k-ct" x="515" y="54" text-anchor="middle">holds v1</text></g>
+      <g class="bx" id="k-nb"><rect x="430" y="170" width="170" height="60" rx="9"/><text class="t1" x="515" y="196" text-anchor="middle">Network</text><text class="t2" id="k-nt" x="515" y="214" text-anchor="middle">serves v2 · 90 ms</text></g>
+      <path class="ar" d="M130 120 L210 120" marker-end="url(#ah-k)"/><path class="ar" d="M330 105 L430 45" marker-end="url(#ah-k)"/><path class="ar" d="M330 135 L430 195" marker-end="url(#ah-k)"/></svg></figure>
+    <div class="verdict" id="k-out">Press <b>Request asset</b>.</div>`;
+  const svg = $('#k-svg'), out = $('#k-out');
+  const ms = () => ({ fast: 90, slow: 900, off: Infinity }[st.net]);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fly = (a, b, d, col) => new Promise((res) => {
+    if (reduce) return setTimeout(res, 80);
+    const c = document.createElementNS(NS, 'circle'); c.setAttribute('r', 6); c.setAttribute('fill', col || 'var(--ac)'); svg.appendChild(c);
+    const t0 = performance.now();
+    (function f(t) { const k = Math.min(1, (t - t0) / d); c.setAttribute('cx', a[0] + (b[0] - a[0]) * k); c.setAttribute('cy', a[1] + (b[1] - a[1]) * k); if (k < 1) requestAnimationFrame(f); else { c.remove(); res(); } })(t0);
+  });
+  const hop = { a: (n) => P[n] };
+  const to = (x, y, d = 380) => fly([x[0] + 60, x[1]], [y[0] - 60, y[1]], d);
+  const toC = (from, d = 380) => fly([from[0] + 60, from[1] - 20], [P.cache[0] - 60, P.cache[1] + 10], d);
+  const toN = (from, d) => fly([from[0] + 60, from[1] + 20], [P.net[0] - 60, P.net[1] - 10], d);
+  const back = (a, b, d = 380) => fly(a, b, d, 'var(--c-data)');
+  const netD = () => (st.net === 'slow' ? 1100 : 420);
+  const sync = () => { $('#k-ct').textContent = st.cache ? 'holds ' + st.cache : 'empty'; $('#k-nt').textContent = st.net === 'off' ? 'offline ✗' : `serves v2 · ${ms()} ms`; };
+  const show = (src, lat, ver, note, cls) => { out.innerHTML = `<span class="qchip ${cls}">${ver ? 'shows ' + ver : 'error'}</span><span class="qchip">from ${src}</span><span class="qchip">${lat}</span><br>${note}`; };
+  async function net() { await toN(P.sw, netD()); if (st.net === 'off') { await sleep(150); return false; } await back([P.net[0] - 60, P.net[1] - 10], [P.sw[0] + 60, P.sw[1] + 20], netD()); return true; }
+  async function run() {
+    if (st.busy) return; st.busy = true; $('#k-go').disabled = true;
+    await to(P.page, P.sw);
+    if (st.strat === 'cache') {
+      await toC(P.sw);
+      if (st.cache) { await back([P.cache[0] - 60, P.cache[1] + 10], [P.sw[0] + 60, P.sw[1] - 20]); await back([P.sw[0] - 60, P.sw[1]], [P.page[0] + 60, P.page[1]]); show('cache', '~5 ms', st.cache, st.cache !== 'v2' ? 'Instant, but <b>stale</b> — cache-first never looks at the network once it has a copy. Good for fingerprinted assets, wrong for data.' : 'Instant and fresh.', st.cache !== 'v2' ? 'p' : 'o'); }
+      else if (await net()) { st.cache = 'v2'; await back([P.sw[0] + 60, P.sw[1] - 20], [P.cache[0] - 60, P.cache[1] + 10]); await back([P.sw[0] - 60, P.sw[1]], [P.page[0] + 60, P.page[1]]); show('network', ms() + ' ms', 'v2', 'Cache miss → network → stored for next time.', 'o'); }
+      else show('—', 'failed', null, 'Cache miss while offline: <b>nothing to serve</b>.', 'f');
+    } else if (st.strat === 'net') {
+      if (await net()) { st.cache = 'v2'; await back([P.sw[0] - 60, P.sw[1]], [P.page[0] + 60, P.page[1]]); show('network', ms() + ' ms', 'v2', 'Always fresh when online, but you wait for the network every time' + (st.net === 'slow' ? ' — <b>900 ms spinner</b>.' : '.'), 'o'); }
+      else { await toC(P.sw); if (st.cache) { await back([P.cache[0] - 60, P.cache[1] + 10], [P.sw[0] + 60, P.sw[1] - 20]); await back([P.sw[0] - 60, P.sw[1]], [P.page[0] + 60, P.page[1]]); show('cache (fallback)', '~5 ms', st.cache, 'Network failed, so it fell back to the cached copy — the usual choice for data screens.', 'p'); } else show('—', 'failed', null, 'Offline and nothing cached.', 'f'); }
+    } else {
+      await toC(P.sw);
+      if (st.cache) {
+        await back([P.cache[0] - 60, P.cache[1] + 10], [P.sw[0] + 60, P.sw[1] - 20]); await back([P.sw[0] - 60, P.sw[1]], [P.page[0] + 60, P.page[1]]);
+        const was = st.cache; show('cache, then revalidating', '~5 ms', was, 'Page already has its answer. Revalidating in the background…', was !== 'v2' ? 'p' : 'o');
+        if (await net()) { st.cache = 'v2'; await back([P.sw[0] + 60, P.sw[1] - 20], [P.cache[0] - 60, P.cache[1] + 10]); show('cache, then revalidated', '~5 ms', was, was !== 'v2' ? 'This view was <b>stale (v1)</b>, but the cache just updated to v2 — the <b>next</b> request is fresh. Best default for the app shell and rarely-changing data.' : 'Already fresh; cache re-confirmed.', was !== 'v2' ? 'p' : 'o'); }
+        else show('cache (revalidation failed)', '~5 ms', was, 'Served from cache; background refresh failed silently — offline users still get an app.', 'p');
+      } else if (await net()) { st.cache = 'v2'; await back([P.sw[0] - 60, P.sw[1]], [P.page[0] + 60, P.page[1]]); show('network', ms() + ' ms', 'v2', 'First visit: nothing cached, so it behaves like network-first.', 'o'); }
+      else show('—', 'failed', null, 'First visit offline: nothing to serve.', 'f');
+    }
+    sync(); st.busy = false; $('#k-go').disabled = false;
+  }
+  segBind(root, 'k-strat', (v) => { st.strat = v; });
+  segBind(root, 'k-net', (v) => { st.net = v; sync(); });
+  $('#k-go').onclick = run;
+  $('#k-reset').onclick = () => { st.cache = 'v1'; sync(); out.innerHTML = 'Cache reset to <b>v1</b>.'; };
+})();
+
+/* Lab 3 · offline outbox */
+(() => {
+  const root = $('#lab-outbox');
+  const st = { online: false, flaky: true, items: [], q: [], n: 0, draining: false, log: [] };
+  const log = (m) => { st.log.unshift(m); st.log = st.log.slice(0, 6); };
+  function render() {
+    root.innerHTML = `<h4>Lab 3 · Optimistic UI + outbox</h4><p class="sub">Every add appears instantly and is written to a local outbox with a client-generated id. A drain loop replays the outbox when online, retrying with exponential backoff. The same id on retry means the server can never create a duplicate.</p>
+      <div class="row2">${segHtml('o-net', [['on', 'Online'], ['off', 'Offline']], st.online ? 'on' : 'off')}<label class="row2"><input type="checkbox" id="o-fl" ${st.flaky ? 'checked' : ''}> server fails each first attempt</label><button class="btn pri" id="o-add">+ Add task</button></div>
+      <div class="devs"><div class="dcard"><h5>📱 UI (instant) <span class="tag">${st.items.length} items</span></h5>${st.items.map((i) => `<div class="tl ${i.s === 'ok' ? 'keep' : 'pend'}"><span>${i.s === 'ok' ? '☑' : '☐'}</span>${esc(i.t)}<span class="st">${i.s === 'ok' ? 'synced' : i.s === 'try' ? 'retry ' + i.tries + '…' : 'pending'}</span></div>`).join('') || '<div style="color:var(--mu);font-size:13px">Add a task.</div>'}</div>
+        <div class="dcard"><h5>📤 Outbox (IndexedDB) <span class="tag">${st.q.length} queued</span></h5>${st.q.map((o) => `<div class="tl"><span class="mono">${o.id}</span>upsert · tries ${o.tries}</div>`).join('') || '<div style="color:var(--mu);font-size:13px">Empty — everything is on the server.</div>'}</div>
+        <div class="dcard"><h5>📜 Log</h5>${st.log.map((l) => `<div style="font-size:12px;color:var(--mu);margin-bottom:3px">${l}</div>`).join('') || '<div style="color:var(--mu);font-size:13px">…</div>'}</div></div>`;
+    segBind(root, 'o-net', (v) => { st.online = v === 'on'; log(st.online ? 'network up → drain' : 'network down'); render(); if (st.online) drain(); });
+    $('#o-fl', root).onchange = (e) => { st.flaky = e.target.checked; };
+    $('#o-add', root).onclick = () => {
+      const id = 'op_' + ++st.n, t = ['Pay rent', 'Gym 6pm', 'Read ch. 5', 'Call bank', 'Buy milk', 'Book tickets'][(st.n - 1) % 6];
+      st.items.push({ id, t, s: 'pend', tries: 0 }); st.q.push({ id, tries: 0 }); log(`${id} written locally → shown instantly`); render(); if (st.online) drain();
+    };
+  }
+  async function drain() {
+    if (st.draining) return; st.draining = true;
+    while (st.q.length && st.online) {
+      const op = st.q[0], it = st.items.find((i) => i.id === op.id);
+      await sleep(500);
+      if (!st.online) break;
+      if (st.flaky && op.tries === 0) { op.tries++; it.tries = op.tries; it.s = 'try'; const back = 700 * 2 ** (op.tries - 1) + Math.round(Math.random() * 200); log(`${op.id} failed (503) → backoff ${back} ms + jitter`); render(); await sleep(back); continue; }
+      st.q.shift(); it.s = 'ok'; log(`${op.id} accepted (upsert by id → no duplicate)`); render();
+    }
+    st.draining = false;
+  }
+  render();
+})();
+
+/* Lab 4 · auth + RLS */
+(() => {
+  const root = $('#lab-rls');
+  const st = { step: 0, mode: 'normal' };
+  const rows = [['1', 'user_1', 'Pay rent'], ['2', 'user_1', 'Gym 6pm'], ['3', 'user_1', 'Read ch. 4'], ['4', 'user_2', 'Secret plan'], ['5', 'user_2', 'Tax docs'], ['6', 'user_2', 'Passwords note']];
+  const steps = [
+    ['Sign in', 'Browser → Supabase Auth: email + password.'],
+    ['Receive JWT', 'Auth returns a signed JWT whose <code>sub</code> claim is <code>user_1</code>. The browser stores it and refreshes it.'],
+    ['Query', 'Browser → PostgREST: <code>GET /tasks</code> with <code>apikey: anon</code> and <code>Authorization: Bearer &lt;JWT&gt;</code>.'],
+    ['Set role', 'PostgREST runs the query as role <code>authenticated</code> and exposes the JWT claims, so <code>auth.uid()</code> = user_1.'],
+    ['Policy per row', 'Postgres evaluates <code>using (auth.uid() = user_id)</code> on every candidate row. Rows that fail are invisible, not “forbidden”.'],
+    ['Result', 'Only rows that passed the policy are returned.'],
+  ];
+  function render() {
+    const rls = st.mode !== 'off', asks2 = st.mode === 'other';
+    const req = `GET /rest/v1/tasks${asks2 ? '?user_id=eq.user_2' : ''}`;
+    const visible = (r) => (!asks2 || r[1] === 'user_2');
+    const rowHtml = rows.filter(visible).map((r) => {
+      let c = '';
+      if (st.step >= 4 && rls) c = r[1] === 'user_1' ? 'mine' : 'theirs';
+      if (st.step >= 5 && rls && r[1] !== 'user_1') c = 'hide';
+      return `<tr class="${c}"><td>${r[0]}</td><td class="mono">${r[1]}</td><td>${r[2]}</td></tr>`;
+    }).join('');
+    const returned = rows.filter(visible).filter((r) => !rls || r[1] === 'user_1').length;
+    const msg = st.step < 5 ? '' : !rls ? `<div class="verdict" style="border-color:var(--er)"><b class="bad">${returned} rows returned, including other users’ data.</b> With RLS off, anyone holding the public anon key can read everything. This is the mistake the policy prevents.</div>` : asks2 ? `<div class="verdict"><b>0 rows, status 200.</b> The attacker asked for user_2’s rows with a user_1 token; the policy filtered them all out. (No error reveals that the rows exist.)</div>` : `<div class="verdict"><b class="good">${returned} rows returned.</b> Same query, same table — the policy shrank the result to the caller’s own rows.</div>`;
+    root.innerHTML = `<h4>Lab 4 · How a request is authorised</h4><p class="sub">Forge ships the public anon key in the bundle on purpose. This is why that is safe — and what happens when the policy is missing.</p>
+      <div class="row2"><span class="lbl">Scenario</span>${segHtml('r-mode', [['normal', 'Normal query'], ['other', 'Ask for someone else’s rows'], ['off', 'RLS disabled (mistake)']], st.mode)}</div>
+      <div class="ctl"><button class="btn" id="r-prev">← Prev</button><button class="btn pri" id="r-next">Next →</button><span class="readout">Step <b>${st.step + 1}</b> / ${steps.length} · ${steps[st.step][0]}</span></div>
+      <div class="devs"><div class="dcard"><h5>Flow</h5>${steps.map((s, i) => `<div class="tl ${i === st.step ? 'keep' : ''}" style="${i > st.step ? 'opacity:.4' : ''}"><b>${i + 1}</b> ${s[0]}</div>`).join('')}</div>
+        <div class="dcard"><h5>What happens</h5><p style="font-size:13.5px;margin-bottom:10px">${steps[st.step][1]}</p><pre class="code" style="font-size:12px;padding:10px">${req}\nAuthorization: Bearer eyJ… (sub: user_1)\n\n<span class="cm">-- policy</span>\ncreate policy "own rows" on tasks\n  for select using (auth.uid() = user_id);${rls ? '' : '\n<span class="cm">-- (policy missing / RLS disabled)</span>'}</pre></div>
+        <div class="dcard"><h5>table: tasks <span class="tag">${st.step >= 5 ? returned + ' returned' : '6 rows'}</span></h5><table class="rtab"><tr><th>id</th><th>user_id</th><th>title</th></tr>${rowHtml}</table></div></div>${msg}`;
+    segBind(root, 'r-mode', (v) => { st.mode = v; st.step = Math.max(st.step, 2); render(); });
+    $('#r-prev', root).onclick = () => { st.step = Math.max(0, st.step - 1); render(); };
+    $('#r-next', root).onclick = () => { st.step = Math.min(steps.length - 1, st.step + 1); render(); };
+  }
+  render();
+})();
+/* ============ SECTION 4 · three UI designs ============ */
+const NAV = [['home', '🏠', 'Today'], ['life', '🌱', 'Life'], ['logic', '🧠', 'Logic'], ['money', '💰', 'Money'], ['invest', '📈', 'Invest'], ['agents', '🤖', 'Agents']];
+const SUBS = {
+  life: [['tasks', 'Tasks'], ['reminders', 'Reminders'], ['notes', 'Notes'], ['habits', 'Habits'], ['growth', 'Growth']],
+  logic: [['code', 'Code'], ['puzzles', 'Puzzles'], ['exams', 'Exams'], ['dsa', 'DSA map']],
+  money: [['spend', 'Spend'], ['budgets', 'Budgets'], ['goals', 'Goals'], ['loans', 'Loans']],
+  invest: [['learn', 'Learn'], ['research', 'Research'], ['watch', 'Watchlist']],
+  agents: [['chat', 'Chat']],
+};
+const PLAN = {
+  'life.tasks': ['tasks:w3', 'quad:w2'], 'life.reminders': ['reminders:wf'], 'life.notes': ['notes:w3', 'pencil:w2'],
+  'life.habits': ['pets:w3', 'wallet:w1'], 'life.growth': ['growth:w3', 'wallet:w1'],
+  'logic.code': ['cf:w3', 'puzzle:w1'], 'logic.puzzles': ['puzzle:wf'], 'logic.exams': ['exams:wf'], 'logic.dsa': ['dsa:wf'],
+  'money.spend': ['spend:w3', 'recent:w2'], 'money.budgets': ['budgets:wf'], 'money.goals': ['goals:wf'], 'money.loans': ['loans:wf'],
+  'invest.learn': ['learn:wf'], 'invest.research': ['research:wf'], 'invest.watch': ['watch:wf'], 'agents.chat': ['chat:wf'],
+};
+const INTRO = {
+  home: 'Four things matter today — and <b>one</b> is due before noon.',
+  'life.tasks': '<b>3 tasks</b> open — 2 are urgent, and one is due today.', 'life.reminders': '<b>3 reminders</b> repeat; the next is at 7:30 pm.',
+  'life.notes': '<b>3 notes</b> this week. On iPad, sketch beside them with Apple Pencil.', 'life.habits': '<b>4 pets</b> are counting on you — one is feeling neglected.',
+  'life.growth': 'Your strongest dimension is <b>Logical</b>; Emotional has the most room.',
+  'logic.code': '<b>2 of 3</b> problems solved today at rating 1342.', 'logic.puzzles': 'Today’s Lichess puzzle is rated <b>1620</b>.',
+  'logic.exams': '<b>42%</b> of exam topics covered.', 'logic.dsa': '<b>148 of 320</b> problems mastered — Graphs and DP lag.',
+  'money.spend': 'You have spent <b>₹24,800</b> of ₹60,000 — 41% with 24 days left.', 'money.budgets': 'Two budgets are above 80%: <b>Bills</b> and <b>Shopping</b>.',
+  'money.goals': '<b>Emergency fund</b> is 64% complete.', 'money.loans': 'Netted out, <b>Aman owes you ₹1,700</b>.',
+  'invest.learn': 'Module <b>3 of 5</b> — Risk &amp; diversification.', 'invest.research': 'Ask for a quick take on any watchlist symbol.',
+  'invest.watch': '<b>3 of 4</b> watchlist names are up today.', 'agents.chat': 'Pick a tool or a topic tutor, then just type.',
+};
+const STATS = {
+  home: [['Streak', '12🔥'], ['Solved', '2/3'], ['Spent today', '₹1,240']], life: [['Open', '3'], ['Urgent', '2'], ['Best streak', '12🔥']],
+  logic: [['Rating', '1342'], ['Today', '2/3'], ['DSA', '46%']], money: [['Spent', '₹24.8k'], ['Left', '₹35.2k'], ['Days left', '24']],
+  invest: [['Up today', '3/4'], ['Module', '3/5'], ['Watching', '4']], agents: [['Tools', '3'], ['Topics', '4+'], ['Model', 'Groq']],
+};
+const DT = {
+  tasks: [['Pay credit card bill', 'Urgent', 'Today', 0], ['Gym · push day', 'Important', '6:00 pm', 1], ['Read DDIA ch. 5', 'Important', 'Tomorrow', 0], ['Submit exam form', 'Urgent', 'Sat', 0], ['Water the plants', 'Extras', '—', 1]],
+  rem: [['Call mom', '7:30 pm', 'Daily'], ['Rent due', 'Nov 10', 'Monthly'], ['Take vitamins', '8:00 am', 'Daily']],
+  notes: [['Idempotent writes', 'POST with a client-generated id so a retry cannot double-insert.', 'sync · arch', '2h'], ['Mock interview feedback', 'Slow down on edge cases; narrate invariants before coding.', 'interview', 'Yesterday'], ['Trip to Hampi', 'Pack: power bank, sunscreen, offline maps.', 'travel', 'Mon']],
+  pets: [['🐶', 'Exercise', 12, 'happy', 'Young', 'fetches the ball', 80], ['🐱', 'Reading', 7, 'happy', 'Baby', 'fetches the ball', 55], ['🦊', 'Meditation', 3, 'waiting', 'Baby', 'learned to sit', 30], ['🐼', 'Water', 0, 'sad', 'Egg', 'not hatched', 8]],
+  cf: [['Balanced brackets, variant', 1300, 'strings · stack'], ['Two-pointer window', 1400, 'two pointers'], ['Greedy coin split', 1350, 'greedy · math']],
+  exams: [['GATE CS', 41, '12 / 29 topics'], ['Quant aptitude', 67, '8 / 12 topics'], ['System design', 28, '5 / 18 topics']],
+  dsa: [['Arrays', 90], ['Strings', 80], ['Trees', 60], ['Graphs', 35], ['DP', 22]],
+  cats: [['Bills', 9600], ['Food', 5200], ['Shopping', 4300], ['Transport', 2100], ['Fun', 1900], ['Coffee', 1700]],
+  recent: [['☕', 'Coffee', '−₹180', '9:40 am'], ['🛒', 'Groceries', '−₹1,240', 'Yesterday'], ['🚗', 'Metro top-up', '−₹500', 'Yesterday'], ['🔄', 'Streaming sub', '−₹649', 'Mon']],
+  budgets: [['Bills', 9600, 10000], ['Food', 5200, 9000], ['Shopping', 4300, 5000], ['Transport', 2100, 4000], ['Fun', 1900, 3000]],
+  goals: [['Emergency fund', 128000, 200000], ['Goa trip', 18000, 40000], ['Laptop', 55000, 90000]],
+  learn: [['Money basics', 100], ['Index funds', 100], ['Risk & diversification', 60], ['Reading a balance sheet', 0], ['Valuation ratios', 0]],
+  watch: [['RELIANCE', 2914.5, 0.8, [3, 4, 3.6, 5, 4.8, 6, 6.4]], ['TCS', 3982, -0.4, [6, 5.5, 5.8, 5, 4.6, 4.9, 4.7]], ['INFY', 1812.3, 1.2, [2, 2.4, 2.2, 3, 3.4, 3.2, 4]], ['NIFTY 50', 24210, 0.3, [4, 4.2, 4, 4.5, 4.4, 4.7, 4.8]]],
+};
+const inr = (n) => '₹' + n.toLocaleString('en-IN');
+const spark = (v, w = 64, h = 22) => { const mn = Math.min(...v), mx = Math.max(...v); const p = v.map((y, i) => `${(i / (v.length - 1) * w).toFixed(1)},${(h - 2 - (y - mn) / (mx - mn || 1) * (h - 4)).toFixed(1)}`).join(' '); return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true" style="flex:none"><polyline points="${p}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`; };
+const PAL = { A: ['#7c8cff', '#3dd6c6', '#ffb86b', '#ff7a90', '#a78bfa', '#6b7488'], B: ['#ff6b57', '#2fbf84', '#ffb703', '#8b6cff', '#3aa0ff', '#b9a99a'], C: ['#8a3b2e', '#2f5d62', '#b8862f', '#6b5b95', '#5a7d3a', '#9b9080'] };
+const SPENT = DT.cats.reduce((a, c) => a + c[1], 0);
+
+/* block builders: (design, width) -> html */
+const bk = (d, w, title, meta, inner, extra = '') => `<section class="bk ${d === 'B' ? 'tile ' + w : ''} ${d === 'C' && w === 'wf' ? 'full' : ''} ${extra}"><div class="bk-h"><b>${title}</b><span>${meta || ''}</span></div>${inner}</section>`;
+const rw = (lead, tx, sub, rt) => `<div class="rw">${lead}<div class="tx"><b>${tx}</b>${sub ? `<small>${sub}</small>` : ''}</div>${rt || ''}</div>`;
+const cb = (on) => `<button class="cb ${on ? 'on' : ''}" data-tg aria-label="toggle">${on ? '✓' : ''}</button>`;
+const bar = (p) => `<div class="pb"><i style="width:${p}%"></i></div>`;
+const donut = (d) => { let acc = 0; const seg = DT.cats.map((c, i) => { const a = acc, b = acc + c[1] / SPENT * 100; acc = b; return `${PAL[d][i]} ${a}% ${b}%`; }).join(','); return `<div class="donut" style="background:conic-gradient(${seg})"><div><b class="big" style="font-size:15px">${Math.round(SPENT / 600)}%</b>of budget</div></div>`; };
+const BLK = {
+  tasks: (d, w) => bk(d, w, 'Tasks', '3 open · 2 urgent', DT.tasks.map((t) => rw(cb(t[3]), `<span style="${t[3] ? 'text-decoration:line-through;opacity:.5' : ''}">${t[0]}</span>`, t[2], `<span class="ch ${t[1] === 'Urgent' ? 'hot' : ''}">${t[1]}</span>`)).join('')),
+  quad: (d, w) => bk(d, w, 'Priority matrix', 'urgent × important', `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${[['Urgent', 2, 1], ['Important', 2, 0], ['Not important', 0, 0], ['Extras', 1, 0]].map((q) => `<div style="border:1px solid var(--bd);border-radius:var(--r);padding:8px;${q[2] ? 'background:var(--hotbg)' : ''}"><div class="big" style="font-size:22px">${q[1]}</div><small class="mu">${q[0]}</small></div>`).join('')}</div>`),
+  reminders: (d, w) => bk(d, w, 'Reminders', 'repeat + calendar export', DT.rem.map((r) => rw(`<span class="em">⏰</span>`, r[0], r[1], `<span class="ch">${r[2]}</span>`)).join('')),
+  notes: (d, w) => bk(d, w, 'Notes', 'searchable · tagged', DT.notes.map((n) => rw('', n[0], n[1], `<span class="rt">${n[3]}</span>`)).join('')),
+  pencil: (d, w) => bk(d, w, 'Sketch', 'Apple Pencil · new', '<div class="pencil">✍️ draw here on iPad</div>'),
+  pets: (d, w) => {
+    if (d === 'B') return bk(d, w, 'Your pets', '4 habits', `<div class="b-pets">${DT.pets.map((p) => `<div class="b-pet"><div class="em">${p[0]}</div><b>${p[1]}</b><small>${p[2]}🔥 · ${p[4]}</small>${bar(p[6])}</div>`).join('')}</div>`);
+    if (d === 'C') return bk(d, w, 'The cast', 'habits as characters', DT.pets.map((p) => rw('', `${p[0]} ${p[1]} — day ${p[2]}`, p[3] === 'happy' ? `Thriving: ${p[5]}.` : p[3] === 'waiting' ? `Waiting for today’s check-in. ${p[5]}.` : `Neglected. ${p[5]}.`, '')).join(''));
+    return bk(d, w, 'Habits', 'streak · pet stage', DT.pets.map((p) => rw(`<span class="em" style="font-size:16px">${p[0]}</span>`, p[1], p[5], `<span class="rt">${p[2]}d · ${p[4]}</span>`)).join(''));
+  },
+  wallet: (d, w) => bk(d, w, 'Wallet', 'earned from check-ins', `<div class="big">${inr(1240)}</div><small class="mu">Next multiplier at a 14-day streak</small><div style="margin-top:8px">${bar(86)}</div>`),
+  growth: (d, w) => bk(d, w, 'Growth', 'derived from real activity', [['Physical', 62], ['Logical', 74], ['Emotional', 48], ['Financial', 57]].map((g) => `<div style="margin:9px 0"><div class="kv"><span>${g[0]}</span><b>${g[1]}</b></div>${bar(g[1])}</div>`).join('')),
+  cf: (d, w) => bk(d, w, 'Codeforces today', 'rating 1342 · 2/3 solved', DT.cf.map((p, i) => rw(cb(i < 2), p[0], p[2], `<span class="ch">${p[1]}</span>`)).join('')),
+  puzzle: (d, w) => bk(d, w, 'Lichess daily puzzle', 'rated 1620', `<div style="display:flex;gap:12px;align-items:center"><div style="width:84px;height:84px;border-radius:6px;flex:none;background:repeating-conic-gradient(#b58863 0 25%,#f0d9b5 0 50%) 0 0/25% 25%"></div><div><span class="ch">fork</span> <span class="ch">endgame</span><p class="mu" style="margin:6px 0 8px;font-size:12px">Opens on lichess.org — Forge tracks solved state only.</p><span class="ch hot">Open puzzle ↗</span></div></div>`),
+  exams: (d, w) => bk(d, w, 'Exam prep', '42% overall', DT.exams.map((e) => `<div style="margin:10px 0"><div class="kv"><b>${e[0]}</b><span class="mu">${e[2]}</span></div>${bar(e[1])}</div>`).join('')),
+  dsa: (d, w) => bk(d, w, 'DSA mastery map', '148 / 320 problems', `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div class="hero-ring" style="--p:46"><div><b>46%</b>mastered</div></div><div style="flex:1;min-width:180px">${DT.dsa.map((t) => `<div class="kv"><span>${t[0]}</span><span class="mu">${t[1]}%</span></div>${bar(t[1])}`).join('')}</div></div><p class="mu" style="margin-top:10px;font-size:12px">Embedded in the shell as a route instead of a separate 8,300-line page.</p>`),
+  spend: (d, w) => {
+    if (d === 'B') return bk(d, w, 'This month', `of ${inr(60000)}`, `<div style="display:flex;gap:14px;align-items:center">${donut(d)}<div class="legend">${DT.cats.map((c, i) => `<div><i style="background:${PAL[d][i]}"></i>${c[0]} <b>${inr(c[1])}</b></div>`).join('')}</div></div>`);
+    if (d === 'C') return bk(d, w, 'The month in ledger form', inr(SPENT), `<p class="mu" style="margin:0 0 6px;font-size:12.5px">Bills dominate at 39%; food is second.</p>${DT.cats.map((c) => rw('', c[0], '', `<span class="rt">${inr(c[1])}</span>`)).join('')}`);
+    return bk(d, w, 'Spend by category', `${inr(SPENT)} / ${inr(60000)}`, DT.cats.map((c) => `<div style="display:grid;grid-template-columns:78px 1fr 70px;gap:8px;align-items:center;padding:4px 0"><span>${c[0]}</span>${bar(c[1] / 96)}<span class="rt" style="text-align:right">${inr(c[1])}</span></div>`).join(''));
+  },
+  recent: (d, w) => bk(d, w, 'Recent', 'quick add: “coffee 180”', DT.recent.map((r) => rw(`<span class="em">${r[0]}</span>`, r[1], r[3], `<span class="rt">${r[2]}</span>`)).join('')),
+  budgets: (d, w) => bk(d, w, 'Budgets', 'monthly limits', DT.budgets.map((b) => { const p = Math.round(b[1] / b[2] * 100); return `<div style="margin:10px 0"><div class="kv"><b>${b[0]}</b><span class="${p > 80 ? 'dn' : 'mu'}">${inr(b[1])} / ${inr(b[2])} · ${p}%</span></div>${bar(p)}</div>`; }).join('')),
+  goals: (d, w) => bk(d, w, 'Savings goals', '3 active', DT.goals.map((g) => { const p = Math.round(g[1] / g[2] * 100); return `<div style="margin:10px 0"><div class="kv"><b>${g[0]}</b><span class="mu">${inr(g[1])} / ${inr(g[2])}</span></div>${bar(p)}</div>`; }).join('')),
+  loans: (d, w) => bk(d, w, 'Loans & P2P', 'net +₹1,700', rw(`<span class="em">🧑</span>`, 'Aman', 'dinner split + cab', `<span class="rt up">owes you ₹3,200</span>`) + rw(`<span class="em">🧑</span>`, 'Riya', 'concert tickets', `<span class="rt dn">you owe ₹1,500</span>`)),
+  learn: (d, w) => bk(d, w, 'Investing course', 'module 3 of 5', DT.learn.map((m, i) => rw(`<span class="em">${m[1] === 100 ? '✅' : i === 2 ? '▶️' : '🔒'}</span>`, m[0], '', m[1] > 0 && m[1] < 100 ? `<span class="rt">${m[1]}%</span>` : '')).join('')),
+  research: (d, w) => bk(d, w, 'Research', 'LLM quick take · not advice', `<div class="rw"><span class="ch">RELIANCE.NS</span><div class="tx"><small>Ask: “what should I check before buying?”</small></div></div><ul style="padding-left:18px;margin-top:8px;display:grid;gap:4px"><li>Diversified across energy, retail and telecom.</li><li>Check debt levels against operating cash flow.</li><li>Compare valuation with its own 5-year range, not just peers.</li></ul><p class="mu" style="margin-top:8px;font-size:12px">Sample text for illustration.</p>`),
+  watch: (d, w) => {
+    if (d === 'B') return bk(d, w, 'Watchlist', 'sample prices', `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">${DT.watch.map((s) => `<div style="background:rgba(255,255,255,.7);border-radius:18px;padding:10px"><b>${s[0]}</b><div class="big" style="font-size:19px;margin:4px 0">${s[1].toLocaleString('en-IN')}</div><span class="${s[2] >= 0 ? 'up' : 'dn'}">${s[2] >= 0 ? '▲' : '▼'} ${Math.abs(s[2])}%</span><div class="${s[2] >= 0 ? 'up' : 'dn'}">${spark(s[3], 90, 26)}</div></div>`).join('')}</div>`);
+    return bk(d, w, 'Watchlist', 'sample prices', DT.watch.map((s) => rw('', s[0], '', `<span class="${s[2] >= 0 ? 'up' : 'dn'}">${spark(s[3])}</span><span class="rt" style="min-width:74px;text-align:right">${s[1].toLocaleString('en-IN')}<br><span class="${s[2] >= 0 ? 'up' : 'dn'}">${s[2] >= 0 ? '+' : ''}${s[2]}%</span></span>`)).join(''));
+  },
+  chat: (d, w) => bk(d, w, 'Agents', 'agents.json · no code to add one', `<div class="pills" style="margin-bottom:10px">${['Explain It', 'Debug Help', 'Quiz Me', 'Mathematics', 'Philosophy', 'Strategy'].map((a, i) => `<span class="ch ${i === 0 ? 'hot' : ''}" style="padding:5px 11px">${a}</span>`).join('')}</div><div class="bub me">Explain idempotency for a retrying API client</div><div class="bub ai"><ul><li>Same request, same result — however many times it is sent.</li><li>Client sends a unique id; server stores it and returns the first result on repeats.</li><li>Without it, a retry after a timeout can create two orders.</li></ul></div><div class="rw" style="border:1px solid var(--bd);border-radius:var(--r);padding:8px 12px;margin-top:6px"><span class="mu" style="flex:1">Ask anything…</span><span class="ch hot">Send</span></div>`),
+};
+const blocksFor = (d, key) => (PLAN[key] || []).map((s) => { const [n, w] = s.split(':'); return BLK[n](d, w); }).join('');
+
+/* Home screens — fully custom per design */
+const HOME = {
+  A: () => `<div class="a-focus"><small>Up next</small><h3>Pay credit card bill</h3><div class="mu">Due today · Urgent + Important · from Tasks</div><div class="go"><button>✓ Done</button><button class="ghost">Snooze</button><button class="ghost">Open</button></div></div>
+    <div class="a-stats">${STATS.home.map((s) => `<div class="a-stat"><small>${s[0]}</small><div class="big" style="font-size:20px">${s[1]}</div></div>`).join('')}</div>
+    <section class="bk"><div class="bk-h"><b>Today queue</b><span>merged from 5 tabs</span></div>
+      ${rw(cb(0), 'Pay credit card bill', 'Tasks', '<span class="ch hot">Urgent</span>')}${rw(cb(0), 'Exercise check-in 🐶', 'Habits · day 12', '<span class="ch">habit</span>')}${rw(cb(0), 'Solve 1 more problem', 'Code · 2/3', '<span class="ch">code</span>')}${rw(cb(0), 'Read DDIA ch. 5', 'Tasks', '<span class="ch">tomorrow</span>')}${rw(cb(0), 'Call mom', 'Reminder · 7:30 pm', '<span class="ch">⏰</span>')}</section>
+    ${BLK.watch('A', 'w3')}`,
+  B: () => `<section class="bk tile w2" style="--sf:rgba(255,255,255,.6)"><div class="b-streak"><div class="fl">🔥</div><div><div class="big">12 days</div><small class="mu">best 21 · keep it alive tonight</small></div></div><div style="margin-top:10px">${bar(57)}</div></section>
+    <section class="bk tile w2"><div class="bk-h"><b>Wallet</b><span>2 check-ins left</span></div><div class="big">${inr(1240)}</div><small class="mu">Level 7 · next multiplier at 14 days</small></section>
+    ${BLK.pets('B', 'w3')}
+    <section class="bk tile w1"><div class="bk-h"><b>Code</b></div><div class="hero-ring" style="--p:67;margin:auto"><div><b>2/3</b>solved</div></div></section>
+    ${BLK.tasks('B', 'w2').replace('tile w2', 'tile w2 plain')}
+    <section class="bk tile w2"><div class="bk-h"><b>Spend</b><span>24 days left</span></div><div style="display:flex;gap:12px;align-items:center">${donut('B')}<div><div class="big" style="font-size:22px">${inr(SPENT)}</div><small class="mu">41% of budget</small><div class="legend" style="margin-top:8px">${DT.cats.slice(0, 3).map((c, i) => `<div><i style="background:${PAL.B[i]}"></i>${c[0]} <b>${inr(c[1])}</b></div>`).join('')}</div></div></div></section>
+    <section class="bk tile w1"><div class="bk-h"><b>Mood</b></div><div style="display:flex;gap:6px;font-size:26px;justify-content:center"><span>😀</span><span>🙂</span><span>😕</span></div><small class="mu" style="display:block;text-align:center;margin-top:4px">log today</small></section>
+    <section class="bk tile w3"><div class="bk-h"><b>Ask a tutor</b><span>Explain It · Quiz Me · Maths…</span></div><div class="rw" style="background:rgba(255,255,255,.8)"><span class="mu" style="flex:1">What is idempotency?</span><span class="ch hot">Ask</span></div></section>
+    <section class="bk tile w1"><div class="bk-h"><b>NIFTY</b></div><div class="big" style="font-size:20px">24,210</div><span class="up">▲ 0.3%</span></section>`,
+  C: () => `<div class="c-time"><h5>Morning</h5>
+      <div class="c-ev"><time>7:30</time><div class="tx"><b>Meditation</b> 🦊<br><small class="mu">day 3 — habit</small></div>${cb(1)}</div>
+      <div class="c-ev"><time>8:00</time><div class="tx"><b>Take vitamins</b><br><small class="mu">reminder, daily</small></div>${cb(1)}</div>
+      <div class="c-ev s"><time>9:40</time><div class="tx"><b>Coffee</b></div><span class="amt">−₹180</span></div>
+      <h5>Afternoon</h5>
+      <div class="c-ev"><time>1:15</time><div class="tx"><b>Greedy coin split</b><br><small class="mu">Codeforces 1350 — solved</small></div>${cb(1)}</div>
+      <div class="c-ev"><time>3:00</time><div class="tx"><b>Read DDIA ch. 5</b><br><small class="mu">task — important</small></div>${cb(0)}</div>
+      <div class="c-ev s"><time>4:10</time><div class="tx"><b>Groceries</b></div><span class="amt">−₹1,060</span></div>
+      <h5>Evening</h5>
+      <div class="c-ev"><time>6:00</time><div class="tx"><b>Gym · push day</b> 🐶<br><small class="mu">day 12 — habit</small></div>${cb(1)}</div>
+      <div class="c-ev"><time>7:30</time><div class="tx"><b>Call mom</b><br><small class="mu">reminder</small></div>${cb(0)}</div>
+    </div>
+    <div class="c-ref"><b style="font-family:var(--fd);font-size:16px">How did today feel?</b><div class="moods"><span>😀</span><span>🙂</span><span>😐</span><span>😕</span></div><p class="mu" style="margin-top:6px;font-size:12px">Feeds the Growth view — no new habit to maintain.</p></div>`,
+};
+const MARGIN = (screen) => `<h6>Margin</h6><div class="note">“Consistency beats intensity — twelve days is a pattern now.”</div><h6>At a glance</h6>${(STATS[screen] || STATS.home).map((s) => `<div class="kv"><span class="mu">${s[0]}</span><b>${s[1]}</b></div>`).join('')}<h6 style="margin-top:14px">Sketch</h6><div class="pencil">✍️ Apple Pencil</div>`;
+
+const ST = { design: 'A', dev: 'phone', screen: 'home', sub: { life: 'tasks', logic: 'code', money: 'spend', invest: 'learn', agents: 'chat' }, cmp: false };
+const subKey = () => `${ST.screen}.${ST.sub[ST.screen]}`;
+const title = () => NAV.find((n) => n[0] === ST.screen)[2];
+function subbar(cls, wrapCls) {
+  if (ST.screen === 'home' || SUBS[ST.screen].length < 2) return '';
+  return `<div class="${wrapCls}">${SUBS[ST.screen].map((s) => `<button data-sub="${s[0]}" class="${s[0] === ST.sub[ST.screen] ? 'on' : ''}">${s[1]}</button>`).join('')}</div>`;
+}
+function navBtns(cls, fmt) { return NAV.map((n, i) => fmt(n, i, n[0] === ST.screen)).join(''); }
+const DESIGNS = {
+  A() {
+    const body = ST.screen === 'home' ? HOME.A() : blocksFor('A', subKey());
+    const insp = `<section class="bk"><div class="bk-h"><b>Focus</b><span>${title()}</span></div>${(STATS[ST.screen] || STATS.home).map((s) => `<div class="kv"><span class="mu">${s[0]}</span><b>${s[1]}</b></div>`).join('')}</section><section class="bk"><div class="bk-h"><b>Keyboard</b></div><div class="kv"><span>New item</span><b class="mono">N</b></div><div class="kv"><span>Command palette</span><b class="mono">⌘K</b></div><div class="kv"><span>Switch tab</span><b class="mono">⌘1–6</b></div><div class="kv"><span>Complete</span><b class="mono">X</b></div></section><section class="bk"><div class="bk-h"><b>Next reminder</b></div>${rw('<span class="em">⏰</span>', 'Call mom', '7:30 pm · daily', '')}</section>`;
+    return `<div class="dsn dA"><aside class="a-side"><div class="logo">🔥<span class="l"> Forge</span></div>${navBtns('', (n, i, on) => `<button data-nav="${n[0]}" class="${on ? 'on' : ''}"><span>${n[1]}</span><span class="l">${n[2]}</span><kbd>⌘${i + 1}</kbd></button>`)}</aside>
+      <div class="a-main"><header class="a-top"><b>${title()}</b><span class="dot"></span><span class="mu" style="font-size:11px">synced</span><div class="srch">⌕ Search <kbd class="mono" style="font-size:10px">⌘K</kbd></div></header>${subbar('', 'a-sub')}
+      <div class="a-body"><div class="a-col">${body}</div><aside class="a-detail">${insp}</aside></div></div>
+      <nav class="a-tabs">${navBtns('', (n, i, on) => `<button data-nav="${n[0]}" class="${on ? 'on' : ''}"><span>${n[1]}</span>${n[2]}</button>`)}</nav><button class="a-fab">＋ New</button></div>`;
+  },
+  B() {
+    const body = ST.screen === 'home' ? HOME.B() : blocksFor('B', subKey());
+    return `<div class="dsn dB"><div class="b-col"><header class="b-top"><h2><small>Friday, 6 Nov</small>${ST.screen === 'home' ? 'Good evening ✨' : title()}</h2><span class="b-pill">⭐ Lv 7</span><span class="b-pill">${inr(1240)}</span></header>${subbar('', 'b-sub')}<main class="b-grid">${body}</main></div>
+      <nav class="b-dock">${navBtns('', (n, i, on) => `<button data-nav="${n[0]}" class="${on ? 'on' : ''}"><span>${n[1]}</span>${n[2]}</button>`)}</nav></div>`;
+  },
+  C() {
+    const home = ST.screen === 'home';
+    const intro = INTRO[home ? 'home' : subKey()];
+    const plan = PLAN[subKey()] || [];
+    const two = !home && plan.length > 1;
+    const body = home ? HOME.C() : blocksFor('C', subKey());
+    return `<div class="dsn dC"><header class="c-head"><h2><small>Friday</small>6 November</h2><div class="mood">12-day streak · ${inr(1240)}<br>feeling steady</div></header>
+      <nav class="c-nav">${navBtns('', (n, i, on) => `<button data-nav="${n[0]}" class="${on ? 'on' : ''}"><span>${n[1]}</span>${n[2]}</button>`)}</nav>
+      <div class="c-page"><div class="c-intro">${intro}</div>${subbar('', 'c-sub')}<div class="c-blocks ${two ? 'two' : ''}">${body}</div></div>
+      <aside class="c-margin">${MARGIN(ST.screen)}</aside></div>`;
+  },
+};
+const DEVS = { phone: ['iPhone', 390, 780, 'phone'], tabp: ['iPad portrait', 834, 1000, 'tablet'], tabl: ['iPad landscape', 1194, 800, 'tablet'], desk: ['Desktop', 1440, 860, 'desktop'] };
+const DINFO = {
+  A: ['A · Command', ['#0e1015', '#7c8cff', '#3dd6c6'], 'Fast, dense, keyboard-first.', ['One list per screen with a focus inspector on the right', '⌘K palette reaches any task, note or tab', 'Closest to today’s dark UI, so the cheapest to build']],
+  B: ['B · Bento', ['#fff6e9', '#ff6b57', '#2fbf84'], 'Glanceable tiles with pets and streaks up front.', ['Home is a tile grid that re-flows 2 → 4 → 6 columns', 'Level and ₹ wallet always visible in the header', 'Floating dock on phone, top pills on iPad, vertical dock on desktop']],
+  C: ['C · Journal', ['#f4efe6', '#2a2622', '#8a3b2e'], 'Your day as a calm, chronological page.', ['Tasks, habits, spends and notes interleaved by time', 'Serif type and a margin column built for Apple Pencil notes', 'Every domain screen opens with a one-sentence summary']],
+};
+(() => {
+  const single = mountDev($('#s4dev'));
+  const cmpHosts = ['A', 'B', 'C'].map((k) => { const h = document.createElement('div'); h.className = 'dv'; $('#s4cmp').appendChild(h); return [k, mountDev(h)]; });
+  function paintFrame(dev, design, d) { dev.size(d[1], d[2], d[3]); dev.el.innerHTML = DESIGNS[design](); }
+  function render() {
+    $('#s4dev').hidden = ST.cmp; $('#s4cmp').hidden = !ST.cmp;
+    if (ST.cmp) cmpHosts.forEach(([k, dev]) => paintFrame(dev, k, DEVS.phone)); else paintFrame(single, ST.design, DEVS[ST.dev]);
+    const d = DEVS[ST.cmp ? 'phone' : ST.dev];
+    $('#dRead').innerHTML = ST.cmp ? `Comparing all three at <b>iPhone 390px</b> — same screen: <b>${title()}${ST.screen !== 'home' && SUBS[ST.screen].length > 1 ? ' · ' + SUBS[ST.screen].find((s) => s[0] === ST.sub[ST.screen])[1] : ''}</b>` : `<b>${DINFO[ST.design][0]}</b> on <b>${d[0]} ${d[1]}px</b> → ${d[1] >= 1024 ? 'wide layout (sidebar / vertical dock / 3 columns)' : d[1] >= 600 ? 'tablet layout (rail / top pills / 2 columns)' : 'phone layout (bottom nav, 1 column)'}`;
+    $$('#dSel button').forEach((b) => b.setAttribute('aria-pressed', String(ST.cmp ? b.dataset.v === 'cmp' : b.dataset.v === ST.design)));
+    $$('#dDev button').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.v === ST.dev)); b.disabled = ST.cmp; });
+    $$('#dCards .dcd').forEach((c) => c.setAttribute('aria-pressed', String(!ST.cmp && c.dataset.v === ST.design)));
+  }
+  $('#dSel').innerHTML = [['A', 'A · Command'], ['B', 'B · Bento'], ['C', 'C · Journal'], ['cmp', 'Compare all 3']].map((o) => `<button data-v="${o[0]}" aria-pressed="false">${o[1]}</button>`).join('');
+  $('#dDev').innerHTML = Object.entries(DEVS).map(([k, v]) => `<button data-v="${k}" aria-pressed="false">${v[0]}</button>`).join('');
+  $('#dCards').innerHTML = Object.entries(DINFO).map(([k, v]) => `<button class="dcd" data-v="${k}" aria-pressed="false"><div class="sw">${v[1].map((c) => `<i style="background:${c}"></i>`).join('')}</div><b>${v[0]}</b><em>${v[2]}</em><ul>${v[3].map((x) => `<li>${x}</li>`).join('')}</ul></button>`).join('');
+  $('#dSel').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.v === 'cmp') ST.cmp = true; else { ST.cmp = false; ST.design = b.dataset.v; } render(); });
+  $('#dCards').addEventListener('click', (e) => { const b = e.target.closest('.dcd'); if (!b) return; ST.cmp = false; ST.design = b.dataset.v; render(); });
+  $('#dDev').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { ST.dev = b.dataset.v; render(); } });
+  const onFrame = (e) => {
+    const t = e.target.closest('[data-tg]'); if (t) { t.classList.toggle('on'); t.textContent = t.classList.contains('on') ? '✓' : ''; return; }
+    const n = e.target.closest('[data-nav]'); if (n) { ST.screen = n.dataset.nav; render(); return; }
+    const s = e.target.closest('[data-sub]'); if (s) { ST.sub[ST.screen] = s.dataset.sub; render(); }
+  };
+  $('#s4dev').addEventListener('click', onFrame); $('#s4cmp').addEventListener('click', onFrame);
+  render();
+})();
+</script>
+</body>
+</html>
