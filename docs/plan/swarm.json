@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "name": "forge-build-intel-swarm",
+  "purpose": "Collect, in parallel and read-only, every fact needed to turn the Forge blueprint (hybrid A+B design) into a phase/wave/task build plan.",
+  "decision": {
+    "title": "Hybrid design: A (Command) shell + B (Bento) Today home",
+    "recordedBy": "user, 2026-11-12",
+    "definition": [
+      "Shell = A: bottom tabs (<600px) -> 72px icon rail (600-1023) -> labelled sidebar (>=1024), driven by CSS container queries on the app root, not device names.",
+      "Navigation = one route per screen (e.g. /life/tasks), a command palette (Cmd/Ctrl+K), shortcuts (Cmd+1..6, N new, X complete).",
+      "Domain screens (Life, Logic, Money, Invest, Agents and their 17 sub-views) = A: dense list/blocks with a right-hand focus inspector from >=1024px.",
+      "Today = B: a NEW first tab, a bento tile grid re-flowing 2 -> 4 -> 6 columns (streak, wallet, pets, code ring, tasks, spend donut, mood, tutor prompt, watch tile) with level + wallet pills in the header. B's floating dock is dropped; A's rail/sidebar/tabs replace it.",
+      "Theme = existing 6 data-accent themes stay; B's warm cream palette becomes a 7th theme; Today tiles use pastel tokens defined for both dark and light themes.",
+      "Open (decide in the plan, flag if research disagrees): whether Habits/Growth sub-views also use B tiles; how Level/XP is derived from existing streaks."
+    ]
+  },
+  "repoFacts": [
+    "React 18 + Vite 5 SPA, tabs are component state in src/App.jsx (no router). Tabs: Life, LogicBuilding, Expenses (Money), Invest, Agents; all lazy-loaded.",
+    "Local-first store: src/store.js wraps localforage/IndexedDB; src/sync/{logic,engine}.js reconciles each key against Supabase table kv_store with last-write-wins per whole key, 700ms debounce.",
+    "Serverless /api/*.js (Vercel style) also mounted into the Vite dev server by a plugin in vite.config.js. /api/agent is owner-gated and proxies Groq.",
+    "Tests: node --test \"test/*.test.js\". No CI, no linter, no router, no service worker, no vercel.json, node_modules not installed in this checkout.",
+    "public/dsa/mastery-map.html is a separate 8,320-line standalone page synced through the same Supabase session."
+  ],
+  "report": {
+    "dir": "docs/plan/research",
+    "requiredHeadings": [
+      "## Summary",
+      "## Facts",
+      "## Gaps and contradictions",
+      "## Risks",
+      "## Write-set map",
+      "## Needs from the user",
+      "## Proposed tasks"
+    ],
+    "taskFields": {
+      "id": "<AGENTID>-NN, unique",
+      "title": "imperative, one deliverable",
+      "size": "S (<half day) | M (about a day) | L (multi-day; split if you can)",
+      "phaseHint": "P0 shell+design system | P1 PWA | P2 sync v2 | P3 native shell | P4 quality+ops | P5 AI",
+      "writes": "exact paths or dir globs the task will create/modify; be precise, parallel safety depends on it",
+      "reads": "paths the task needs as input (optional)",
+      "deps": "ids of other proposals (any agent) that must finish first, [] if none",
+      "acceptance": "a command to run or an observable behaviour that proves it is done",
+      "notes": "optional, one line"
+    }
+  },
+  "agents": [
+    {
+      "id": "R1",
+      "name": "Shell and CSS",
+      "charter": "Inventory everything in the current shell and stylesheet that the responsive hybrid shell must change, and design the insertion points.",
+      "readScope": ["src/styles.css", "src/App.jsx", "src/Sheet.jsx", "src/Toast.jsx", "src/toast.js", "src/main.jsx", "index.html", "public/manifest.json", "public/sky-clouds.svg"],
+      "blueprintFocus": ["Ask 1 whole section", "2.5 layers", "Ask 3 shell CSS in the design styles (.dA, .dB)"],
+      "questions": [
+        "List every layout-affecting rule with file:line: max-width, position fixed/sticky, bottom offsets that assume the tab-bar height, 100dvh, safe-area insets, z-index stack. Which break when nav moves to a rail or sidebar?",
+        "Which class names used by tab components assume single-column phone width? Grep src/tabs for them.",
+        "List all :hover rules (to wrap in (hover:hover)) and interactive elements with no focus style.",
+        "Map the 6 existing data-accent themes to tokens; list the new tokens the hybrid needs (cream theme, pastel tile colours for dark+light, inspector surface, rail/sidebar widths).",
+        "Where do Sheet, Toast and the expense FAB position themselves, and what changes at each breakpoint?",
+        "Router: App.jsx keeps tabs in state. Compare react-router vs a ~30-line hash/history router for this app (bundle cost, deep links, Capacitor file/WKWebView compatibility). Recommend one.",
+        "Today tab: what is the minimal App.jsx change to add it as the first tab and make it the default (currently Life)?",
+        "Propose the task breakdown for the shell (tokens, grid shell, nav rail/sidebar/tabs, router, command palette, inspector pane, focus/hover hygiene) with exact write-sets."
+      ]
+    },
+    {
+      "id": "R2",
+      "name": "Life tab",
+      "charter": "Understand Life (tasks, reminders, notes, habits, growth) well enough to split it into hybrid screens and to feed Today tiles.",
+      "readScope": ["src/tabs/Life.jsx", "src/tabs/Notes.jsx", "src/life/logic.js", "src/dnd/**", "test/lifeLogic.test.js", "test/dndLogic.test.js", "src/undo.js", "src/Sheet.jsx", "api/ics.js", "api/_lib/ics.js"],
+      "blueprintFocus": ["Ask 3 hybrid screens for life.* in PLAN/BLK data", "2.5 layers", "IDEAS.md pet/Pencil sections"],
+      "questions": [
+        "Map the components inside Life.jsx (1078 lines) with line ranges and which store keys each reads/writes. Propose a split into files with write-sets so several people/agents can work in parallel.",
+        "Is Notes.jsx still used, or is notes now inside Life? State exactly how notes are reached.",
+        "For each of the 5 sub-views, what is the natural list/detail split for master/detail + inspector at >=1024px, and what does the phone do instead?",
+        "Which exports of src/life/logic.js (petState, earnings, streaks, quick-add parsing) give Today tiles their data? Does anything like Level/XP exist? If not, propose a derivation from existing data.",
+        "How does drag-and-drop (src/dnd) behave with touch, mouse and Pencil today, and what breaks in a multi-pane layout?",
+        "What tests protect Life, and what new pure-logic functions would the hybrid need that should be unit tested?",
+        "Propose the Life task breakdown with exact write-sets."
+      ]
+    },
+    {
+      "id": "R3",
+      "name": "Logic tab and DSA map",
+      "charter": "Understand Logic (code, puzzles, exams, DSA map) and how the standalone DSA page can live inside the new shell.",
+      "readScope": ["src/tabs/LogicBuilding.jsx", "src/tabs/Today.jsx", "src/tabs/Puzzles.jsx", "src/tabs/Exams.jsx", "src/puzzles.js", "public/puzzles.json", "api/cf.js", "api/puzzle.js", "api/_lib/pickProblems.js", "public/dsa/mastery-map.html (head, persistence script, layout CSS only; do not read all 8,320 lines)", "test/pickProblems.test.js"],
+      "blueprintFocus": ["Ask 3 logic.* blocks", "Ask 1 shell"],
+      "questions": [
+        "Note the naming trap: src/tabs/Today.jsx is the Codeforces view, not the new Today home. List every import/reference so renaming is safe.",
+        "What data feeds the Code ring tile on Today (solved today etc.) and how is it computed?",
+        "DSA mastery map: what localStorage keys and Supabase calls does it use, how responsive is it, and compare embedding options (iframe route vs port to React vs keep standalone link) with a recommendation, incl. sync/auth/session implications and service-worker scope.",
+        "Failure modes of /api/cf and /api/puzzle (CORS, rate limits, empty handle) that the new layout must still surface.",
+        "Sub-view master/detail opportunities for Code, Puzzles, Exams; what is phone-only vs wide.",
+        "Propose the Logic task breakdown with exact write-sets."
+      ]
+    },
+    {
+      "id": "R4",
+      "name": "Money and Invest",
+      "charter": "Understand Money (spend, budgets, goals, loans) and Invest (learn, research, watchlist) and plan how to split and re-layout the two largest files.",
+      "readScope": ["src/tabs/Expenses.jsx", "src/money/logic.js", "src/tabs/Invest.jsx", "src/invest/**", "api/quote.js", "api/_lib/parseYahooChart.js", "test/loanBalance.test.js", "test/growth.test.js", "test/parseYahooChart.test.js"],
+      "blueprintFocus": ["Ask 3 money.* and invest.* blocks (spend donut, watch tiles)", "2.5 layers"],
+      "questions": [
+        "Map components and line ranges in Expenses.jsx (1353 lines) and Invest.jsx (786 lines) and propose splits with write-sets for parallel work.",
+        "Which store keys does each sub-view read/write? Which are arrays of records with ids (relevant to sync v2) vs maps?",
+        "What data does Today need from here (month spend vs budget, watchlist movers) and which existing functions already compute it?",
+        "Do any charts exist today (which lib or hand-rolled SVG)? What would the donut/sparkline need?",
+        "Which parts assume narrow width, fixed bottom FAB or full-screen sheets?",
+        "Propose the Money and Invest task breakdowns with exact write-sets."
+      ]
+    },
+    {
+      "id": "R5",
+      "name": "API, agents and security",
+      "charter": "Audit the serverless layer and the Agents tab for what the app/native/streaming work will need.",
+      "readScope": ["api/**", "src/tabs/Agents.jsx", "src/agents.json", "vite.config.js", ".env.example", "README.md", "docs/superpowers/specs/2026-09-15-cloud-sync-design.md", "git log for api/ (security commits)"],
+      "blueprintFocus": ["2.2 HLD", "2.6 decisions (LLM stays behind /api/agent)", "learning graph nodes: auth, rls, csp, ratelimit, llmgw, sse, proxy, serverless"],
+      "questions": [
+        "Grep every fetch('/api...') call site in src. A Capacitor WKWebView origin is capacitor://localhost, so relative /api calls will break: list what needs an API base URL config and CORS headers.",
+        "Document the /api/agent auth flow (owner gating), env vars, error leakage fixes, and any missing rate limiting or input size limits.",
+        "Can Vercel functions as written stream SSE for agent replies? What must change in api/agent.js and Agents.jsx? Which model/env defaults exist (code says openai/gpt-oss-120b, README says llama-3.3-70b)? Flag the mismatch.",
+        "There is no vercel.json: what runtime defaults apply (Node version, function timeout, region, caching headers for /api/puzzle)?",
+        "Security checklist for shipping a native bundle: where could secrets leak, what CSP is feasible given inline styles/scripts and the Supabase websocket, what headers are missing.",
+        "Propose API/security task breakdown with exact write-sets, tagged by phase hint."
+      ]
+    },
+    {
+      "id": "R6",
+      "name": "Data and sync",
+      "charter": "Design the sync v2 migration precisely from the real code: every synced key, every consumer, the schema, and the safest rollout.",
+      "readScope": ["src/store.js", "src/sync/**", "src/supabaseClient.js", "src/useHydrate.js", "src/useLatest.js", "src/undo.js", "src/id.js", "src/time.js", "test/sync.test.js", "test/syncEngine.test.js", "test/undo.test.js", "docs/superpowers/specs/2026-09-15-cloud-sync-design.md", "docs/superpowers/plans/2026-09-15-cloud-sync.md", "git log --oneline -40 -- src/store.js src/sync"],
+      "blueprintFocus": ["2.3 write path", "2.4 reconcile + sync v2 SQL", "Lab 1 conflict logic", "learning graph nodes: lww, lamport, tomb, outbox, rt, pgmodel, rls, backup, optim"],
+      "questions": [
+        "List every key in SYNCED_KEYS with its value shape (infer from callers) and every consumer file:line. Classify: array of id'd records (row-able), map keyed by id/date, single object, scalar.",
+        "Propose a concrete table design per key family (not one table per key if a generic records table is better); give exact SQL incl. RLS policies, indexes, rev/delta-pull, tombstones, realtime filter. Justify generic-vs-per-entity.",
+        "Design the client: a useSynced(key) hook compatible with existing getX/saveX/mutateX call sites, hybrid logical clock, per-record merge, outbox with retry/backoff + idempotent client ids, tombstone GC.",
+        "Migration plan from kv_store: dual-write, backfill, feature flag per key, verification query, rollback, and what to keep as backup. How does it coexist with __pre_sync_backup and claimOwner?",
+        "Interplay with undo.js, mutate queues, useHydrate races (see git log) and App.jsx KEY_TO_TAB remounting.",
+        "Propose the testing plan (pure logic tests, engine tests with fakes, a two-device simulation) and the task breakdown with exact write-sets. Flag which tasks need Supabase dashboard actions only the user can do."
+      ]
+    },
+    {
+      "id": "R7",
+      "name": "Build, test, PWA and CI infrastructure",
+      "charter": "Establish the real baseline and the tooling decisions for PWA, E2E device matrix and CI.",
+      "readScope": ["package.json", "package-lock.json", "vite.config.js", "index.html", "public/manifest.json", ".gitignore", ".claude/launch.json", "test/**"],
+      "blueprintFocus": ["Ask 1 verification matrix", "2.1 PWA row", "2.7 roadmap P1 and P4", "learning graph nodes: manifest, sw, cachestrat, perf, testpyr, e2e, ci, obs, flags"],
+      "questions": [
+        "Run the baseline and report exact results: npm ci, npm test, npm run build (bundle sizes per chunk). Report anything failing or flaky. Do not modify tracked files.",
+        "PWA: verify with npm view which vite-plugin-pwa version supports Vite 5, and whether workbox-window is needed. Recommend generateSW vs injectManifest for this app (offline shell, SWR assets, never cache authenticated /api or Supabase calls). Include update-prompt UX.",
+        "Icons: the manifest uses an inline emoji data-URI. List the exact icon set needed (192/512, maskable, apple-touch 180) and how to generate it reproducibly.",
+        "E2E: Chromium + Playwright are preinstalled in this environment; propose a playwright.config with the 5 device projects from the blueprint matrix, how to run against vite preview, and how to stub Supabase/auth so tests are hermetic.",
+        "CI: no CI exists. Propose a GitHub Actions workflow (install cache, test, build, e2e, bundle-size check) and Vercel preview setup; list what the user must configure.",
+        "Lint/format/typecheck: none exist; recommend the minimum worth adding (and what not to add).",
+        "Propose the infrastructure task breakdown with exact write-sets; remember package.json and package-lock.json are single-writer hot spots."
+      ]
+    },
+    {
+      "id": "B1",
+      "name": "Blueprint requirements and learning track",
+      "charter": "Re-read the whole blueprint and consolidate it into a numbered requirements list, a contradiction list, and a concept-to-phase learning track.",
+      "readScope": ["docs/plan/blueprint.txt (clean text of the blueprint)", "docs/forge-blueprint.html (for the RAW concept table and any data the text omits)", "docs/plan/swarm.json (hybrid decision)"],
+      "blueprintFocus": ["everything"],
+      "questions": [
+        "Produce REQ-01.. requirements (functional and non-functional), each with a blueprint section reference, a priority (must/should/could) and the phase it belongs to. Apply the hybrid decision: where the blueprint says design A, B or C, resolve it to the hybrid.",
+        "List contradictions and gaps inside the blueprint itself (known: nav '5 tabs' vs a 6th Today tab; sidebar 220px in the CSS snippet vs 216px in the design mock; blueprint calls delivery steps Phase 1/3 in 2.1 but P0-P5 in 2.7; Capacitor origin vs relative /api; hover guard for A/B components). Find more.",
+        "Extract the RAW learning-graph table from the HTML and output docs/plan/research/B1-concept-phase-map.json: [{id,label,category,phase,level,requires:[...]}]. Then summarise per phase which concepts must be learned BEFORE that phase starts (prerequisites not taught by an earlier phase), as a short table.",
+        "Define 'done' for the whole project as a checklist a reviewer could run on a deployed build (responsive matrix, offline, install, sync two devices, native app).",
+        "Propose any process/documentation tasks (ADRs, README updates) with exact write-sets."
+      ]
+    },
+    {
+      "id": "B3",
+      "name": "Hybrid design specification",
+      "charter": "Turn the blueprint's A and B prototypes into one implementable spec for the hybrid and a component inventory mapped to the real codebase.",
+      "readScope": ["docs/forge-blueprint.html (the <style> blocks for .dsn/.dA/.dB and the script section 'SECTION 4' only: DESIGNS, BLK, HOME, PLAN, DT data)", "src/styles.css", "src/tabs/*.jsx (grep only, to find existing equivalents)", "src/life/logic.js (exports only)"],
+      "blueprintFocus": ["Ask 3 whole section", "Ask 1 breakpoint table"],
+      "questions": [
+        "Write the token table: A tokens, B tokens, and the reconciled hybrid token set (names, dark and light values, how the cream theme sits next to the existing 6 themes). Check contrast for text on the pastel tiles in both themes.",
+        "Specify the shell per breakpoint (<600, 600-1023, 1024-1279, >=1280): nav pattern, widths, panes, FAB, header, ⌘K palette contents, shortcuts. Resolve 216 vs 220px.",
+        "Specify Today (B tiles): each tile with its width class per breakpoint (2/4/6 col spans), content, and the exact store key / function that provides each datum in the real app, and what is missing (Level/XP, mood log shape, streak source).",
+        "For each of the 17 sub-views: the blocks, which are A-style list/inspector vs B-style tiles (default: A everywhere except Today; recommend whether Habits/Growth should use tiles), inspector content, phone behaviour.",
+        "Component inventory (Row, Chip, Bar, Ring, Donut, Spark, Tile, Rail, Sidebar, Tabs, Palette, Inspector, Sheet, Toast, EmptyState...): props, which existing CSS/JSX is reusable (grep src), what is new, and where it should live in the file tree (e.g. src/ui/*).",
+        "Interaction + accessibility spec: focus order, keyboard map, hover-only affordances to avoid, 44px targets, reduced motion, touch vs pointer.",
+        "Propose the design-system and screen-level task breakdown with exact write-sets, ordered so primitives come before screens."
+      ]
+    },
+    {
+      "id": "X1",
+      "name": "External facts and library choices",
+      "charter": "Verify, with sources, the external claims the plan rests on and pick libraries/versions. Use WebSearch/WebFetch (standard mode first) and npm view; mark anything you could not verify.",
+      "readScope": ["package.json", "docs/plan/blueprint.txt"],
+      "blueprintFocus": ["2.1 options table", "2.6 decisions"],
+      "questions": [
+        "Capacitor: current major version, minimum iOS/Xcode, how to host a Vite build, the capacitor://localhost origin and its effect on Supabase auth persistence and fetch/CORS, recommended plugins for push, haptics, secure storage, keyboard, status bar.",
+        "iOS PWA: Web Push requirements (iOS 16.4+, installed only), Background Sync availability, storage eviction rules for Safari tabs vs Home Screen apps, navigator.storage.persist support.",
+        "CSS: minimum Safari/Chrome versions for container queries, :has, dvh, color-mix (all used by the blueprint). Compare with the project's actual browser targets (iOS version of the user's devices is unknown: list as a question).",
+        "Supabase: free-tier project pause policy and limits relevant here (realtime messages, db size), realtime postgres_changes filter limitations for per-record tables, hybrid logical clock/delta-pull patterns that fit.",
+        "Router and PWA libraries: current versions and bundle sizes (npm view / bundlephobia-style numbers if reachable) for react-router, vite-plugin-pwa, workbox-window, @capacitor/*.",
+        "Apple Developer Program fee, TestFlight limits, review constraints for a personal app wrapping a web app (guideline 4.2 minimum functionality).",
+        "For every claim give: claim, source URL, date, confidence (high/med/low). Output library decision tasks."
+      ]
+    }
+  ]
+}
