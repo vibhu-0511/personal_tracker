@@ -8,7 +8,7 @@ Research date 2026-11-12. WebFetch could not reach capacitorjs.com or supabase.c
 - Router pitfall: `react-router@latest` is 8.5.1 and needs React >=19.2.7. Forge is on React 18.3.1. Use `react-router-dom@7.18.5` (peer `react >=18`), about 15.0 KB gzip over React, or `wouter` at about 3.0 KB.
 - The blueprint's sync v2 delta cursor is broken as written. `rev bigint generated always as identity` is assigned only on INSERT, so `where rev > last_seen_rev` never sees updates.
 - Capacitor 8.6.0 needs Xcode 26+ and an iOS 15 deployment target, which means a Mac. P3 cannot be verified from this Linux sandbox.
-- A Capacitor build runs at `capacitor://localhost`, so every relative `/api/...` fetch (5 files, 9 call sites) breaks. The `api/*.js` handlers send no CORS headers. A `VITE_API_BASE` fetch shim and a CORS helper fix this.
+- A Capacitor build runs at `capacitor://localhost`, so every relative `/api/...` fetch (5 files, 7 call sites) breaks. The `api/*.js` handlers send no CORS headers. A `VITE_API_BASE` fetch shim and a CORS helper fix this.
 - The Supabase session lives in `localStorage` and is shared with `mastery-map.html`. Replacing the auth `storage` adapter would break that sharing, so mirror to native storage instead.
 - The Supabase free tier pauses after 1 week of low activity. `/api/health` does not touch the database, so it cannot serve as keep-alive.
 - Repo-fact corrections: `node_modules` is now present (49 top-level entries, vite 5.4.21), and `KEY_TO_TAB` references tab ids that are not top-level tabs. Details are under Gaps.

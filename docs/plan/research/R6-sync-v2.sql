@@ -193,9 +193,9 @@ with blob as (
     and jsonb_typeof(value) = 'array' and e.elem ? 'id'
   group by 1, 2
   union all
-  select user_id, key, count(*), md5(string_agg(m.key, ',' order by m.key))
-  from kv_store, jsonb_each(value) as m
-  where key in ('progress','examProgress','puzzleProgress','budgets') and jsonb_typeof(value) = 'object'
+  select kv.user_id, kv.key, count(*), md5(string_agg(m.key, ',' order by m.key))
+  from kv_store kv, jsonb_each(kv.value) as m
+  where kv.key in ('progress','examProgress','puzzleProgress','budgets') and jsonb_typeof(kv.value) = 'object'
   group by 1, 2
   union all
   select user_id, 'moodLog', count(*), md5(string_agg(e.elem->>'date', ',' order by e.elem->>'date'))

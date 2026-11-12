@@ -146,7 +146,7 @@ B1 files (all new unless noted):
 - Confirm docs/adr/ convention and the 12 B1 tasks.
 
 ## Proposed tasks
-Matches docs/plan/research/B1.tasks.json (12 tasks: 8 S, 4 M).
+Matches docs/plan/research/B1.tasks.json (12 tasks: 9 S, 3 M).
 
 ### Definition of done (run on the deployed build; each item pass/fail)
 Responsive matrix (Playwright projects BT:64-69, plus manual check on real devices)
