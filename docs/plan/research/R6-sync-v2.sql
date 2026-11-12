@@ -49,6 +49,8 @@ create index if not exists records_tombstone_idx on public.records (deleted_at) 
 
 -- 2. RLS: owner-only; no DELETE policy, so clients cannot physically delete ---------------------
 alter table public.records enable row level security;
+grant select, insert, update on public.records to authenticated;   -- explicit: do not rely on dashboard default grants
+grant usage on sequence public.records_rev_seq to authenticated;   -- rev default + trigger run as the caller
 drop policy if exists records_select on public.records;
 drop policy if exists records_insert on public.records;
 drop policy if exists records_update on public.records;
@@ -186,8 +188,8 @@ revoke all on function public.forge_backfill(uuid) from public, anon, authentica
 -- 7. Verification: v1 blob vs v2 live rows. Every row must have ok = true before cutting a key over. ----
 create or replace view public.v2_verify as
 with blob as (
-  select user_id, key as collection, count(*)::bigint as n,
-         md5(string_agg(e.elem->>'id', ',' order by e.elem->>'id')) as h
+  select user_id, key as collection, count(distinct e.elem->>'id')::bigint as n,
+         md5(string_agg(distinct e.elem->>'id', ',' order by e.elem->>'id')) as h
   from kv_store, jsonb_array_elements(value) as e(elem)
   where key in ('notes','expenses','goals','examNotes','watchlist','tasks','reminders','loans','checklists','habits')
     and jsonb_typeof(value) = 'array' and e.elem ? 'id'
@@ -198,7 +200,7 @@ with blob as (
   where kv.key in ('progress','examProgress','puzzleProgress','budgets') and jsonb_typeof(kv.value) = 'object'
   group by 1, 2
   union all
-  select user_id, 'moodLog', count(*), md5(string_agg(e.elem->>'date', ',' order by e.elem->>'date'))
+  select user_id, 'moodLog', count(distinct e.elem->>'date'), md5(string_agg(distinct e.elem->>'date', ',' order by e.elem->>'date'))
   from kv_store, jsonb_array_elements(value) as e(elem) where key = 'moodLog' and jsonb_typeof(value) = 'array' group by 1
 ), live as (
   select user_id, collection, count(*)::bigint as n, md5(string_agg(id, ',' order by id)) as h
