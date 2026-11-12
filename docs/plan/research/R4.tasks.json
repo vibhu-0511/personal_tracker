@@ -1,0 +1,482 @@
+[
+  {
+    "id": "R4-01",
+    "title": "Extract Money pure helpers (month summary, category breakdown, trend, budget status, formatters) with unit tests",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/logic.js",
+      "src/money/categories.js",
+      "src/money/format.js",
+      "test/moneyLogic.test.js",
+      "test/moneyFormat.test.js"
+    ],
+    "reads": [
+      "src/tabs/Expenses.jsx",
+      "test/loanBalance.test.js"
+    ],
+    "deps": [],
+    "acceptance": "node --test test/loanBalance.test.js test/moneyLogic.test.js test/moneyFormat.test.js passes; tests cover legacy entries with no type counted as expense, income excluded from spend, local-midnight month boundary, 3-month trend, daysLeftInMonth, spent-vs-totalBudget pct",
+    "notes": "Moves Expenses.jsx:16-32 constants and :34-100 helpers plus inline math at :362-414 into pure modules; keeps computeLoanBalances/LOAN_ACTIONS exports unchanged; does not edit Expenses.jsx."
+  },
+  {
+    "id": "R4-02",
+    "title": "Add hand-rolled chart primitives: SVG Donut (also serves as ring) and Sparkline, with pure geometry + tests",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/charts/Donut.jsx",
+      "src/charts/Sparkline.jsx",
+      "src/charts/geometry.js",
+      "src/charts/charts.css",
+      "test/chartGeometry.test.js"
+    ],
+    "reads": [
+      "docs/forge-blueprint.html",
+      "src/styles.css"
+    ],
+    "deps": [],
+    "acceptance": "node --test test/chartGeometry.test.js passes (arc dash lengths sum to circumference, zero-total gives an empty track, sparkline handles 1 point and flat series); npx --no-install esbuild src/charts/Donut.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0",
+    "notes": "No new npm dependency. Donut takes segments [{value,color,label}], center node, aria-label; colours come from pastel CSS vars with fallbacks. Overlaps B3/R3 (code ring) - they should consume Donut with one segment."
+  },
+  {
+    "id": "R4-03",
+    "title": "Create MoneyContext: one shared hydrate/persist layer for expenses, budgets, goals, loans plus month state and add-sheet requests",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/MoneyContext.jsx"
+    ],
+    "reads": [
+      "src/tabs/Expenses.jsx",
+      "src/store.js",
+      "src/useHydrate.js",
+      "src/undo.js",
+      "src/useLatest.js"
+    ],
+    "deps": [
+      "R4-01"
+    ],
+    "acceptance": "npx --no-install esbuild src/money/MoneyContext.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; exports MoneyProvider and useMoney() returning {expenses,budgets,goals,loans,viewMonth,prevMonth,nextMonth,persist*,openAdd,openEdit,sheetRequest,saving,ready,error}",
+    "notes": "Replaces the single-component state at Expenses.jsx:103-175 so split screens never hold stale copies of the same array. Provider re-hydrates on syncTick prop. Thin on purpose so R6 useSynced can replace persist* later."
+  },
+  {
+    "id": "R4-04",
+    "title": "Build AddTxnSheet (add/edit income or expense) driven by MoneyContext sheetRequest",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/AddTxnSheet.jsx"
+    ],
+    "reads": [
+      "src/tabs/Expenses.jsx",
+      "src/Sheet.jsx"
+    ],
+    "deps": [
+      "R4-03"
+    ],
+    "acceptance": "npx --no-install esbuild src/money/AddTxnSheet.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; behaviour: edit keeps id and original time-of-day, amount > 10_000_000 or <= 0 blocked, expense requires category (same rules as Expenses.jsx:216-250)",
+    "notes": "Ports Expenses.jsx:194-254 and :1183-1294. Uses existing global classes (expense-cat-grid, sheet-dialog); does not touch styles.css."
+  },
+  {
+    "id": "R4-05",
+    "title": "Build SpendScreen merging Overview + Txns: month stats, category bars, 3-month trend, grouped transaction list, search/type filter",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/screens/SpendScreen.jsx",
+      "src/money/screens/SpendSummary.jsx",
+      "src/money/screens/TxnList.jsx",
+      "src/money/screens/spend.css"
+    ],
+    "reads": [
+      "src/tabs/Expenses.jsx",
+      "src/charts/Donut.jsx"
+    ],
+    "deps": [
+      "R4-01",
+      "R4-02",
+      "R4-03",
+      "R4-04"
+    ],
+    "acceptance": "npx --no-install esbuild src/money/screens/SpendScreen.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; at 390px stats are 2 columns, at >=1024px summary and txn list sit side by side; row tap calls openEdit; delete shows undo toast",
+    "notes": "Ports Expenses.jsx:438-723. Blueprint has one Spend screen (money.spend = spend + recent), so Overview and Txns merge. Row selection exposes a TxnDetail hook for the inspector (wired in R4-22)."
+  },
+  {
+    "id": "R4-06",
+    "title": "Build BudgetsScreen: per-category monthly limits with inline edit and over-80% warnings",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/screens/BudgetsScreen.jsx"
+    ],
+    "reads": [
+      "src/tabs/Expenses.jsx"
+    ],
+    "deps": [
+      "R4-01",
+      "R4-03"
+    ],
+    "acceptance": "npx --no-install esbuild src/money/screens/BudgetsScreen.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; set/remove budget persists to key budgets as a plain {catId:number} map; bar colour thresholds 80/100 match Expenses.jsx:850-851",
+    "notes": "Ports Expenses.jsx:725-862 and :292-310."
+  },
+  {
+    "id": "R4-07",
+    "title": "Build GoalsScreen with GoalFormSheet: create, add funds, delete with undo, drag reorder",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/screens/GoalsScreen.jsx",
+      "src/money/screens/GoalFormSheet.jsx"
+    ],
+    "reads": [
+      "src/tabs/Expenses.jsx",
+      "src/dnd/Dnd.jsx",
+      "src/dnd/logic.js"
+    ],
+    "deps": [
+      "R4-01",
+      "R4-03"
+    ],
+    "acceptance": "npx --no-install esbuild src/money/screens/GoalsScreen.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; reorder still goes through placeItem and persists array order; saved never goes below 0",
+    "notes": "Ports Expenses.jsx:864-1023 and :312-347. Array order is the only ordering data (sync v2 must keep it)."
+  },
+  {
+    "id": "R4-08",
+    "title": "Build LoansScreen with LoanPersonCard and LoanFormSheet (incl. follow-up reminder via mutateReminders)",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/screens/LoansScreen.jsx",
+      "src/money/screens/LoanPersonCard.jsx",
+      "src/money/screens/LoanFormSheet.jsx"
+    ],
+    "reads": [
+      "src/tabs/Expenses.jsx",
+      "src/money/logic.js",
+      "src/store.js"
+    ],
+    "deps": [
+      "R4-01",
+      "R4-03"
+    ],
+    "acceptance": "npx --no-install esbuild src/money/screens/LoansScreen.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; balances come only from computeLoanBalances; remind-me writes {id,title,at,done,createdAt} through mutateReminders; node --test test/loanBalance.test.js still passes",
+    "notes": "Ports Expenses.jsx:256-290, :1025-1181, :1306-1353. Reminder shape must stay equal to Life.jsx:632-638 (R2 area)."
+  },
+  {
+    "id": "R4-09",
+    "title": "Assemble MoneyApp (drop-in replacement for Expenses default export) and the Money screen registry",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/MoneyApp.jsx",
+      "src/money/index.js",
+      "src/money/money.css"
+    ],
+    "reads": [
+      "src/App.jsx"
+    ],
+    "deps": [
+      "R4-04",
+      "R4-05",
+      "R4-06",
+      "R4-07",
+      "R4-08"
+    ],
+    "acceptance": "npx --no-install esbuild src/money/MoneyApp.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; src/money/index.js exports MONEY_SCREENS=[{id,label,icon,Component}] for spend,budgets,goals,loans and MoneyApp accepts {syncTick} like Expenses; npm run build exits 0 once App.jsx imports it",
+    "notes": "Does not edit src/App.jsx (single-writer: shell task swaps line 11 import and adds routes). MoneyApp mounts MoneyProvider, AddTxnSheet, local sub-nav and a FAB positioned with var(--tabbar-h, 0px) in money.css."
+  },
+  {
+    "id": "R4-10",
+    "title": "Build Today SpendTile (month spend donut vs budget, days left, top categories) and useMonthSpend hook",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/tiles/SpendTile.jsx",
+      "src/money/tiles/useMonthSpend.js"
+    ],
+    "reads": [
+      "src/money/logic.js",
+      "src/charts/Donut.jsx",
+      "src/store.js"
+    ],
+    "deps": [
+      "R4-01",
+      "R4-02"
+    ],
+    "acceptance": "npx --no-install esbuild src/money/tiles/SpendTile.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; tile shows spent, budget, pct, days left, top 3 categories; no budgets set renders spent only with a Set budgets link; accepts syncTick prop",
+    "notes": "Hook reads expenses+budgets via getExpenses/getBudgets (read-only, no persist). Shell must map keys expenses/budgets to the Today tick (App.jsx:36-39 KEY_TO_TAB)."
+  },
+  {
+    "id": "R4-11",
+    "title": "Delete legacy src/tabs/Expenses.jsx after the shell imports MoneyApp",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/tabs/Expenses.jsx"
+    ],
+    "reads": [
+      "src/App.jsx"
+    ],
+    "deps": [
+      "R4-09",
+      "R4-22"
+    ],
+    "acceptance": "grep -rn \"tabs/Expenses\" src returns nothing; npm run build and npm test exit 0",
+    "notes": "Must also run after the shell task that replaces App.jsx:11 lazy import."
+  },
+  {
+    "id": "R4-12",
+    "title": "Extract Invest pure helpers (course progress, unlock rules, watchlist sort/filter/movers) with unit tests",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/invest/progress.js",
+      "src/invest/watchlist.js",
+      "test/investLogic.test.js"
+    ],
+    "reads": [
+      "src/tabs/Invest.jsx",
+      "src/invest/course.js"
+    ],
+    "deps": [],
+    "acceptance": "node --test test/investLogic.test.js passes; covers isUnlocked chain (m1 always open), courseProgress pct for 0/19 and 19/19, sortWatchlist (IPOs first by open date, then addedAt desc), summarizeMovers counts up/down/unavailable",
+    "notes": "Moves Invest.jsx:10-24, :98-99 and :489-498. Module list stays PHASES from course.js (19 modules, 5 phases)."
+  },
+  {
+    "id": "R4-13",
+    "title": "Extend quote API: return daily closes for sparklines, fix changePct for multi-day ranges, allow whitelisted range and index symbols",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "api/quote.js",
+      "api/_lib/parseYahooChart.js",
+      "test/parseYahooChart.test.js"
+    ],
+    "reads": [
+      "api/quote.js",
+      "api/_lib/parseYahooChart.js",
+      "vite.config.js"
+    ],
+    "deps": [],
+    "acceptance": "node --test test/parseYahooChart.test.js passes with new cases (closes array drops nulls, changePct uses last two closes when range>1d, old fixtures unchanged); GET /api/quote?symbols=TCS.NS&range=1mo returns closes (needs network); range outside 1d|5d|1mo|3mo returns 400; SYMBOL_RE allowlist still rejects anything but .NS/.BO or the named index list",
+    "notes": "Backward compatible: default range stays 1d and existing fields unchanged. api/ is shared with R5 - single task owns these three files. Yahoo response shape for range=1mo is unverified from this sandbox."
+  },
+  {
+    "id": "R4-14",
+    "title": "Create market data client with TTL cache and in-flight dedupe (quotes, MF search, MF NAV) plus useQuotes hook",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/invest/market.js",
+      "src/invest/useQuotes.js",
+      "test/marketCache.test.js"
+    ],
+    "reads": [
+      "src/tabs/Invest.jsx",
+      "api/quote.js"
+    ],
+    "deps": [
+      "R4-13"
+    ],
+    "acceptance": "node --test test/marketCache.test.js passes using an injected fetch: two concurrent calls hit fetch once, entries expire after 60s, a failed symbol yields {error:true} without failing others; npx --no-install esbuild src/invest/useQuotes.js --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0",
+    "notes": "Replaces Invest.jsx:432-471 where every items change (even a note edit) refetches all quotes and NAVs. Cache is memory-only, not a synced key. All /api calls go through one apiUrl(path) helper reading import.meta.env.VITE_API_BASE (default empty = relative) so a Capacitor build can point at the deployed origin (relative fetch at Invest.jsx:435,:669 breaks there)."
+  },
+  {
+    "id": "R4-15",
+    "title": "Create InvestContext: shared hydrate/persist for investProgress and watchlist",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/invest/InvestContext.jsx"
+    ],
+    "reads": [
+      "src/tabs/Invest.jsx",
+      "src/store.js",
+      "src/useHydrate.js"
+    ],
+    "deps": [
+      "R4-12"
+    ],
+    "acceptance": "npx --no-install esbuild src/invest/InvestContext.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; useInvest() exposes {progress,watchlist,updateProgress,updateWatchlist,ready,error} and keeps the {done,quiz,tasks,current} shape",
+    "notes": "Ports Invest.jsx:28-45."
+  },
+  {
+    "id": "R4-16",
+    "title": "Build LearnScreen (module list, ModuleView, Quiz, glossary, resources) with two-pane layout from 1024px",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/invest/screens/LearnScreen.jsx",
+      "src/invest/screens/ModuleView.jsx",
+      "src/invest/screens/Quiz.jsx",
+      "src/invest/screens/ResourcesCard.jsx",
+      "src/invest/screens/learn.css"
+    ],
+    "reads": [
+      "src/tabs/Invest.jsx",
+      "src/invest/course.js"
+    ],
+    "deps": [
+      "R4-12",
+      "R4-15"
+    ],
+    "acceptance": "npx --no-install esbuild src/invest/screens/LearnScreen.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; pass threshold stays 80, locked modules disabled, CONTENT still rendered only from course.js strings",
+    "notes": "Ports Invest.jsx:92-333. Quiz currently resets via effect on modId (:247-250)."
+  },
+  {
+    "id": "R4-17",
+    "title": "Build ResearchScreen (static screening checklists, OSS tools, links) with onTrack(type) callback",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/invest/screens/ResearchScreen.jsx"
+    ],
+    "reads": [
+      "src/tabs/Invest.jsx",
+      "src/invest/research.js"
+    ],
+    "deps": [],
+    "acceptance": "npx --no-install esbuild src/invest/screens/ResearchScreen.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; prop onTrack(\"stock\"|\"mf\"|\"ipo\") replaces onGoToWatch; no store access",
+    "notes": "Ports Invest.jsx:335-409. ChecklistTable keeps overflow-x auto wrapper for narrow widths."
+  },
+  {
+    "id": "R4-18",
+    "title": "Build WatchScreen (WatchRow with sparkline, AddStock/AddMf/AddIpo forms, note edit, delete with undo)",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/invest/screens/WatchScreen.jsx",
+      "src/invest/screens/WatchRow.jsx",
+      "src/invest/screens/AddForms.jsx",
+      "src/invest/screens/watch.css"
+    ],
+    "reads": [
+      "src/tabs/Invest.jsx",
+      "src/invest/watchlist.js",
+      "src/invest/useQuotes.js",
+      "src/charts/Sparkline.jsx"
+    ],
+    "deps": [
+      "R4-02",
+      "R4-12",
+      "R4-14",
+      "R4-15"
+    ],
+    "acceptance": "npx --no-install esbuild src/invest/screens/WatchScreen.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; editing a note does not trigger a network refetch; item shape {id,type,symbol|schemeCode,name,priceAtAdd,note,addedAt,ipo} unchanged; prop initialType opens the matching add form",
+    "notes": "Ports Invest.jsx:411-786."
+  },
+  {
+    "id": "R4-19",
+    "title": "Assemble InvestApp (drop-in replacement for Invest default export) and the Invest screen registry with the disclaimer",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/invest/InvestApp.jsx",
+      "src/invest/index.js",
+      "src/invest/invest.css"
+    ],
+    "reads": [
+      "src/App.jsx"
+    ],
+    "deps": [
+      "R4-16",
+      "R4-17",
+      "R4-18"
+    ],
+    "acceptance": "npx --no-install esbuild src/invest/InvestApp.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; src/invest/index.js exports INVEST_SCREENS for learn,research,watch; disclaimer text from Invest.jsx:61-63 renders above every screen; Research track buttons switch to Watch with the add form open",
+    "notes": "Does not edit src/App.jsx. Research->Watch intent (Invest.jsx:30,:76-84) becomes a prop/URL param decided by the shell router."
+  },
+  {
+    "id": "R4-20",
+    "title": "Build Today WatchTile (up to 4 watchlist stocks: price, day %, sparkline, up/down count, not-advice footnote)",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/invest/tiles/WatchTile.jsx"
+    ],
+    "reads": [
+      "src/invest/watchlist.js",
+      "src/invest/useQuotes.js",
+      "src/charts/Sparkline.jsx",
+      "src/store.js"
+    ],
+    "deps": [
+      "R4-02",
+      "R4-12",
+      "R4-14"
+    ],
+    "acceptance": "npx --no-install esbuild src/invest/tiles/WatchTile.jsx --bundle --format=esm --jsx=automatic --loader:.css=empty --external:react --external:react/jsx-runtime --external:localforage --external:@supabase/supabase-js --external:@dnd-kit/* --log-level=error --outfile=/dev/null exits 0; offline or failed quotes render \"price unavailable\" per symbol; empty watchlist renders an add prompt; footnote says educational, not advice",
+    "notes": "Shell must map key watchlist to the Today tick (App.jsx:36-39)."
+  },
+  {
+    "id": "R4-21",
+    "title": "Delete legacy src/tabs/Invest.jsx after the shell imports InvestApp",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/tabs/Invest.jsx"
+    ],
+    "reads": [
+      "src/App.jsx"
+    ],
+    "deps": [
+      "R4-19",
+      "R4-23"
+    ],
+    "acceptance": "grep -rn \"tabs/Invest\" src returns nothing; npm run build and npm test exit 0",
+    "notes": "Must also run after the shell task that replaces App.jsx:12 lazy import."
+  },
+  {
+    "id": "R4-22",
+    "title": "Adopt shell primitives in Money screens: inspector panes from 1024px, hover/pointer guards, container-query columns, FAB offset var",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/money/screens/SpendScreen.jsx",
+      "src/money/screens/SpendSummary.jsx",
+      "src/money/screens/TxnList.jsx",
+      "src/money/screens/BudgetsScreen.jsx",
+      "src/money/screens/GoalsScreen.jsx",
+      "src/money/screens/LoansScreen.jsx",
+      "src/money/screens/LoanPersonCard.jsx",
+      "src/money/screens/spend.css",
+      "src/money/MoneyApp.jsx",
+      "src/money/money.css"
+    ],
+    "reads": [
+      "src/styles.css",
+      "src/App.jsx"
+    ],
+    "deps": [
+      "R4-09"
+    ],
+    "acceptance": "at 1280x900 Playwright or manual check: selecting a txn, goal or loan person opens its detail in the right inspector instead of a sheet or accordion; at 390px the same action opens a sheet; no horizontal scroll at 390px; tap does not leave a hover state on a coarse pointer",
+    "notes": "Also needs the shell inspector/sheet primitive API from R1/B3 (not yet known) - synthesis must schedule after that primitive exists."
+  },
+  {
+    "id": "R4-23",
+    "title": "Adopt shell primitives in Invest screens: Learn module list + content two-pane, Watch list + detail inspector, pointer guards",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/invest/screens/LearnScreen.jsx",
+      "src/invest/screens/ModuleView.jsx",
+      "src/invest/screens/WatchScreen.jsx",
+      "src/invest/screens/WatchRow.jsx",
+      "src/invest/screens/learn.css",
+      "src/invest/screens/watch.css",
+      "src/invest/InvestApp.jsx",
+      "src/invest/invest.css"
+    ],
+    "reads": [
+      "src/styles.css",
+      "src/App.jsx"
+    ],
+    "deps": [
+      "R4-19"
+    ],
+    "acceptance": "at 1280x900: Learn shows module list left and module body right with no page scroll for the list; Watch row selection shows note/IPO details in the inspector; at 390px layout equals the previous single column",
+    "notes": "Also needs the shell inspector primitive from R1/B3."
+  }
+]

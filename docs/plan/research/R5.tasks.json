@@ -1,0 +1,211 @@
+[
+  {
+    "id": "R5-01",
+    "title": "Add apiUrl/apiFetch helper with VITE_API_BASE and Bearer injection",
+    "size": "S",
+    "phaseHint": "P0",
+    "writes": ["src/api/base.js", "src/api/client.js", "test/apiBase.test.js"],
+    "reads": ["src/tabs/Agents.jsx", "src/supabaseClient.js"],
+    "deps": [],
+    "acceptance": "node --test test/apiBase.test.js passes: apiUrl('/api/x') returns '/api/x' when base is empty and 'https://h/api/x' when base is 'https://h/' (no double slash); apiFetch attaches Authorization only when a token exists.",
+    "notes": "base.js is pure (env passed in) so the test never imports supabaseClient.js, which throws without env."
+  },
+  {
+    "id": "R5-02",
+    "title": "Route Invest, Today, Life and Puzzles API calls through apiFetch",
+    "size": "S",
+    "phaseHint": "P3",
+    "writes": ["src/tabs/Invest.jsx", "src/tabs/Today.jsx", "src/tabs/Life.jsx", "src/tabs/Puzzles.jsx"],
+    "reads": ["src/api/client.js", "src/api/base.js"],
+    "deps": ["R5-01"],
+    "acceptance": "grep -rn \"fetch('/api\\|fetch(`/api\\|href={icsHref\" src returns nothing outside src/api and Agents.jsx; npm test and npm run build pass; with VITE_API_BASE=https://example.test the Network panel shows /api/quote and /api/cf going to that host.",
+    "notes": "Hot-spot files: run after the R2/R3/R4 file-split tasks and re-resolve paths. Life.jsx:715 ICS anchor needs a client-side/Share path for native (cross-area); here only the href base changes."
+  },
+  {
+    "id": "R5-03",
+    "title": "Add api/_lib/http.js with CORS allow-list, preflight, capped body reader and cache helper",
+    "size": "S",
+    "phaseHint": "P1",
+    "writes": ["api/_lib/http.js", "test/apiHttp.test.js"],
+    "reads": ["api/agent.js", "api/cf.js"],
+    "deps": [],
+    "acceptance": "node --test test/apiHttp.test.js passes: allowed origins (capacitor://localhost, https://localhost, http://localhost:5173, ALLOWED_ORIGINS entries) get Access-Control-Allow-Origin echoed with Vary: Origin; unknown origins get none; OPTIONS returns 204; readJsonBody rejects bodies over the cap with a 413-able error.",
+    "notes": "Files under api/_lib are not deployed as functions (underscore prefix, same as existing _lib)."
+  },
+  {
+    "id": "R5-04",
+    "title": "Apply CORS, method guards and cache headers to cf, puzzle, quote, ics, health and fix ICS CRLF injection",
+    "size": "M",
+    "phaseHint": "P1",
+    "writes": ["api/cf.js", "api/puzzle.js", "api/quote.js", "api/ics.js", "api/health.js", "api/_lib/ics.js", "test/ics.test.js"],
+    "reads": ["api/_lib/http.js"],
+    "deps": ["R5-03"],
+    "acceptance": "node --test test/ics.test.js passes including a case where title containing %0D%0A cannot add a property line; curl -i -X OPTIONS -H 'Origin: capacitor://localhost' localhost:5173/api/puzzle returns 204 with Access-Control-Allow-Origin; GET /api/puzzle has Cache-Control with s-maxage; POST /api/cf returns 405.",
+    "notes": "cf handle length cap (<=50) included. Owner-gating cf/quote is a user decision and is not part of this task."
+  },
+  {
+    "id": "R5-05",
+    "title": "Extract owner auth and agent input validation into api/_lib with tests",
+    "size": "S",
+    "phaseHint": "P1",
+    "writes": ["api/_lib/auth.js", "api/_lib/agentInput.js", "test/agentInput.test.js", "test/ownerAuth.test.js"],
+    "reads": ["api/agent.js"],
+    "deps": [],
+    "acceptance": "node --test test/agentInput.test.js test/ownerAuth.test.js passes: roles limited to user/assistant, content must be non-empty string, <=40 messages, <=8000 chars each, systemPrompt <=4000 chars; owner check is fail-closed when OWNER_USER_ID or token is missing and accepts an injected verifier.",
+    "notes": "api/agent.js itself is not edited here; R5-06 adopts these modules."
+  },
+  {
+    "id": "R5-06",
+    "title": "Rewire api/agent.js onto auth/validation/http libs with timeout, max_tokens and null-reply guard",
+    "size": "M",
+    "phaseHint": "P1",
+    "writes": ["api/agent.js", "test/agentHandler.test.js"],
+    "reads": ["api/_lib/http.js", "api/_lib/auth.js", "api/_lib/agentInput.js"],
+    "deps": ["R5-03", "R5-05"],
+    "acceptance": "node --test test/agentHandler.test.js passes with a mocked fetch and verifier: 403 without token, 400 on invalid roles, 413 on oversized body, 502 with generic message on upstream 500, 502 when Groq returns content null, OPTIONS 204; upstream request carries max_tokens and an AbortSignal.",
+    "notes": "Single writer of api/agent.js at this stage; R5-08 and R5-10 follow serially. Keeps the existing { reply } response shape."
+  },
+  {
+    "id": "R5-07",
+    "title": "Add per-user rate-limit core and the Supabase agent_usage SQL",
+    "size": "S",
+    "phaseHint": "P1",
+    "writes": ["api/_lib/rateLimit.js", "docs/sql/agent_usage.sql", "test/rateLimit.test.js"],
+    "reads": ["docs/superpowers/specs/2026-09-15-cloud-sync-design.md"],
+    "deps": [],
+    "acceptance": "node --test test/rateLimit.test.js passes: sliding-window check over an injected storage adapter allows N calls per minute and per day, then returns { allowed:false, retryAfterSec }; docs/sql/agent_usage.sql creates a table with RLS (select/insert own rows only) and an index on (user_id, at).",
+    "notes": "User action: run the SQL in the Supabase SQL editor before R5-08 is deployed. Uses the caller's JWT so no service-role key is needed."
+  },
+  {
+    "id": "R5-08",
+    "title": "Enforce the rate limit in api/agent.js with 429 and Retry-After",
+    "size": "S",
+    "phaseHint": "P1",
+    "writes": ["api/agent.js", "test/agentRateLimit.test.js"],
+    "reads": ["api/_lib/rateLimit.js"],
+    "deps": ["R5-06", "R5-07"],
+    "acceptance": "node --test test/agentRateLimit.test.js passes: the (limit+1)th call in a minute returns 429 with a Retry-After header and generic message; limit values come from env AGENT_RATE_PER_MIN / AGENT_RATE_PER_DAY with documented defaults.",
+    "notes": "Fails open (logs) if the usage table is unreachable so the owner is not locked out; decision recorded in the test."
+  },
+  {
+    "id": "R5-09",
+    "title": "Add Groq SSE chunk parser lib with fixture tests",
+    "size": "S",
+    "phaseHint": "P5",
+    "writes": ["api/_lib/sse.js", "test/sse.test.js"],
+    "reads": ["api/agent.js"],
+    "deps": [],
+    "acceptance": "node --test test/sse.test.js passes: parser handles chunks split mid-line, multi-event chunks, [DONE], ignores delta.reasoning and yields only delta.content, and formats outgoing events as 'data: {...}\\n\\n'.",
+    "notes": "Pure functions only; no handler wiring."
+  },
+  {
+    "id": "R5-10",
+    "title": "Add streaming mode to api/agent.js behind a stream flag",
+    "size": "M",
+    "phaseHint": "P5",
+    "writes": ["api/agent.js", "test/agentStream.test.js"],
+    "reads": ["api/_lib/sse.js"],
+    "deps": ["R5-08", "R5-09"],
+    "acceptance": "node --test test/agentStream.test.js passes: with { stream:true } the response has Content-Type text/event-stream and Cache-Control no-cache, no-transform, emits delta events then a final done event, aborts the upstream request when the client disconnects, and non-stream requests still return { reply }.",
+    "notes": "Unverified on Vercel runtime: smoke-test a preview deployment (Network tab shows incremental chunks) before relying on it."
+  },
+  {
+    "id": "R5-11",
+    "title": "Add client stream reader using fetch and ReadableStream with abort",
+    "size": "S",
+    "phaseHint": "P5",
+    "writes": ["src/agents/stream.js", "test/agentStreamClient.test.js"],
+    "reads": ["src/api/client.js", "api/_lib/sse.js"],
+    "deps": ["R5-01"],
+    "acceptance": "node --test test/agentStreamClient.test.js passes using a fake ReadableStream: onDelta fires per event in order, AbortController cancels cleanly, and a non-event-stream response falls back to JSON { reply }.",
+    "notes": "EventSource is unusable here: it cannot POST or set Authorization."
+  },
+  {
+    "id": "R5-12",
+    "title": "Render streamed agent replies incrementally in Agents.jsx with Stop and fallback",
+    "size": "M",
+    "phaseHint": "P5",
+    "writes": ["src/tabs/Agents.jsx"],
+    "reads": ["src/agents/stream.js", "src/api/client.js"],
+    "deps": ["R5-10", "R5-11", "R5-01"],
+    "acceptance": "npm run build passes; at 390px width, sending a prompt shows the assistant bubble growing token by token, a Stop button cancels and keeps the partial text, and a server returning plain JSON still renders.",
+    "notes": "Contention with the design lane's Agents screen rework: order explicitly. Also fixes the raw e.message display at Agents.jsx:63."
+  },
+  {
+    "id": "R5-13",
+    "title": "Extract dev API plugin to vite-plugins/apiDev.js with body cap and 400 on bad JSON",
+    "size": "S",
+    "phaseHint": "P0",
+    "writes": ["vite.config.js", "vite-plugins/apiDev.js", "test/apiDev.test.js"],
+    "reads": ["vite.config.js"],
+    "deps": [],
+    "acceptance": "node --test test/apiDev.test.js passes: malformed JSON body returns 400, body over 1 MB returns 413, OPTIONS reaches the handler; curl localhost:5173/api/health still returns {\"ok\":true} under npm run dev and npm run preview.",
+    "notes": "vite.config.js is a hot spot: PWA, CSP-meta and any alias tasks must dep on this one."
+  },
+  {
+    "id": "R5-14",
+    "title": "Add vercel.json with SPA rewrite, function config and /api/puzzle cache header",
+    "size": "S",
+    "phaseHint": "P0",
+    "writes": ["vercel.json", "test/vercelConfig.test.js"],
+    "reads": ["README.md", "public/manifest.json"],
+    "deps": [],
+    "acceptance": "node --test test/vercelConfig.test.js passes: JSON parses; rewrite sends non-api, non-asset, non-/dsa paths to /index.html and leaves /api/*, /dsa/*, /manifest.json and /puzzles.json untouched; functions config sets maxDuration; /api/puzzle has Cache-Control public, s-maxage>=3600, stale-while-revalidate.",
+    "notes": "Drop the rewrite if R1 picks a hash router. Region choice (near Supabase ap-northeast-2) needs user confirmation. vercel.json is a hot spot: PWA (/sw.js headers) must dep on this."
+  },
+  {
+    "id": "R5-15",
+    "title": "Add shared CSP config and security headers to vercel.json, report-only first",
+    "size": "M",
+    "phaseHint": "P4",
+    "writes": ["config/csp.js", "vercel.json", "test/csp.test.js"],
+    "reads": ["index.html", "public/dsa/mastery-map.html", "src/invest/course.js", "src/supabaseClient.js"],
+    "deps": ["R5-14"],
+    "acceptance": "node --test test/csp.test.js passes: main-app policy has script-src 'self' with no unsafe-inline, connect-src lists the Supabase https and wss hosts and https://api.mfapi.in, worker-src blob:, object-src 'none', frame-ancestors 'none'; /dsa/(.*) rule allows inline scripts, cdn.jsdelivr.net and Google Fonts; vercel.json header values equal config/csp.js output; headers include X-Content-Type-Options nosniff, Referrer-Policy, Permissions-Policy.",
+    "notes": "Ships as Content-Security-Policy-Report-Only; flipping to enforcing is a one-line follow-up after a manual pass through all tabs. style-src needs 'unsafe-inline' (course.js:70,234 and DSA page)."
+  },
+  {
+    "id": "R5-16",
+    "title": "Add Vite plugin that injects the CSP meta tag for the native build",
+    "size": "S",
+    "phaseHint": "P3",
+    "writes": ["vite-plugins/cspMeta.js", "vite.config.js", "test/cspMeta.test.js"],
+    "reads": ["config/csp.js", "index.html"],
+    "deps": ["R5-13", "R5-15"],
+    "acceptance": "node --test test/cspMeta.test.js passes: transformIndexHtml adds <meta http-equiv=\"Content-Security-Policy\"> only when mode is 'native', and connect-src includes the VITE_API_BASE origin; npm run build -- --mode native output contains the meta tag, default build does not.",
+    "notes": "Capacitor serves the bundle from a custom scheme, so vercel.json headers do not apply to it. frame-ancestors is ignored in meta and is omitted there."
+  },
+  {
+    "id": "R5-17",
+    "title": "Pin and add SRI to the supabase-js CDN script in the DSA mastery map",
+    "size": "S",
+    "phaseHint": "P4",
+    "writes": ["public/dsa/mastery-map.html"],
+    "reads": ["package.json"],
+    "deps": [],
+    "acceptance": "grep -n 'supabase-js' public/dsa/mastery-map.html shows an exact version (2.116.0 or the version in package-lock.json) with integrity=\"sha384-...\" and crossorigin=\"anonymous\"; opening /dsa/mastery-map.html while signed in still shows the saved-to-cloud pill.",
+    "notes": "Single-line edit at line 1608 of an 8,320-line file owned by the R3 lane; schedule it away from any R3 task on that file. Hash must be computed from the pinned file, not guessed."
+  },
+  {
+    "id": "R5-18",
+    "title": "Fix .env.example and README env and deploy docs",
+    "size": "S",
+    "phaseHint": "P1",
+    "writes": [".env.example", "README.md"],
+    "reads": ["api/agent.js", "api/_lib/http.js", "api/_lib/rateLimit.js"],
+    "deps": ["R5-03", "R5-06", "R5-07"],
+    "acceptance": "grep -n 'llama-3.3' .env.example README.md returns nothing; both files list OWNER_USER_ID, GROQ_MODEL default openai/gpt-oss-120b, ALLOWED_ORIGINS, VITE_API_BASE, AGENT_RATE_PER_MIN and AGENT_RATE_PER_DAY; README Deploy section mentions OWNER_USER_ID and the Supabase sign-up toggle.",
+    "notes": "Hot spots for other lanes' docs: they should dep on this task."
+  },
+  {
+    "id": "R5-19",
+    "title": "Add post-build bundle secret scanner with test",
+    "size": "S",
+    "phaseHint": "P4",
+    "writes": ["scripts/check-bundle-secrets.mjs", "test/bundleSecrets.test.js"],
+    "reads": ["vite.config.js", ".env.example"],
+    "deps": [],
+    "acceptance": "node --test test/bundleSecrets.test.js passes with fixtures: fails on a gsk_ Groq-style key, a JWT whose payload role is service_role, or the string OWNER_USER_ID value; passes on an anon-role JWT. node scripts/check-bundle-secrets.mjs dist exits 0 on a clean npm run build.",
+    "notes": "Does not edit package.json; wire it into CI/the native build script from the P4 task that owns those files."
+  }
+]
