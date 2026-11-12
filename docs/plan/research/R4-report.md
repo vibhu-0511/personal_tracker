@@ -5,7 +5,7 @@
 - Money has 5 sub-views in code (Overview, Txns, Budget, Goals, Loans) against 4 in the blueprint (Spend, Budgets, Goals, Loans). Plan: merge Overview+Txns into one Spend screen.
 - Expenses.jsx has no exported math. Month spend, category totals, budget total and trend are computed inline at `Expenses.jsx:362-414`. Today needs them, so the first task extracts them as pure, tested functions.
 - Watchlist prices live in component state (`Invest.jsx:414-447`). There is no shared cache and no price history. The sparkline needs `/api/quote` to return daily closes, and `parseYahooChart` discards them.
-- No chart library exists. Today's visuals are div bars. The donut and sparkline are new, hand-rolled and dependency-free (blueprint does the same: `docs/forge-blueprint.html:540,1417,1425`).
+- No chart library exists. Today's visuals are div bars. The donut and sparkline are new, hand-rolled and dependency-free (blueprint does the same: `docs/forge-blueprint.html:540,1416,1425`).
 - Splitting the screens creates a stale-copy data-loss hazard. Each screen would hold its own array and save the whole key. Fix: one shared context (R4-03, R4-15).
 - Plan: 23 tasks (R4-01..R4-23). Money 11, Invest 10, shared charts 1, quote API 1. Nothing edits `App.jsx`, `styles.css`, `store.js` or `package.json`.
 
