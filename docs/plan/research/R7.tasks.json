@@ -1,0 +1,318 @@
+[
+  {
+    "id": "R7-01",
+    "title": "Add all infra devDependencies and npm scripts in one commit (single writer of package.json and lockfile)",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": [
+      "package.json",
+      "package-lock.json"
+    ],
+    "reads": [
+      "package.json",
+      "package-lock.json"
+    ],
+    "deps": [],
+    "acceptance": "npm ci && npm test && npm run build all pass; npm ls vite-plugin-pwa workbox-window @playwright/test eslint eslint-plugin-react-hooks @vite-pwa/assets-generator lists the pinned versions; npx playwright --version prints 1.63.0; scripts lint, test:e2e, build:e2e, preview:e2e, icons, size exist in package.json.",
+    "notes": "Pins: vite-plugin-pwa 2.0.0, workbox-window 7.4.1, @vite-pwa/assets-generator 1.0.2, @playwright/test 1.63.0, eslint 10.14.0, @eslint/js 10.0.1, globals 17.14.0, eslint-plugin-react-hooks 7.1.1. Synthesis must chain after X1-02 (router, engines) and any other package.json writer; X1-03 duplicates this task."
+  },
+  {
+    "id": "R7-02",
+    "title": "Create the Forge icon source SVG and generate the PNG icon set reproducibly",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": [
+      "assets/icon-source.svg",
+      "pwa-assets.config.js",
+      "public/icons/**"
+    ],
+    "reads": [
+      "index.html",
+      "public/manifest.json",
+      "src/styles.css"
+    ],
+    "deps": [
+      "R7-01"
+    ],
+    "acceptance": "npm run icons produces public/icons/pwa-192x192.png, pwa-512x512.png, maskable-icon-512x512.png, apple-touch-icon-180x180.png, favicon.ico and favicon.svg; `file public/icons/*.png` shows 192x192, 512x512, 512x512 and 180x180; sha256sum of public/icons/* is identical after a second npm run icons.",
+    "notes": "Background #0a0c10; maskable content kept inside the central 80 percent. Overlaps X1-04. First version is a plain vector flame; the user may replace the SVG later (R7-03)."
+  },
+  {
+    "id": "R7-03",
+    "title": "USER: approve or supply the Forge icon artwork and confirm the icon background colour",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": [],
+    "reads": [
+      "assets/icon-source.svg",
+      "public/icons/"
+    ],
+    "deps": [
+      "R7-02"
+    ],
+    "acceptance": "User confirms the flame artwork and #0a0c10 background, or replaces assets/icon-source.svg; if replaced, npm run icons is re-run and the PNGs are committed.",
+    "notes": "User-only action; blocks nothing technical, so P1 can ship with the first-version icon."
+  },
+  {
+    "id": "R7-04",
+    "title": "Configure vite-plugin-pwa (generateSW), manifest and index.html icon links, plus a check-sw build verifier",
+    "size": "M",
+    "phaseHint": "P1 PWA",
+    "writes": [
+      "vite.config.js",
+      "public/manifest.json",
+      "index.html",
+      "scripts/ci/check-sw.mjs"
+    ],
+    "reads": [
+      "vite.config.js",
+      "index.html",
+      "public/manifest.json",
+      "public/icons/",
+      "src/tabs/Life.jsx"
+    ],
+    "deps": [
+      "R7-01",
+      "R7-02",
+      "R5-13"
+    ],
+    "acceptance": "npm run build emits dist/sw.js and dist/workbox-*.js; node scripts/ci/check-sw.mjs exits 0, asserting the precache list contains index.html and icons but not dsa/ or puzzles.json, the navigate denylist covers /api/ and /dsa/, and /api/ and *.supabase.co use NetworkOnly; dist/manifest.json lists the 192, 512 and maskable PNGs with id and scope.",
+    "notes": "registerType prompt, injectRegister false, manifest false (hand-edited file), no dev SW. Disagrees with X1-05 (injectManifest); push can later use workbox.importScripts. vite.config.js edit is one line in plugins; index.html also edited by R1 (theme-color), serialise."
+  },
+  {
+    "id": "R7-05",
+    "title": "Add the update-prompt UX: SW registration module, prompt component, flush-then-update flow with unit test",
+    "size": "M",
+    "phaseHint": "P1 PWA",
+    "writes": [
+      "src/pwa/registerSW.js",
+      "src/pwa/UpdatePrompt.jsx",
+      "src/pwa/updateFlow.js",
+      "src/pwa/update-prompt.css",
+      "test/updateFlow.test.js",
+      "src/main.jsx"
+    ],
+    "reads": [
+      "src/main.jsx",
+      "src/store.js",
+      "src/Toast.jsx",
+      "src/toast.js",
+      "src/styles.css"
+    ],
+    "deps": [
+      "R7-04",
+      "R1-01"
+    ],
+    "acceptance": "node --test test/updateFlow.test.js passes (flush is awaited before updateServiceWorker, a failing flush still applies the update after the user confirms, no update call without confirmation); npm run build succeeds; src/main.jsx gains exactly one import of ./pwa/registerSW.js.",
+    "notes": "Mounts its own React root so App.jsx is untouched. src/main.jsx is also edited by R1-01 (CSS imports), the router lane and X1-10, hence the dep on R1-01. Hourly registration.update() and on visibilitychange; skip registration on native platforms."
+  },
+  {
+    "id": "R7-06",
+    "title": "Add cache headers for sw.js, manifest, icons and hashed assets to vercel.json",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": [
+      "vercel.json",
+      "test/vercelHeaders.test.js"
+    ],
+    "reads": [
+      "vercel.json",
+      "test/vercelConfig.test.js"
+    ],
+    "deps": [
+      "R5-14",
+      "R7-04"
+    ],
+    "acceptance": "node --test test/vercelHeaders.test.js passes: /sw.js and /manifest.json get Cache-Control no-cache, /assets/* gets public, max-age=31536000, immutable, /icons/* gets a long max-age, and no header rule matches /api/*; node -e \"JSON.parse(require('fs').readFileSync('vercel.json','utf8'))\" exits 0.",
+    "notes": "vercel.json is created by R5-14 and extended by R5-15; chain R5-14, R7-06, R5-15. Header behaviour on Vercel itself is only verifiable on a preview deploy (R7-14)."
+  },
+  {
+    "id": "R7-07",
+    "title": "Add Playwright config with the 5 blueprint device projects plus a pwa project, hermetic Supabase fixtures and a smoke spec",
+    "size": "M",
+    "phaseHint": "P4 quality+ops",
+    "writes": [
+      "playwright.config.js",
+      ".env.e2e",
+      "e2e/fixtures/hermetic.js",
+      "e2e/fixtures/data.js",
+      "e2e/smoke.spec.js",
+      ".gitignore"
+    ],
+    "reads": [
+      "package.json",
+      "vite.config.js",
+      "src/supabaseClient.js",
+      "src/store.js",
+      "docs/plan/blueprint.txt"
+    ],
+    "deps": [
+      "R7-01"
+    ],
+    "acceptance": "npm run test:e2e passes on projects iphone-14, ipad-portrait, ipad-landscape, ipad-split-third and desktop-chrome using the preinstalled Chromium; smoke.spec.js asserts the app boots signed in with seeded kv_store rows, the tab bar renders, no pageerror, and zero unfulfilled non-localhost requests; viewports are 390x844, 834x1194, 1194x834, 375x1024 and 1440x900.",
+    "notes": "browserName chromium for every project (only Chromium is installed here); register the block-external route first because Playwright matches last-registered routes first. Dummy env lives in .env.e2e (VITE_SUPABASE_URL=https://e2e.supabase.co). .gitignore gets dist-e2e, test-results and playwright-report. The pwa project defines testMatch for e2e/pwa.spec.js so R7-09 needs no config edit."
+  },
+  {
+    "id": "R7-08",
+    "title": "Write device-matrix layout specs from the blueprint verification table",
+    "size": "M",
+    "phaseHint": "P4 quality+ops",
+    "writes": [
+      "e2e/matrix/**",
+      "e2e/helpers/layout.js"
+    ],
+    "reads": [
+      "docs/plan/blueprint.txt",
+      "e2e/fixtures/hermetic.js",
+      "playwright.config.js",
+      "src/styles.css",
+      "src/App.jsx"
+    ],
+    "deps": [
+      "R7-07",
+      "R1-09"
+    ],
+    "acceptance": "npm run test:e2e -- e2e/matrix passes on all 5 projects: phone shows 6 bottom tabs with no horizontal scroll; 834 wide shows the rail and hides tabs, with targets >= 44px and no sticky hover; 1194 wide shows sidebar and inspector per the hybrid decision, and rotating mid-session keeps the selected item; 375x1024 falls back to the phone shell; 1440x900 opens the palette with Ctrl+K and shows a focus ring on Tab.",
+    "notes": "Needs the shell wired into App.jsx (R1-09) and ideally R1-10 merged. Safe-area assertion is arithmetic on the CSS variable only; emulation reports insets as 0."
+  },
+  {
+    "id": "R7-09",
+    "title": "Add PWA offline E2E spec: SW registers, offline reload works, /api and /dsa are not hijacked",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": [
+      "e2e/pwa.spec.js"
+    ],
+    "reads": [
+      "playwright.config.js",
+      "e2e/fixtures/hermetic.js",
+      "scripts/ci/check-sw.mjs"
+    ],
+    "deps": [
+      "R7-05",
+      "R7-07"
+    ],
+    "acceptance": "npm run test:e2e -- --project=pwa passes: navigator.serviceWorker.ready resolves; after context.setOffline(true) a reload still renders the shell; a navigation to /api/ics?title=a&start=2026-01-01T00:00:00Z returns text/calendar, not index.html; /dsa/mastery-map.html is not answered with the app shell.",
+    "notes": "Only the pwa project allows service workers; all matrix projects block them."
+  },
+  {
+    "id": "R7-10",
+    "title": "Add a bundle-size budget script, budgets file and unit test",
+    "size": "S",
+    "phaseHint": "P4 quality+ops",
+    "writes": [
+      "scripts/ci/bundle-budget.mjs",
+      "scripts/ci/budgets.json",
+      "test/bundleBudget.test.js"
+    ],
+    "reads": [
+      "package.json"
+    ],
+    "deps": [
+      "R7-01"
+    ],
+    "acceptance": "npm run build && npm run size exits 0 and prints per-chunk and total gzip sizes (baseline JS total 237,168 B); node --test test/bundleBudget.test.js passes for the pure evaluate function including an over-budget failure case; budgets seeded as entry JS 135 kB, Life 62 kB, total JS 270 kB, CSS 12 kB gzip.",
+    "notes": "Uses node:zlib gzipSync, which matches Vite's reported gzip exactly. Chunks matched by hash-stripped prefix. Re-baseline at the P0 gate."
+  },
+  {
+    "id": "R7-11",
+    "title": "Add an ESLint flat config limited to correctness rules and the two React hooks rules",
+    "size": "S",
+    "phaseHint": "P4 quality+ops",
+    "writes": [
+      "eslint.config.js"
+    ],
+    "reads": [
+      "package.json",
+      "src/",
+      "api/",
+      "test/"
+    ],
+    "deps": [
+      "R7-01"
+    ],
+    "acceptance": "npm run lint exits 0 on the current tree (warnings allowed, errors none); it reports rules-of-hooks as error and exhaustive-deps as warn; the existing 6 eslint-disable comments resolve to a known rule.",
+    "notes": "No source edits: the 3 known unused-var warnings (Agents.jsx:22-23, lifeLogic.test.js:12) stay as warnings so no other lane's files are touched. No Prettier, no TypeScript, no Husky."
+  },
+  {
+    "id": "R7-12",
+    "title": "Add the GitHub Actions CI workflow (check and e2e jobs) and Dependabot config",
+    "size": "S",
+    "phaseHint": "P4 quality+ops",
+    "writes": [
+      ".github/workflows/ci.yml",
+      ".github/dependabot.yml"
+    ],
+    "reads": [
+      "package.json",
+      "playwright.config.js",
+      "scripts/ci/check-sw.mjs",
+      "scripts/ci/bundle-budget.mjs",
+      "eslint.config.js"
+    ],
+    "deps": [
+      "R7-04",
+      "R7-07",
+      "R7-10",
+      "R7-11"
+    ],
+    "acceptance": "A pull request run on GitHub shows jobs check (npm ci, lint, test, build, check-sw, size, informational audit) and e2e (playwright install chromium, test:e2e, report artifact on failure) both green, with the npm and Playwright browser caches hit on the second run.",
+    "notes": "Node 22; concurrency cancel-in-progress; permissions contents read. Needs a GitHub-hosted repo (R7-14). Cannot be run locally; verified on first PR."
+  },
+  {
+    "id": "R7-13",
+    "title": "Document the CI, E2E, PWA update and preview-deploy workflow in the README",
+    "size": "S",
+    "phaseHint": "P4 quality+ops",
+    "writes": [
+      "README.md"
+    ],
+    "reads": [
+      "README.md",
+      ".env.example",
+      ".github/workflows/ci.yml",
+      "playwright.config.js"
+    ],
+    "deps": [
+      "R5-18",
+      "R7-12"
+    ],
+    "acceptance": "README has sections for npm run lint, test, test:e2e, size, icons, the Vercel preview and env-var list (including OWNER_USER_ID), and how the in-app update prompt behaves; every command named exists in package.json (grep each script name).",
+    "notes": "README.md is also edited by R5-18; this task goes after it."
+  },
+  {
+    "id": "R7-14",
+    "title": "USER: connect the repo to GitHub Actions and Vercel, set env vars per scope, enable required checks",
+    "size": "S",
+    "phaseHint": "P4 quality+ops",
+    "writes": [],
+    "reads": [
+      "README.md",
+      ".github/workflows/ci.yml",
+      "vercel.json"
+    ],
+    "deps": [
+      "R7-12"
+    ],
+    "acceptance": "A pull request shows the Vercel preview check and the CI checks check and e2e; the default branch requires both; Vercel Production and Preview have VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, GROQ_API_KEY, OWNER_USER_ID (and optional GROQ_MODEL) set, Node 22.x selected, and the preview URL loads the app and /sw.js returns Cache-Control no-cache.",
+    "notes": "User decision inside: whether Preview uses a separate Supabase project, since previews otherwise write to real kv_store rows."
+  },
+  {
+    "id": "R7-15",
+    "title": "USER: verify install, offline and update prompt on a real iPhone and iPad",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": [],
+    "reads": [
+      "README.md",
+      "public/manifest.json"
+    ],
+    "deps": [
+      "R7-05",
+      "R7-06",
+      "R7-14"
+    ],
+    "acceptance": "On a deployed preview: Add to Home Screen shows the flame icon and standalone launch; airplane-mode launch shows the shell and local data; after deploying a second build the Update available prompt appears and Reload applies it without losing a just-typed task; FAB and tab bar clear the home indicator in portrait and landscape.",
+    "notes": "Covers what Chromium emulation cannot: real safe-area insets, dvh, iOS SW lifecycle and storage isolation."
+  }
+]

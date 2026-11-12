@@ -1,0 +1,198 @@
+[
+  {
+    "id": "R1-01",
+    "title": "Scaffold CSS partials and import them from main.jsx",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/main.jsx",
+      "src/styles/tokens.css",
+      "src/styles/shell.css",
+      "src/styles/nav.css",
+      "src/styles/inspector.css",
+      "src/styles/palette.css",
+      "src/styles/overlays.css",
+      "src/styles/screens.css",
+      "src/styles/tiles.css"
+    ],
+    "reads": ["src/main.jsx", "src/styles.css"],
+    "deps": [],
+    "acceptance": "npm run build succeeds and ls src/styles/*.css | wc -l prints 8; src/main.jsx imports styles.css first, then the 8 partials in the order tokens, shell, nav, inspector, palette, overlays, screens, tiles.",
+    "notes": "Creates every partial up front (header comment only) so later tasks never edit main.jsx or each other's CSS."
+  },
+  {
+    "id": "R1-02",
+    "title": "Guard hover rules with (hover: hover) and add a global focus-visible ring",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/styles.css", "src/Toast.jsx"],
+    "reads": ["src/styles.css", "src/Toast.jsx"],
+    "deps": [],
+    "acceptance": "node -e \"const s=require('fs').readFileSync('src/styles.css','utf8');const o=s.replace(/@media \\(hover: hover\\)[^{]*\\{(?:[^{}]*\\{[^{}]*\\})*[^{}]*\\}/g,'');process.exit(/:hover/.test(o)?1:0)\" exits 0 (it exits 1 today with 18 matches); styles.css contains a :focus-visible rule using var(--focus-ring, ...); npm run build passes.",
+    "notes": "Wrap the 18 :hover rules (styles.css lines 274-969). Keep input outline:none but add :focus-visible ring. Toast.jsx:15-16 onMouseEnter/Leave become pointer events that ignore pointerType touch. First of two serial styles.css writers (R1-10 is second)."
+  },
+  {
+    "id": "R1-03",
+    "title": "Define shell, inspector, pastel-tile and cream-theme tokens",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/styles/tokens.css"],
+    "reads": ["src/styles.css", "docs/forge-blueprint.html", "docs/plan/blueprint.txt"],
+    "deps": ["R1-01"],
+    "acceptance": "npm run build passes; tokens.css defines --nav-rail-w:72px, --nav-side-w:220px, --tabbar-h, --inspector-w, --inspector-min, the z-index scale (--z-header 10, --z-nav 100, --z-fab 50, --z-sheet 200, --z-toast 300), --focus-ring, --hover, five --tile-* pastels for dark by default and for light under data-accent sky and cream, and a :root[data-accent=\"cream\"] block with color-scheme: light; a comment records that cream --accent-solid vs #fff is >= 4.5:1 (use #c9382a) and --text-secondary on cream >= 4.5:1 (use #6f6580).",
+    "notes": "Do not copy the blueprint cream values blindly: #ff6b57 on #fff6e9 is 2.62:1 and #82788f is 3.90:1. Tile tone is chosen by data-tone attribute, not nth-child."
+  },
+  {
+    "id": "R1-04",
+    "title": "Add a hash router, route table and useSubView hook with unit tests",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/router.js", "src/routes.js", "test/router.test.js"],
+    "reads": [
+      "src/App.jsx",
+      "src/tabs/Life.jsx",
+      "src/tabs/LogicBuilding.jsx",
+      "src/tabs/Expenses.jsx",
+      "src/tabs/Invest.jsx"
+    ],
+    "deps": [],
+    "acceptance": "node --test test/router.test.js passes; tests cover parseHash/formatHash round-trip for #/today, #/life/tasks, #/logic/code, #/money/overview, #/invest/learn, #/agents, unknown paths falling back to #/today, and sub-view ids rejected when not in the table.",
+    "notes": "Pure parse/format in routes.js (node-testable, no React). router.js exposes useRoute() via useSyncExternalStore on hashchange, navigate(path), and useSubView(tabId, defaultId) returning [view, setView]. Keep the API location-agnostic so a history-API swap is a one-file change."
+  },
+  {
+    "id": "R1-05",
+    "title": "Build command registry, command palette dialog and keyboard shortcuts",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/shell/CommandPalette.jsx",
+      "src/shell/commands.js",
+      "src/shell/useShortcuts.js",
+      "src/styles/palette.css",
+      "test/commands.test.js"
+    ],
+    "reads": ["src/Sheet.jsx", "src/router.js", "src/routes.js"],
+    "deps": ["R1-01", "R1-04"],
+    "acceptance": "node --test test/commands.test.js passes (registry register/unregister, fuzzy filter ranking, shortcut matcher for Cmd+K, Ctrl+K, Cmd+1..6, N, X, and ignoring keys typed in input/textarea/select); npm run build passes.",
+    "notes": "Palette uses native <dialog> showModal like Sheet.jsx. Export useCommand(id, label, fn) so tabs register 'new' and 'complete' handlers later; tab wiring is done by the lane owners, not here."
+  },
+  {
+    "id": "R1-06",
+    "title": "Build container-query shell with bottom tabs, 72px rail and 220px sidebar",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/shell/Shell.jsx",
+      "src/shell/Nav.jsx",
+      "src/shell/TopBar.jsx",
+      "src/styles/shell.css",
+      "src/styles/nav.css"
+    ],
+    "reads": [
+      "src/App.jsx",
+      "src/styles.css",
+      "src/styles/tokens.css",
+      "docs/forge-blueprint.html"
+    ],
+    "deps": ["R1-01", "R1-03", "R1-04"],
+    "acceptance": "npm run build passes; with the dev server, at widths 390, 700, 1100 and 1400 the nav is respectively bottom tabs, 72px rail, 220px sidebar, sidebar; 6 tabs fit at 375px without horizontal scroll; the nav has aria-label and aria-current=\"page\" on the active item; Tab key shows a visible focus ring on every nav item.",
+    "notes": ".app-root { container: app / inline-size; height: 100dvh } with an inner scroll pane (.page) so fixed-position behaviour inside the container cannot matter; resets page scrollTop on route change; Shell exposes slots for children, inspector and toast host. Does not edit App.jsx."
+  },
+  {
+    "id": "R1-07",
+    "title": "Make Sheet, Toast and FAB placement responsive via tokens",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/styles/overlays.css"],
+    "reads": ["src/styles.css", "src/Sheet.jsx", "src/Toast.jsx", "src/tabs/Expenses.jsx"],
+    "deps": ["R1-01", "R1-03"],
+    "acceptance": "npm run build passes; overlays.css has no 100vw and no literal 64px/80px bottom offsets; at <600 sheet is a bottom sheet with safe-area padding and max-height in dvh, at 600-1023 a centred modal max 520px, at >=1024 a right-side sheet; toast and FAB bottom offsets equal calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px) with --tabbar-h 0 when rail or sidebar is active; FAB hidden at >=1024.",
+    "notes": "Overrides the legacy selectors .sheet-dialog, .toast-stack, .expense-fab (styles.css:620, 736, 829); the legacy copies are deleted later in R1-10. Sheet.jsx needs no change."
+  },
+  {
+    "id": "R1-08",
+    "title": "Add inspector pane primitive that falls back to a Sheet below 1024px",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/shell/Inspector.jsx",
+      "src/shell/inspectorContext.js",
+      "src/styles/inspector.css"
+    ],
+    "reads": ["src/Sheet.jsx", "src/shell/Shell.jsx", "src/styles/tokens.css"],
+    "deps": ["R1-06"],
+    "acceptance": "npm run build passes; useInspector().open(node) renders the node in a right-hand pane when the container is wider than --inspector-min and in <Sheet> otherwise; Escape or close() empties it; pane scrolls independently and has a labelled region role.",
+    "notes": "Domain-screen adoption (Life tasks, Money txns, etc.) belongs to the lane agents' tasks."
+  },
+  {
+    "id": "R1-09",
+    "title": "Wire shell and routes into App.jsx with Home as first and default tab",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/App.jsx", "src/tabs/Home.jsx"],
+    "reads": [
+      "src/App.jsx",
+      "src/shell/Shell.jsx",
+      "src/router.js",
+      "src/routes.js",
+      "src/shell/commands.js"
+    ],
+    "deps": ["R1-04", "R1-05", "R1-06"],
+    "acceptance": "npm run build passes; opening / redirects to #/today and shows the Home stub; #/life/tasks, #/logic/code, #/money/overview, #/invest/learn and #/agents open the matching tab; TABS lists Home, Life, Logic, Money, Invest, Agents in that order; KEY_TO_TAB accepts arrays so a remote 'tasks' change bumps both Life and Home ticks; THEMES includes cream; document theme-color meta is updated on theme change.",
+    "notes": "New tab id is Home (label Today) because id Today is already used for the Codeforces progress key (App.jsx:36, LogicBuilding.jsx:42,82). Replaces tab useState (App.jsx:51), TABS (15-21), render block (278-301); mounts CommandPalette and shortcuts. Auth/loading/error screens keep the .app wrapper. Any later task that edits App.jsx must dep on this."
+  },
+  {
+    "id": "R1-10",
+    "title": "Migrate legacy styles.css to tokens and remove the old tab bar and 640px shell",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/styles.css"],
+    "reads": [
+      "src/styles/tokens.css",
+      "src/styles/overlays.css",
+      "src/styles/shell.css",
+      "src/App.jsx"
+    ],
+    "deps": ["R1-02", "R1-07", "R1-09"],
+    "acceptance": "npm run build passes; styles.css no longer contains .tab-bar, .tab-bar-inner, .tab-btn, the sticky .app-header rule, .content padding-bottom:100px, or the legacy .toast-stack/.expense-fab/.sheet-dialog positioning; .app keeps only the auth-screen centring (max-width allowed there); .puzzle-card, the title gradient, send-btn hover and fab hover shadow use theme tokens so they render correctly under data-accent sky and cream.",
+    "notes": "Second serial writer of styles.css (after R1-02). Sky glass rules at styles.css:75-92 move to tokens (--nav-bg) rather than being deleted."
+  },
+  {
+    "id": "R1-11",
+    "title": "Add wide-pane CSS for legacy single-column blocks",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/styles/screens.css"],
+    "reads": ["src/styles.css", "src/tabs/Expenses.jsx", "src/tabs/Life.jsx", "src/tabs/LogicBuilding.jsx"],
+    "deps": ["R1-06"],
+    "acceptance": "npm run build passes; at container width >=600 the .page content has a max-width token, .stat-row/.life-stats keep equal columns, .expense-cat-grid goes to 6 columns, .chat-bubble max-width is 70ch; no change below 600px (390px screenshot identical).",
+    "notes": "CSS only, selectors from styles.css:214, 710, 996, 515. Inline grids in Expenses.jsx:451,1139 are left alone."
+  },
+  {
+    "id": "R1-12",
+    "title": "Adopt useSubView in Life, Logic, Money and Invest tabs",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/tabs/Life.jsx",
+      "src/tabs/LogicBuilding.jsx",
+      "src/tabs/Expenses.jsx",
+      "src/tabs/Invest.jsx"
+    ],
+    "reads": ["src/router.js", "src/routes.js"],
+    "deps": ["R1-04", "R1-09"],
+    "acceptance": "npm run build passes; loading #/life/habits opens Habits, #/money/loans opens Loans, #/logic/exams opens Exams, #/invest/watch opens Watchlist; clicking an agent-pill changes the hash; browser Back returns to the previous sub-view.",
+    "notes": "One-line replacement of useState at Life.jsx:80, LogicBuilding.jsx:20, Expenses.jsx:106, Invest.jsx:27. Hot spot: schedule in a wave where no other task writes these files. Life keeps its group derivation (Life.jsx:43)."
+  },
+  {
+    "id": "R1-13",
+    "title": "Add static CSS guard test for shell and input-model rules",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["test/shellCss.test.js"],
+    "reads": ["src/styles.css", "src/styles/tokens.css", "src/styles/shell.css", "src/styles/nav.css", "src/styles/overlays.css"],
+    "deps": ["R1-10"],
+    "acceptance": "node --test test/shellCss.test.js passes and fails if any of these regress: a :hover rule outside @media (hover: hover) in any src CSS file, a 100vw or calc(64px + ...) literal, a missing @container app (min-width:600px) or (min-width:1024px) block, a missing :focus-visible rule, or a missing data-accent=\"cream\" block.",
+    "notes": "Cheap regression net until R7 adds Playwright viewport tests."
+  }
+]

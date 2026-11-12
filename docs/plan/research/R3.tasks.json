@@ -1,0 +1,123 @@
+[
+  {
+    "id": "R3-01",
+    "title": "Add pure Logic helpers (stats, exam data, split hook, shared CSS) with unit tests",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/logic/stats.js", "src/logic/examData.js", "src/logic/useSplit.js", "src/logic/logic.css", "test/logicStats.test.js"],
+    "reads": ["src/tabs/Today.jsx", "src/tabs/Puzzles.jsx", "src/tabs/Exams.jsx", "src/tabs/LogicBuilding.jsx"],
+    "deps": [],
+    "acceptance": "node --test test/logicStats.test.js passes: solvedToday (same result as Today.jsx:24 for local midnight), codeRing(progress, goal=3), codeStreak from dated progress, localDaySeed, shuffleDaily determinism, examTotals ignores unknown keys and never exceeds 100%; examData.js exports EXAMS identical to Exams.jsx:8-89 (66 topics)",
+    "notes": "stats.js must be React-free so the Home bundle can import it without loading the lazy Logic chunk; useSplit(ref, 1024) measures .app-root width, logic.css defines the container-query list|inspector grid with a single-column fallback."
+  },
+  {
+    "id": "R3-02",
+    "title": "Rename Today.jsx to CodeView.jsx and turn LogicBuilding into a controlled four-view host (code, puzzles, exams, dsa)",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/tabs/LogicBuilding.jsx", "src/tabs/Today.jsx", "src/tabs/CodeView.jsx", "src/tabs/Exams.jsx"],
+    "reads": ["src/App.jsx", "src/logic/stats.js", "src/logic/examData.js", "src/tabs/DsaView.jsx"],
+    "deps": ["R3-01", "R3-03"],
+    "acceptance": "npm test && npm run build pass; grep -rn \"tabs/Today\" src returns nothing; LogicBuilding accepts view/onViewChange props (falls back to local state when absent) and renders Code, Puzzles, Exams and a lazy DsaView; the old top DSA link is gone; glance numbers equal the previous ones; ticks read as (syncTicks.Code||0)+(syncTicks.Today||0)",
+    "notes": "Exams.jsx change is only replacing the EXAMS literal with an import from src/logic/examData.js plus re-export; App.jsx wiring (route, KEY_TO_TAB rename to 'Code') belongs to the shell task."
+  },
+  {
+    "id": "R3-03",
+    "title": "Create DsaView, a same-origin iframe wrapper for the DSA mastery map with loading and failure fallback",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/tabs/DsaView.jsx", "src/logic/dsa.css"],
+    "reads": ["public/dsa/mastery-map.html", "src/tabs/LogicBuilding.jsx"],
+    "deps": [],
+    "acceptance": "npm run build passes; rendering <DsaView/> shows an iframe with src /dsa/mastery-map.html?embed=1, title attribute, fills the available height (no page-level double scroll at 390 and 1194 widths), shows a skeleton until onLoad and, after 8s without load, a visible 'Open in new tab' link (target=_blank rel=noopener)",
+    "notes": "Always show a small 'open in new tab' link too; no postMessage dependency, summary data flows through localStorage (see R3-04)."
+  },
+  {
+    "id": "R3-04",
+    "title": "Add ?embed=1 mode, summary export, pre-pull backup and account-owner guard to the mastery map page",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["public/dsa/mastery-map.html", "test/dsaPage.test.js"],
+    "reads": ["src/sync/engine.js", "docs/superpowers/specs/2026-09-15-cloud-sync-design.md"],
+    "deps": [],
+    "acceptance": "node --test test/dsaPage.test.js passes: pins STORAGE keys (mastery_map_v2, mastery_map_problems, mastery_tab, roadmap_phase, roadmap_rating), DATA_KEY dsa_mastery_v1 and the ours() regex, and checks the embed hooks exist; manual: /dsa/mastery-map.html?embed=1 at 390px has no horizontal scroll and no '← Forge' link, 1024-1119px width is usable, after edits localStorage.dsa_summary = {done,total,tabs,at} and that key is NOT pushed (does not match ours()); signing in as a different user clears mastery_*/roadmap_* before pulling; a pull that changes local data first saves dsa_pre_pull_backup",
+    "notes": "Write dsa_summary with Storage.prototype.setItem.call(localStorage,...) to bypass the patched setItem; keep the diff small (page may be vendored from logic_building/mastery_map_DSA_v11.html); fix minmax(360px,1fr) overflow and 100vh->100dvh; optional ?tab=<id> deep link validated against TABS."
+  },
+  {
+    "id": "R3-05",
+    "title": "Rebuild the Code view as a problem list with a focus inspector and visible error/retry states",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/tabs/CodeView.jsx", "src/logic/code.css"],
+    "reads": ["src/logic/stats.js", "src/logic/useSplit.js", "src/logic/logic.css", "src/logic/apiClient.js", "src/logic/tileData.js", "src/Sheet.jsx", "api/cf.js"],
+    "deps": ["R3-01", "R3-02", "R3-08", "R3-11"],
+    "acceptance": "npm run build passes; at >=1024 container width a selected problem shows in a right inspector (tags, CF link, mark solved/skip, per-tag solved bars from tagCounts) and survives a resize; <1024 it opens in a Sheet; j/k move, x marks solved, s skips; empty handle, unknown handle (/api/cf?handle=__nope__), 502 and offline each show a banner above both panes with a Retry button; a request superseded by a newer filter/page is ignored; paging scrolls the list pane, not window; page resets when cfHandle changes; successful fetch calls rememberCfRating()",
+    "notes": "Keep stats row out of the view (header glance owns it) or move it into the inspector to avoid the duplicate 'Solved today'."
+  },
+  {
+    "id": "R3-06",
+    "title": "Rebuild Puzzles as list plus inspector with one shared row component and a local-day daily seed",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/tabs/Puzzles.jsx", "src/logic/puzzles.css"],
+    "reads": ["src/logic/stats.js", "src/logic/useSplit.js", "src/logic/logic.css", "src/logic/apiClient.js", "src/puzzles.js", "public/puzzles.json"],
+    "deps": ["R3-01", "R3-11"],
+    "acceptance": "npm run build passes; the duplicated daily/browse card markup (Puzzles.jsx:137-283) is one PuzzleRow; at >=1024 selecting a row fills the inspector (description, hint toggle, solution, source link, solved toggle), <1024 uses a Sheet; the Lichess daily card shows loading, error banner and retry; Today's Picks use the local-day seed from stats.js and stay stable across filter changes; 145 rows render without visible jank",
+    "notes": "Solved toggle keeps the boolean {id:true} shape of puzzleProgress; do not change stored data."
+  },
+  {
+    "id": "R3-07",
+    "title": "Rebuild Exams as sections list plus topic-checklist/notes inspector",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/tabs/Exams.jsx", "src/logic/exams.css"],
+    "reads": ["src/logic/stats.js", "src/logic/examData.js", "src/logic/useSplit.js", "src/logic/logic.css", "src/undo.js"],
+    "deps": ["R3-01", "R3-02"],
+    "acceptance": "npm run build passes; examProgress keys remain exam::section::topic (existing data still checks off); at >=1024 the selected section's topics and the exam notes show in the inspector, <1024 sections stay an accordion; notes keep delete-with-undo; progress percentages use examTotals (<=100%); loading and error states unchanged in behaviour",
+    "notes": "Exams.jsx must keep exporting EXAMS (re-export) until nothing imports it from here."
+  },
+  {
+    "id": "R3-08",
+    "title": "Add the Logic tile-data selector for the Today home (code ring, streak, puzzles, exams, DSA, cached rating)",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/logic/tileData.js", "test/logicTileData.test.js"],
+    "reads": ["src/logic/stats.js", "src/store.js", "public/dsa/mastery-map.html"],
+    "deps": ["R3-01", "R3-04"],
+    "acceptance": "node --test test/logicTileData.test.js passes with injected getters and a fake storage: loadLogicTileData() returns {codeRing:{done,goal,pct}, codeStreak, cfRating|null, puzzles:{solved,total}, exams:{pct}, dsa:{done,total}|null}; dsa is null when dsa_summary is missing or corrupt; rememberCfRating(rating, storage) round-trips and never throws when storage is blocked",
+    "notes": "Goal comes from settings.dailyCodeGoal with default 3 (user decision pending); exports are the contract the Home tile tasks call."
+  },
+  {
+    "id": "R3-09",
+    "title": "Harden api/cf.js and api/puzzle.js: timeouts, ok checks, cache TTL, rate-limit message, handler tests",
+    "size": "S",
+    "phaseHint": "P4 quality+ops",
+    "writes": ["api/cf.js", "api/puzzle.js", "test/cfApi.test.js"],
+    "reads": ["api/_lib/pickProblems.js", "vite.config.js"],
+    "deps": [],
+    "acceptance": "node --test test/cfApi.test.js passes with a stubbed global fetch: empty handle -> 400, CF FAILED comment -> 502 with that comment, 'Call limit exceeded' -> friendly retry-later message, non-JSON or timeout (AbortSignal.timeout) -> 502 generic JSON, problemsCache expires after its TTL; /api/puzzle sets Cache-Control and returns JSON error on non-OK; npm test still green (pickProblems tests unchanged)",
+    "notes": "R5 may also edit these files for native CORS/origin; schedule them in different waves."
+  },
+  {
+    "id": "R3-10",
+    "title": "Vendor supabase-js for the DSA page and guard the missing-client path",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": ["public/dsa/vendor/supabase-2.116.0.js", "public/dsa/mastery-map.html", "test/dsaPage.test.js"],
+    "reads": ["node_modules/@supabase/supabase-js/dist/umd/supabase.js", "package.json"],
+    "deps": ["R3-04"],
+    "acceptance": "node --test test/dsaPage.test.js passes with an added assertion that no script src points at cdn.jsdelivr.net and the page loads /dsa/vendor/supabase-2.116.0.js; with the script blocked the page still renders and saves to localStorage without throwing (window.supabase guarded before createClient)",
+    "notes": "Copy of the 218,318-byte UMD bundle from the installed 2.116.0; Google Fonts remain a CDN dependency (system-font fallback already applies)."
+  },
+  {
+    "id": "R3-11",
+    "title": "Add a client fetchJson helper that turns network, HTTP and parse failures into friendly typed errors",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/logic/apiClient.js", "test/logicApiClient.test.js"],
+    "reads": ["src/tabs/Today.jsx", "src/tabs/Puzzles.jsx"],
+    "deps": [],
+    "acceptance": "node --test test/logicApiClient.test.js passes with a fake fetch: JSON {error} body -> that message, HTML 504 -> 'server error' kind (no raw SyntaxError text), network failure -> 'offline' kind, abort via signal resolves to a cancelled marker not an error, timeout option works",
+    "notes": "Pure module (no React) so Home and other tabs can reuse it."
+  }
+]

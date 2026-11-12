@@ -1,0 +1,245 @@
+[
+  {
+    "id": "B3-01",
+    "title": "Add pure Today logic (global streak, level/XP, month spend, task buckets) with unit tests",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/today/logic.js", "src/money/categories.js", "test/todayLogic.test.js"],
+    "reads": ["src/life/logic.js", "src/money/logic.js", "src/tabs/Expenses.jsx", "src/tabs/Life.jsx", "docs/plan/research/B3-spec.md"],
+    "deps": [],
+    "acceptance": "node --test test/todayLogic.test.js passes: dayStreak over the union of all habit check-ins equals streaks(union) from src/life/logic.js; level(1240)=7 and xpToNext(1240)=230; monthSpendByCategory ignores income and other months; topTasks orders overdue, due today, urgent+important",
+    "notes": "Pure ESM, no DOM, no React. src/money/categories.js is a copy of CATEGORIES (Expenses.jsx:16-29); Expenses.jsx keeps its own copy until a later split task dedupes."
+  },
+  {
+    "id": "B3-02",
+    "title": "Add hybrid design tokens, cream theme, pastel tile tokens and light-theme status colours",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/styles/tokens.css", "src/styles.css", "src/main.jsx"],
+    "reads": ["docs/plan/research/B3-spec.md", "docs/forge-blueprint.html"],
+    "deps": [],
+    "acceptance": "npm run build exits 0; with document.documentElement.dataset.accent='cream' the page renders cream and a manual or scripted check confirms every text/background pair in B3-spec.md section 1 is >= 4.5:1; sky and the 5 dark themes are visually unchanged except --text-tertiary and light status colours",
+    "notes": "Single owner of src/styles.css lines 1-94 (token block + theme blocks); edit only those lines plus two-line contrast fixes. tokens.css is imported in main.jsx AFTER styles.css so new names and cream overrides win. Later tasks must not edit src/styles.css lines 1-94."
+  },
+  {
+    "id": "B3-03",
+    "title": "Build UI primitives Tile, Row, Check, Chip, Pill, Stat, EmptyState, Kbd with shared CSS",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/ui/Tile.jsx", "src/ui/Row.jsx", "src/ui/Check.jsx", "src/ui/Chip.jsx", "src/ui/Pill.jsx",
+      "src/ui/Stat.jsx", "src/ui/EmptyState.jsx", "src/ui/Kbd.jsx", "src/ui/ui.css"
+    ],
+    "reads": ["src/styles.css", "docs/plan/research/B3-spec.md"],
+    "deps": [],
+    "acceptance": "npm run build exits 0; each component imports only ./ui.css and uses only token names from B3-spec.md section 1 (grep for raw #hex in src/ui/ui.css returns 0 matches); Check hit area is >= 44x44 under pointer:coarse",
+    "notes": "Does not edit src/styles.css; legacy classes (.card, .chip, .life-row) keep working. Tokens may not exist until B3-02 merges, so use var() fallbacks equal to current Std values."
+  },
+  {
+    "id": "B3-04",
+    "title": "Build data-viz primitives Bar, Ring, Donut, Spark with tested geometry helpers",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/ui/Bar.jsx", "src/ui/Ring.jsx", "src/ui/Donut.jsx", "src/ui/Spark.jsx", "src/ui/viz.css", "src/ui/vizMath.js", "test/vizMath.test.js"],
+    "reads": ["docs/forge-blueprint.html", "docs/plan/research/B3-spec.md"],
+    "deps": [],
+    "acceptance": "node --test test/vizMath.test.js passes (donutGradient emits conic-gradient stops summing to 100%, handles empty and single segment, 2px gap option; sparkPoints scales flat series without NaN); npm run build exits 0; Donut renders a text legend and role=img label",
+    "notes": "Slice colours come from --chart-1..6 (B3-02); fall back to the dark palette literal inside vizMath defaults. Spark is built but unused by v1 Today because /api/quote has no series."
+  },
+  {
+    "id": "B3-05",
+    "title": "Add standalone UI gallery page for viewing primitives at phone, tablet and desktop widths",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["gallery.html", "src/ui/gallery-main.jsx", "src/ui/Gallery.jsx"],
+    "reads": ["src/ui/Tile.jsx", "src/ui/Row.jsx", "src/ui/Check.jsx", "src/ui/Chip.jsx", "src/ui/Pill.jsx", "src/ui/Stat.jsx", "src/ui/EmptyState.jsx", "src/ui/Bar.jsx", "src/ui/Ring.jsx", "src/ui/Donut.jsx", "src/ui/Spark.jsx", "src/styles.css", "src/styles/tokens.css"],
+    "deps": ["B3-02", "B3-03", "B3-04"],
+    "acceptance": "npm run dev then open /gallery.html: all primitives render in all 7 themes (theme switcher on the page) with no console errors; npm run build still exits 0 (gallery.html is not a build input)",
+    "notes": "Vite serves root-level html files in dev only; index.html stays the only production entry. Gives later screen tasks a visual check without Playwright."
+  },
+  {
+    "id": "B3-06",
+    "title": "Add route table and History API router (pure matcher, hooks, Link)",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/shell/routes.js", "src/router.js", "test/router.test.js"],
+    "reads": ["src/App.jsx", "docs/plan/research/B3-spec.md"],
+    "deps": [],
+    "acceptance": "node --test test/router.test.js passes: matchRoute('/life/tasks') -> {tab:'Life', sub:'tasks'}, '/' redirects to '/today', unknown path -> /today, query ?sel= round-trips, all 18 sub-view paths resolve, tab ids map to existing App.jsx ids (Life, LogicBuilding, Expenses, Invest, Agents) plus new 'home'",
+    "notes": "routes.js has no React import so node can test it; router.js holds useRoute/navigate/Link. Production deep links also need an SPA rewrite on the host (no vercel.json exists): not in this task."
+  },
+  {
+    "id": "B3-07",
+    "title": "Build responsive shell: Shell, single Nav (tabs/rail/sidebar), Header, Fab, useLayout, shell actions context",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/shell/Shell.jsx", "src/shell/Nav.jsx", "src/shell/Header.jsx", "src/shell/Fab.jsx",
+      "src/shell/useLayout.js", "src/shell/actions.js", "src/styles/shell.css"
+    ],
+    "reads": ["src/App.jsx", "src/styles.css", "src/shell/routes.js", "src/router.js", "src/ui/Pill.jsx", "src/ui/Kbd.jsx", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-02", "B3-03", "B3-06"],
+    "acceptance": "npm run build exits 0; in /gallery.html-style harness or via B3-14: at 390px bottom tabs visible and no horizontal scroll, at 834px 72px rail and tabs hidden, at 1100px 220px sidebar, resizing across a breakpoint keeps keyboard focus on the same nav item; FAB bottom uses var(--tabbar-h); shell.css also overrides .toast-stack offset with the same variable",
+    "notes": "Does not touch App.jsx (B3-14 wires it in). Overrides legacy .app max-width and .tab-bar rules from shell.css via .app-root scoping so styles.css is untouched until B3-14."
+  },
+  {
+    "id": "B3-08",
+    "title": "Add Inspector pane/side-sheet and a side variant of Sheet",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/shell/Inspector.jsx", "src/shell/inspector.css", "src/Sheet.jsx"],
+    "reads": ["src/Sheet.jsx", "src/shell/useLayout.js", "src/tabs/Expenses.jsx", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-07"],
+    "acceptance": "npm run build exits 0; Sheet without the new side prop renders byte-identically to today (existing 3 Sheet usages in src/tabs/Expenses.jsx unchanged); Inspector docks at >=1024 container width, becomes a right 400px side sheet at 600-1023 and a bottom sheet below 600; Esc closes the sheet variants",
+    "notes": "Single owner of src/Sheet.jsx. The Inspector renders its children once (portal) so form state is not duplicated across pane and sheet."
+  },
+  {
+    "id": "B3-09",
+    "title": "Build command palette and keyboard shortcuts with tested search and key guards",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/shell/Palette.jsx", "src/shell/useShortcuts.js", "src/shell/searchIndex.js", "src/shell/palette.css",
+      "test/shortcuts.test.js", "test/paletteSearch.test.js"
+    ],
+    "reads": ["src/Sheet.jsx", "src/shell/routes.js", "src/shell/actions.js", "src/store.js", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-06", "B3-07"],
+    "acceptance": "node --test test/shortcuts.test.js test/paletteSearch.test.js passes: N and X are ignored inside input/textarea/select/contenteditable, while a dialog is open, and with any modifier; Mod+K, Mod+1..6, g-then-letter chords and ? resolve to actions; fuzzy search ranks prefix over substring and searches title, body, tags; shortcuts honour settings.shortcuts === false",
+    "notes": "Pure functions (shortcutAction(event, ctx), buildIndex, search) live in searchIndex.js / useShortcuts.js exports so node can test them without a DOM. Palette reads items through store getters only when opened."
+  },
+  {
+    "id": "B3-10",
+    "title": "Emit local key-change events from the store and add useStoreKey hook",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/storeEvents.js", "src/useStoreKey.js", "src/store.js", "test/storeEvents.test.js"],
+    "reads": ["src/store.js", "src/sync/engine.js", "src/useHydrate.js"],
+    "deps": [],
+    "acceptance": "node --test test/storeEvents.test.js passes (subscribe/emit/unsubscribe, emit after save, no listener leak); in the dev app saving habits from Life updates a component using useStoreKey('habits') without a remount; existing node --test suite still green",
+    "notes": "store.js edit is one import plus one emit call inside saveSynced (store.js:55-57); store.js is a hot spot shared with the sync v2 work, so keep the diff to those lines. Needed so the global header pills do not go stale after a local check-in."
+  },
+  {
+    "id": "B3-11",
+    "title": "Build Today tiles: Streak, Wallet, Pets, Code ring, Tasks",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/today/tiles/StreakTile.jsx", "src/today/tiles/WalletTile.jsx", "src/today/tiles/PetsTile.jsx",
+      "src/today/tiles/CodeTile.jsx", "src/today/tiles/TasksTile.jsx", "src/today/tiles/tiles-a.css"
+    ],
+    "reads": ["src/today/logic.js", "src/ui/Tile.jsx", "src/ui/Row.jsx", "src/ui/Check.jsx", "src/ui/Chip.jsx", "src/ui/Bar.jsx", "src/ui/Ring.jsx", "src/life/logic.js", "src/tabs/Life.jsx", "src/tabs/Today.jsx", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-01", "B3-02", "B3-03", "B3-04"],
+    "acceptance": "npm run build exits 0; each tile is a pure presentational component taking data via props (no store imports) and renders loading, empty and populated states in /gallery.html; task complete and check-in controls are >= 44px and call onToggleTask/onCheckIn props",
+    "notes": "Tiles take props only; data and write paths are injected by B3-13 so the write logic from Life.jsx (checkIn at :800, toggle at :273) is not copied twice."
+  },
+  {
+    "id": "B3-12",
+    "title": "Build Today tiles: Spend donut, Mood, Watch, Tutor prompt",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/today/tiles/SpendTile.jsx", "src/today/tiles/MoodTile.jsx", "src/today/tiles/WatchTile.jsx",
+      "src/today/tiles/TutorTile.jsx", "src/today/tiles/tiles-b.css"
+    ],
+    "reads": ["src/today/logic.js", "src/ui/Tile.jsx", "src/ui/Donut.jsx", "src/ui/Chip.jsx", "src/ui/Spark.jsx", "src/life/logic.js", "src/agents.json", "src/tabs/Invest.jsx", "api/quote.js", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-01", "B3-02", "B3-03", "B3-04"],
+    "acceptance": "npm run build exits 0; Mood tile shows 5 buttons (MANUAL_MOODS) each >= 44px and spans full width at 2 columns; Spend tile hides the '% of budget' line when total budget is 0; Watch tile renders an offline fallback from priceAtAdd when the quote prop is null; all four verified in /gallery.html",
+    "notes": "Props only. Watch tile uses the first stock in the watchlist, not NIFTY (api/quote.js:3 rejects index symbols). Tutor tile navigates to /agents?q=; Agents prefill is in B3-18."
+  },
+  {
+    "id": "B3-13",
+    "title": "Assemble Today home: bento grid, data hook, shared progress-summary hook for header pills",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/today/TodayHome.jsx", "src/today/useTodayData.js", "src/today/useProgressSummary.js", "src/today/today.css"],
+    "reads": [
+      "src/today/logic.js", "src/today/tiles/StreakTile.jsx", "src/today/tiles/WalletTile.jsx", "src/today/tiles/PetsTile.jsx",
+      "src/today/tiles/CodeTile.jsx", "src/today/tiles/TasksTile.jsx", "src/today/tiles/SpendTile.jsx", "src/today/tiles/MoodTile.jsx",
+      "src/today/tiles/WatchTile.jsx", "src/today/tiles/TutorTile.jsx", "src/useStoreKey.js", "src/store.js", "src/useHydrate.js", "src/life/logic.js"
+    ],
+    "deps": ["B3-10", "B3-11", "B3-12"],
+    "acceptance": "npm run build exits 0; with the dev app: grid is 2 columns at 390px, 4 at 834px, 6 at 1194px (grid is its own container with thresholds 600/900); DOM order is streak, wallet, pets, code, watch, tasks, spend, mood, tutor; today mood entry is derived via ensureTodayEntry only after all keys are ready (no overwrite of existing moodLog); checking a task on the tile updates the 'tasks' key and the header Lv/wallet pills refresh without reload",
+    "notes": "Owns the write paths for tile actions (toggle task, check in, log mood) using the same data shapes as Life.jsx; mount it with a syncTick prop so it re-hydrates like other tabs. useProgressSummary is consumed by the Header in B3-14."
+  },
+  {
+    "id": "B3-14",
+    "title": "Wire shell, router, Today home and cream theme into App.jsx; retire legacy tab bar CSS",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/App.jsx", "src/main.jsx", "src/styles.css"],
+    "reads": [
+      "src/shell/Shell.jsx", "src/shell/Nav.jsx", "src/shell/Header.jsx", "src/shell/Fab.jsx", "src/shell/Inspector.jsx",
+      "src/shell/Palette.jsx", "src/shell/useShortcuts.js", "src/shell/routes.js", "src/router.js", "src/today/TodayHome.jsx",
+      "src/today/useProgressSummary.js", "src/styles/tokens.css", "src/styles/shell.css", "src/Toast.jsx", "src/Sheet.jsx"
+    ],
+    "deps": ["B3-02", "B3-07", "B3-08", "B3-09", "B3-13"],
+    "acceptance": "npm test && npm run build green; in the browser: / redirects to /today, each of the 6 tabs has its own URL and reload keeps it, browser Back works, sign-in/loading/error screens unchanged, cream appears as 7th swatch and persists via settings.theme, KEY_TO_TAB handles several tabs per key (tasks/habits/moodLog/expenses/budgets/progress/watchlist refresh Today), Cmd/Ctrl+K opens the palette, no horizontal scroll at 320/390/834/1194/1440",
+    "notes": "Single owner of App.jsx and of styles.css lines 106-183, 620-625 (toast), 736-757 (.expense-fab) and 829-847 (.sheet-dialog 640px cap) for this phase. Overlaps with any R1 shell/router task: dedupe at synthesis. Needs a host SPA rewrite for production deep links."
+  },
+  {
+    "id": "B3-15",
+    "title": "Retrofit Life screen: route sub-views, SubNav, Stat strip, inspector for Tasks and Reminders",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/tabs/Life.jsx"],
+    "reads": ["src/shell/routes.js", "src/router.js", "src/shell/Inspector.jsx", "src/shell/actions.js", "src/ui/SubNav.jsx", "src/ui/Stat.jsx", "src/ui/EmptyState.jsx", "src/tabs/Notes.jsx", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-14", "B3-16"],
+    "acceptance": "npm test && npm run build green; /life/tasks, /life/reminders, /life/notes, /life/habits, /life/growth each load directly and via SubNav; the in-component view state and both agent-bar blocks (Life.jsx:199-222) are gone; selecting a task at >=1024 fills the inspector and the list keeps scroll position; registers a 'new' action so N and the phone FAB add a task",
+    "notes": "Life.jsx is 1,078 lines and also a target of any R2 file-split task: if that lands first, retarget writes to the split files. Must keep the ensureTodayEntry ready-gating and legacy-checklist merge intact (Life.jsx:94-127)."
+  },
+  {
+    "id": "B3-16",
+    "title": "Build SubNav component (route-driven sub-view pills)",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/ui/SubNav.jsx", "src/ui/subnav.css"],
+    "reads": ["src/styles.css", "src/tabs/Life.jsx", "src/tabs/Expenses.jsx", "src/tabs/Invest.jsx", "src/tabs/LogicBuilding.jsx", "src/router.js", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-03", "B3-06"],
+    "acceptance": "npm run build exits 0; SubNav renders links with aria-current, horizontal scroll without a visible scrollbar, active pill scrolled into view, items >= 44px tall under pointer:coarse; visually matches today's .agent-bar/.agent-pill in ocean theme",
+    "notes": "Listed before B3-15 so Life/Money/Invest/Logic retrofits can all consume it; it replaces 9 .agent-bar and 22 .agent-pill usages gradually."
+  },
+  {
+    "id": "B3-17",
+    "title": "Retrofit Money screen: route 5 sub-views, shell FAB, inspector for transactions",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/tabs/Expenses.jsx"],
+    "reads": ["src/shell/routes.js", "src/router.js", "src/shell/Inspector.jsx", "src/shell/actions.js", "src/ui/SubNav.jsx", "src/Sheet.jsx", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-14", "B3-16"],
+    "acceptance": "npm test && npm run build green; /money/overview, /money/txns, /money/budget, /money/goals, /money/loans load directly; the page-local .expense-fab button (Expenses.jsx:1298) is removed in favour of the shell Fab via a registered 'new' action; adding an expense via N works at >=1024; the 3 Sheet forms still open and trap focus",
+    "notes": "Expenses.jsx is 1,353 lines and a likely R4 split target: retarget writes if split first. Keeps the 5 real sub-views (blueprint's 4-view Spend merge is not applied)."
+  },
+  {
+    "id": "B3-18",
+    "title": "Retrofit Logic, Invest and Agents screens: route sub-views, SubNav, Agents ?q= prefill",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/tabs/LogicBuilding.jsx", "src/tabs/Invest.jsx", "src/tabs/Agents.jsx"],
+    "reads": ["src/shell/routes.js", "src/router.js", "src/ui/SubNav.jsx", "src/ui/Stat.jsx", "src/shell/actions.js", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-14", "B3-16"],
+    "acceptance": "npm test && npm run build green; /logic/code|puzzles|exams|dsa, /invest/learn|research|watch and /agents load directly; /agents?q=hello opens with the input prefilled and not auto-sent; the DSA route renders a block linking to /dsa/mastery-map.html (iframe embed deferred); Agents module-scope chat state still survives navigation",
+    "notes": "Three small files edited in one task because each change is a view-state-to-route swap; Today.jsx/Puzzles.jsx/Exams.jsx are not touched."
+  },
+  {
+    "id": "B3-19",
+    "title": "Guard hover rules, add focus-visible and 44px coarse targets across legacy CSS, with an audit script",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/styles.css", "scripts/audit/css-audit.mjs", "test/cssAudit.test.js"],
+    "reads": ["docs/plan/research/B3-spec.md"],
+    "deps": ["B3-14"],
+    "acceptance": "node --test test/cssAudit.test.js passes: 0 unguarded :hover selectors outside @media (hover:hover) and (pointer:fine), a global :focus-visible rule exists, no 'max-width: 640px' on .app/.tab-bar-inner/.sheet-dialog remains, .btn/.agent-pill/.theme-swatch/.gear-btn have min 44px under (pointer:coarse); npm run build green",
+    "notes": "styles.css owner after B3-14 for lines 257-345 (buttons), 467-505 (pills), 988-993 (swatches). The script scans CSS text only, no browser."
+  },
+  {
+    "id": "B3-20",
+    "title": "Convert Habits view to pet tile grid with rect-sorting drag and drop",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/tabs/Life.jsx", "src/dnd/Dnd.jsx"],
+    "reads": ["src/ui/Tile.jsx", "src/dnd/logic.js", "test/dndLogic.test.js", "docs/plan/research/B3-spec.md"],
+    "deps": ["B3-15"],
+    "acceptance": "npm test && npm run build green (dndLogic tests unchanged); /life/habits shows 1 column below 600px, 2 at 600-1023, 3 at >=1280 inside the list column; drag reorder works with pointer and keyboard (KeyboardSensor) in the grid; check-in button stays full width and >= 44px; inspector shows traits, health, earnings",
+    "notes": "Optional/recommended: ship after the P0 gate. DropList takes a strategy prop defaulting to verticalListSortingStrategy so Tasks and Reminders keep their behaviour."
+  }
+]

@@ -1,0 +1,189 @@
+[
+  {
+    "id": "X1-01",
+    "title": "Add vercel.json with SPA rewrites that exclude /api, /dsa and static files",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["vercel.json"],
+    "reads": ["vite.config.js", "README.md", "public/"],
+    "deps": [],
+    "acceptance": "node -e \"const j=JSON.parse(require('fs').readFileSync('vercel.json'));const r=new RegExp('^'+j.rewrites[0].source+'$');console.log(['/life/tasks','/money'].every(p=>r.test(p)),['/api/agent','/dsa/mastery-map.html','/manifest.json','/assets/a.js'].every(p=>!r.test(p)))\" prints true true; after deploy, opening /life/tasks directly returns the app",
+    "notes": "Needed only for BrowserRouter; Vite dev/preview already fall back to index.html. X1-08 adds a crons block to the same file."
+  },
+  {
+    "id": "X1-02",
+    "title": "Add react-router-dom@7.18.5 (not react-router 8, which needs React 19) and engines.node>=22 to package.json",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["package.json", "package-lock.json"],
+    "reads": ["package.json"],
+    "deps": [],
+    "acceptance": "npm ls react-router-dom shows 7.18.5 with react 18.3.1 and no peer warnings; npm run build and npm test pass; package.json has engines.node >=22",
+    "notes": "supabase-js >=2.116 declares node >=22, so engines also guards the Vercel Node version. First link of the package.json chain: X1-02 -> X1-03 -> X1-11 -> X1-15."
+  },
+  {
+    "id": "X1-03",
+    "title": "Add vite-plugin-pwa@2.0.0 and workbox-window@7.4.1 as dependencies",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": ["package.json", "package-lock.json"],
+    "reads": ["package.json"],
+    "deps": ["X1-02"],
+    "acceptance": "npm ls vite-plugin-pwa workbox-window resolves with vite 5.4.x and no peer errors; npm run build still passes",
+    "notes": "Stay on Vite 5: vite-plugin-pwa 2.0.0 supports ^5 and plugin-react 4.7.0 supports vite 4-7."
+  },
+  {
+    "id": "X1-04",
+    "title": "Generate PNG app icons (180 apple-touch, 192, 512, 512 maskable) and wire them into manifest.json and index.html",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": ["public/icons/", "public/manifest.json", "index.html"],
+    "reads": ["public/manifest.json", "index.html"],
+    "deps": [],
+    "acceptance": "ls public/icons shows the 4 PNGs at the stated pixel sizes (file -b); manifest.json icons[] has 192, 512 and a maskable entry; index.html apple-touch-icon points at the 180px PNG; npm run build copies them to dist/icons",
+    "notes": "index.html and public/manifest.json are warm files (shell/theme-colour tasks may also edit). Generate with npx @vite-pwa/assets-generator so package.json is not touched. Source is the current fire emoji unless the user supplies an image."
+  },
+  {
+    "id": "X1-05",
+    "title": "Configure vite-plugin-pwa (injectManifest) with a prompt-on-update registration module and a minimal src/sw.js",
+    "size": "M",
+    "phaseHint": "P1 PWA",
+    "writes": ["vite.config.js", "src/pwa/register.js", "src/sw.js"],
+    "reads": ["vite.config.js", "public/manifest.json", "src/main.jsx"],
+    "deps": ["X1-03", "X1-04"],
+    "acceptance": "npm run build emits dist/sw.js and a precache manifest; dist/sw.js denies navigation fallback and caching for /api/ and /dsa/ and for *.supabase.co (network-only); vite preview serves the app and a Lighthouse or DevTools check shows the service worker active; the existing forge-api-dev plugin still answers /api/health",
+    "notes": "vite.config.js is a hot file: keep apiDevPlugin untouched and append the VitePWA entry. Use registerType 'prompt'; exclude public/dsa/** from precache (8,320-line page, CDN-loaded supabase-js). Wiring the update toast into App.jsx belongs to the shell owner. register.js only exports registerSW()."
+  },
+  {
+    "id": "X1-06",
+    "title": "Add src/platform/persist.js that requests navigator.storage.persist() and reports storage estimate, with a unit test",
+    "size": "S",
+    "phaseHint": "P1 PWA",
+    "writes": ["src/platform/persist.js", "test/persist.test.js"],
+    "reads": ["src/store.js"],
+    "deps": [],
+    "acceptance": "npm test passes including test/persist.test.js, which stubs navigator.storage for supported, unsupported and rejecting cases and checks the helper never throws",
+    "notes": "Call site in App.jsx is left to the shell owner. Safari tabs can lose IndexedDB after 7 days without interaction; Home Screen apps are exempt."
+  },
+  {
+    "id": "X1-07",
+    "title": "Add JSON export/import of all synced keys (src/backup/backup.js) with a round-trip test",
+    "size": "M",
+    "phaseHint": "P4 quality+ops",
+    "writes": ["src/backup/backup.js", "test/backup.test.js"],
+    "reads": ["src/store.js", "src/sync/engine.js", "src/sync/logic.js"],
+    "deps": [],
+    "acceptance": "npm test passes; test/backup.test.js exports a fake db containing 17 keys, imports into an empty fake db and gets identical wrapped values, and rejects a file with a wrong format version or an unknown key without writing anything",
+    "notes": "Opens localforage.createInstance({name:'forge'}) directly, so src/store.js is not edited. Import must write { data, updatedAt: Date.now() } so the next reconcile pushes it. UI entry point is left to the settings owner."
+  },
+  {
+    "id": "X1-08",
+    "title": "Add api/keepalive.js (CRON_SECRET-protected, runs a light Supabase query) and a daily cron entry",
+    "size": "S",
+    "phaseHint": "P4 quality+ops",
+    "writes": ["api/keepalive.js", "vercel.json", "test/keepalive.test.js"],
+    "reads": ["api/agent.js", "api/health.js", "vite.config.js"],
+    "deps": ["X1-01"],
+    "acceptance": "npm test passes; test/keepalive.test.js shows 401 without the bearer secret and 200 with it using a stubbed Supabase client; vercel.json crons has one daily entry for /api/keepalive",
+    "notes": "Hobby cron is daily only with hour precision, which is enough for the 1-week pause window. Unverified: whether a query that RLS filters to zero rows counts as activity; query kv_store with the owner's service role or a signed-in owner token if that is available. Needs CRON_SECRET in the Vercel env."
+  },
+  {
+    "id": "X1-09",
+    "title": "Add api/_lib/cors.js with an origin allowlist (capacitor://localhost, production URL, localhost dev) and apply it to all six API handlers",
+    "size": "M",
+    "phaseHint": "P3 native shell",
+    "writes": ["api/_lib/cors.js", "api/agent.js", "api/cf.js", "api/health.js", "api/ics.js", "api/puzzle.js", "api/quote.js", "test/cors.test.js"],
+    "reads": ["api/agent.js", "api/cf.js", "api/health.js", "api/ics.js", "api/puzzle.js", "api/quote.js", "vite.config.js"],
+    "deps": [],
+    "acceptance": "npm test passes; test/cors.test.js checks that an OPTIONS preflight from capacitor://localhost gets 204 with Access-Control-Allow-Origin set to that origin and Allow-Headers including Authorization, and that an unlisted origin gets no CORS headers; curl -i -X OPTIONS against npm run dev /api/agent returns 204",
+    "notes": "Never use '*' on /api/agent, which spends the owner's Groq quota. Allowlist comes from an env var, with the defaults hardcoded. Any later P5 edit to api/agent.js (streaming) must depend on this task."
+  },
+  {
+    "id": "X1-10",
+    "title": "Add src/platform/api.js fetch shim that prefixes /api/ requests with VITE_API_BASE, installed from src/main.jsx, with a test",
+    "size": "S",
+    "phaseHint": "P3 native shell",
+    "writes": ["src/platform/api.js", "src/main.jsx", "test/apiBase.test.js"],
+    "reads": ["src/main.jsx", "src/tabs/Today.jsx", "src/tabs/Puzzles.jsx", "src/tabs/Agents.jsx", "src/tabs/Life.jsx", "src/tabs/Invest.jsx"],
+    "deps": [],
+    "acceptance": "npm test passes; test/apiBase.test.js shows that with VITE_API_BASE unset fetch('/api/x') is unchanged, with it set fetch('/api/x') becomes <base>/api/x, and absolute URLs and /puzzles.json are untouched; npm run build passes",
+    "notes": "Wraps window.fetch once so the 7 relative /api call sites in 5 tab files need no edit. src/main.jsx is a warm file and this is a 2-line change (import plus call before createRoot)."
+  },
+  {
+    "id": "X1-11",
+    "title": "Scaffold Capacitor 8: add @capacitor/* dependencies, capacitor.config.json (webDir dist) and the ios/ project (Mac with Xcode 26 only)",
+    "size": "M",
+    "phaseHint": "P3 native shell",
+    "writes": ["package.json", "package-lock.json", "capacitor.config.json", "ios/", ".gitignore"],
+    "reads": ["package.json", "vite.config.js", ".gitignore"],
+    "deps": ["X1-03", "X1-10"],
+    "acceptance": "On a Mac: npm run build && npx cap sync ios succeeds and npx cap doctor reports no errors; xcodebuild builds the App scheme for the simulator at iOS deployment target 15.0. On Linux only the config can be checked: node -e \"JSON.parse(require('fs').readFileSync('capacitor.config.json'))\" and npx cap --version print 8.6.0",
+    "notes": "Dependencies: core, cli, ios, app, haptics, keyboard, status-bar, push-notifications, preferences at 8.x, and @aparajita/capacitor-secure-storage 8.0.1. Keep server.hostname=localhost and the default capacitor scheme. Do not set server.url so the app stays offline-capable. .gitignore should exclude ios/App/Pods and ios/App/build only."
+  },
+  {
+    "id": "X1-12",
+    "title": "Add the src/platform adapter (haptics, keyboard, status bar, secure storage) that uses dynamic @capacitor imports on native and no-op or web fallbacks elsewhere",
+    "size": "M",
+    "phaseHint": "P3 native shell",
+    "writes": ["src/platform/index.js", "src/platform/haptics.js", "src/platform/secureStorage.js", "src/platform/native.js", "test/platform.test.js"],
+    "reads": ["src/platform/persist.js", "capacitor.config.json"],
+    "deps": ["X1-11"],
+    "acceptance": "npm test passes; test/platform.test.js shows every adapter function resolves without throwing when Capacitor is absent (web) and delegates to a stubbed plugin when Capacitor.isNativePlatform() is true; npm run build produces no static import of @capacitor/haptics in the main chunk (dynamic import only)",
+    "notes": "Adapter interface is shared with the other agents' storage/notify/pencil contract from blueprint 2.5; keep exports minimal and additive."
+  },
+  {
+    "id": "X1-13",
+    "title": "Mirror the Supabase auth refresh token to native secure storage and restore it on boot when localStorage is empty",
+    "size": "S",
+    "phaseHint": "P3 native shell",
+    "writes": ["src/platform/authMirror.js", "src/supabaseClient.js", "test/authMirror.test.js"],
+    "reads": ["src/supabaseClient.js", "src/platform/secureStorage.js", "public/dsa/mastery-map.html"],
+    "deps": ["X1-12"],
+    "acceptance": "npm test passes; test/authMirror.test.js shows that on native with empty localStorage the mirrored token is restored via setSession, that on web nothing is mirrored, and that only refresh_token and user id (under 2 KB) are stored",
+    "notes": "Do not replace supabase-js's localStorage storage adapter: public/dsa/mastery-map.html reads the same session from localStorage. Must be tested on a real device by killing the app twice."
+  },
+  {
+    "id": "X1-14",
+    "title": "Add push and notificationclick handlers to src/sw.js and a client subscribe helper using a user gesture",
+    "size": "M",
+    "phaseHint": "P5 AI",
+    "writes": ["src/sw.js", "src/push/subscribe.js", "test/pushSubscribe.test.js"],
+    "reads": ["src/sw.js", "vite.config.js"],
+    "deps": ["X1-05"],
+    "acceptance": "npm test passes; test/pushSubscribe.test.js stubs PushManager and checks that subscribe() refuses to run without a gesture flag, returns a JSON subscription, and reports 'unsupported' on iOS Safari outside an installed app; on an iPhone on iOS 16.4+ with the app added to the Home Screen a test push shows a notification",
+    "notes": "iOS Web Push only works for installed Home Screen apps with permission requested from a tap. Second task to edit src/sw.js, hence the dep on X1-05."
+  },
+  {
+    "id": "X1-15",
+    "title": "Add api/push.js (store subscription, send push) with supabase/push_subscriptions.sql and the web-push dependency",
+    "size": "M",
+    "phaseHint": "P5 AI",
+    "writes": ["api/push.js", "supabase/push_subscriptions.sql", "package.json", "package-lock.json", "test/push.test.js"],
+    "reads": ["api/agent.js", "src/push/subscribe.js"],
+    "deps": ["X1-11", "X1-14"],
+    "acceptance": "npm test passes; test/push.test.js shows 403 for a non-owner token, 200 and a stored row for the owner, and that expired subscriptions (410) are deleted, with web-push stubbed",
+    "notes": "Needs VAPID keys in the Vercel env. Sending timed reminders needs minute-level scheduling: Vercel Hobby cron is daily only, so the user must pick Pro, Supabase pg_cron or an external pinger. Native APNs push is out of scope."
+  },
+  {
+    "id": "X1-16",
+    "title": "Add src/sync/hlc.js, a pure hybrid logical clock (send, receive, compare, serialise) with tests",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/hlc.js", "test/hlc.test.js"],
+    "reads": ["src/sync/logic.js", "src/sync/engine.js"],
+    "deps": [],
+    "acceptance": "npm test passes; test/hlc.test.js covers monotonic ticks when wall time stalls or goes backwards, merge with a remote clock 10 minutes ahead, deterministic compare with equal physical time (counter then node id), and string round-trip sorting",
+    "notes": "New file only, so it is safe in parallel with any sync work; wiring it into the engine belongs to the sync agents."
+  },
+  {
+    "id": "X1-17",
+    "title": "Write supabase/migrations/0001_sync_v2.sql: per-record tables with a trigger-assigned rev, hlc, tombstones, RLS and realtime publication",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["supabase/migrations/0001_sync_v2.sql"],
+    "reads": ["docs/superpowers/specs/2026-09-15-cloud-sync-design.md", "docs/plan/blueprint.txt", "src/store.js"],
+    "deps": ["X1-16"],
+    "acceptance": "psql -v ON_ERROR_STOP=1 -f supabase/migrations/0001_sync_v2.sql applies cleanly twice (idempotent) on a scratch Postgres 15 with an auth.users stub; a test script updates a row and shows rev increases (an identity column would not), and RLS blocks a second user from reading it",
+    "notes": "Fixes the blueprint's rev-as-identity flaw: use a sequence plus a BEFORE INSERT OR UPDATE trigger that sets rev and a server updated_at; client pulls with an overlap window and de-dupes by id because commits can be visible out of rev order. Keep kv_store untouched (public/dsa/mastery-map.html:1652,1678 still writes it). The user must approve before it runs on the live project."
+  }
+]

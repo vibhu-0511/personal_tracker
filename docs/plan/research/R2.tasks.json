@@ -1,0 +1,239 @@
+[
+  {
+    "id": "R2-01",
+    "title": "Extract pure task/reminder/streak selectors with unit tests",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/life/selectors.js", "test/lifeSelectors.test.js"],
+    "reads": ["src/tabs/Life.jsx", "src/life/logic.js"],
+    "deps": [],
+    "acceptance": "node --test test/lifeSelectors.test.js passes; exports taskBuckets(tasks,todayKey), matchesUrgency, quadrantOf, quadrantCounts, dueCounts(tasks,reminders,now), walletTotal(habits,now), overallStreak(habits,now) with the same results as Life.jsx:57-70, 160-165, 340-346",
+    "notes": "Does not edit Life.jsx; wiring happens in R2-05/R2-07."
+  },
+  {
+    "id": "R2-02",
+    "title": "Derive Level/XP from existing earnings and completed tasks",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/life/progress.js", "test/lifeProgress.test.js"],
+    "reads": ["src/life/logic.js"],
+    "deps": [],
+    "acceptance": "node --test test/lifeProgress.test.js passes; xpFor(habits,tasks,now)=sum(earnings.total)+10*doneTasks, levelFromXp(xp) with level n starting at 30*(n-1)^2 returns {level,into,needed,pct}; level never decreases when passed a highWater >= xp",
+    "notes": "Constant 30 makes the blueprint sample (Rs 1240) read as Level 7; tune after real data. Pure, no stored key."
+  },
+  {
+    "id": "R2-03",
+    "title": "Add stampUpdated and set-union merge helpers for sync v2",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/life/records.js", "test/lifeRecords.test.js"],
+    "reads": ["src/tabs/Life.jsx", "src/sync/logic.js"],
+    "deps": [],
+    "acceptance": "node --test test/lifeRecords.test.js passes; stampUpdated(prev,next,now) sets updatedAt only on records whose identity or fields changed and leaves others untouched; mergeCheckins(a,b) returns sorted unique union; mergeMoodLog(a,b) keeps one entry per date preferring source 'logged'",
+    "notes": "Pure helpers only; applied to writes in R2-18."
+  },
+  {
+    "id": "R2-04",
+    "title": "Add mutate wrappers for tasks, habits, moodLog and notes to store.js",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/store.js"],
+    "reads": ["src/sync/engine.js", "src/tabs/Expenses.jsx"],
+    "deps": [],
+    "acceptance": "grep -n \"export async function mutate\" src/store.js lists mutateReminders, mutateTasks, mutateHabits, mutateMoodLog, mutateNotes, each delegating to engine.mutate(key, fn, []); npm test still passes",
+    "notes": "src/store.js is a cross-area hot spot (R6 sync); keep the diff to appended exports so it merges cleanly."
+  },
+  {
+    "id": "R2-05",
+    "title": "Split Life.jsx into per-screen component files with no behaviour change",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/tabs/Life.jsx",
+      "src/life/screens/Tasks.jsx",
+      "src/life/screens/Reminders.jsx",
+      "src/life/screens/Habits.jsx",
+      "src/life/screens/Growth.jsx",
+      "src/life/confetti.js"
+    ],
+    "reads": ["src/tabs/Life.jsx", "src/dnd/Dnd.jsx"],
+    "deps": [],
+    "acceptance": "Life.jsx drops below 200 lines; TasksView/TaskSection/DoneTaskSection (236-618), RemindersView (620-752), HabitsView (754-983), GrowthView (985-1078) live one per screen file as default exports with unchanged props; npm run build succeeds; manual check: all 5 Life sub-views render and add/toggle/drag a task as before",
+    "notes": "Pure move. First link of the Life.jsx chain R2-05 -> R2-06 -> R2-07 -> R2-17."
+  },
+  {
+    "id": "R2-06",
+    "title": "Move Notes.jsx under src/life/screens and extract tree helpers with tests",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/tabs/Notes.jsx",
+      "src/life/screens/Notes.jsx",
+      "src/life/notesTree.js",
+      "test/notesTree.test.js",
+      "src/tabs/Life.jsx"
+    ],
+    "reads": ["src/tabs/Notes.jsx", "src/dnd/logic.js"],
+    "deps": ["R2-05"],
+    "acceptance": "node --test test/notesTree.test.js passes (buildChildMap, sortSiblings pinned-first, collectDescendantIds, descendant count); src/tabs/Notes.jsx no longer exists; grep -rn \"tabs/Notes\" src returns nothing; notes still nest, pin and cascade-delete with undo",
+    "notes": "Edits Life.jsx only to change the Notes import path, hence the dep on R2-05."
+  },
+  {
+    "id": "R2-07",
+    "title": "Create LifeData provider as single writer with silent refresh, badge and mood derivation",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/life/LifeData.jsx", "src/tabs/Life.jsx"],
+    "reads": ["src/store.js", "src/life/selectors.js", "src/useHydrate.js"],
+    "deps": ["R2-01", "R2-04", "R2-05"],
+    "acceptance": "useLife() returns {tasks,reminders,habits,moodLog,now,ready,updateTasks(fn),...} backed by mutate* wrappers; remote syncTick refreshes arrays without flipping ready=false (an open edit draft survives); ensureTodayEntry and checklist migration run once in the provider; setAppBadge effect lives in the provider; Life.jsx consumes useLife and passes props to screens; manual two-mount check (provider + a second consumer completing a task) leaves both lists consistent after reload",
+    "notes": "Today home must mount this provider at app level (App.jsx is owned by the shell task); this task only exports it."
+  },
+  {
+    "id": "R2-08",
+    "title": "Add MasterDetail layout primitive and life.css for list plus inspector panes",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/life/ui/MasterDetail.jsx", "src/life/life.css"],
+    "reads": ["docs/plan/blueprint.txt", "src/styles.css"],
+    "deps": [],
+    "acceptance": "MasterDetail({list,detail,inspector,hasSelection,onBack}) renders list only below 600px with detail as a Sheet, list+inspector from 1024px and list+detail+inspector from 1280px via @container app rules; no rule touches src/styles.css; npm run build succeeds",
+    "notes": "Container name 'app' must match the shell task's .app-root container; adjust the name if R1 picks another."
+  },
+  {
+    "id": "R2-09",
+    "title": "Make dnd safe for multi-pane layouts: DragOverlay, coarse-pointer handle, multi-id move",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/dnd/Dnd.jsx", "src/dnd/dnd.css", "src/dnd/logic.js", "test/dndLogic.test.js"],
+    "reads": ["src/tabs/Expenses.jsx", "src/styles.css", "src/tabs/Life.jsx"],
+    "deps": [],
+    "acceptance": "node --test test/dndLogic.test.js passes with new tests for moveMany(list,ids,overId,{patch,after}); DndArea accepts optional renderOverlay and TouchSensor long-press (250ms) props with unchanged defaults; .drag-handle min-size 44px under (pointer: coarse) via dnd.css; Expenses.jsx still drags with no edit",
+    "notes": "Exports stay backward compatible because Expenses.jsx (R4 area) imports DndArea/DropList/SortableRow."
+  },
+  {
+    "id": "R2-10",
+    "title": "Build Tasks list with right-hand task inspector (subtasks, flags, due)",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/life/screens/Tasks.jsx", "src/life/screens/TaskInspector.jsx"],
+    "reads": ["src/life/ui/MasterDetail.jsx", "src/life/selectors.js", "src/dnd/Dnd.jsx"],
+    "deps": ["R2-01", "R2-05", "R2-08", "R2-09"],
+    "acceptance": "At 1280x800 selecting a task row opens its inspector with title/due edit, urgent/important toggles and the subtask list (moved out of the inline expander at old Life.jsx:532-572); at 390px the same editor opens as a Sheet; X on a selected row completes it; dragging a task between sections still patches due via taskDropPatch",
+    "notes": "Selected id kept in screen props (route param later), not child state, so a sync refresh keeps the inspector open."
+  },
+  {
+    "id": "R2-11",
+    "title": "Build Reminders list with inspector and the missing edit-title/time action",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/life/screens/Reminders.jsx", "src/life/screens/ReminderInspector.jsx"],
+    "reads": ["src/life/ui/MasterDetail.jsx", "api/_lib/ics.js"],
+    "deps": ["R2-05", "R2-08"],
+    "acceptance": "Selecting a reminder at >=1024px opens an inspector where title and datetime-local can be edited and saved (re-sorted by at); Add to Calendar link still returns a valid .ics (node --test test/ics.test.js passes); phone uses a Sheet",
+    "notes": "Recurrence (Daily/Monthly in the blueprint mock) is out of scope until the user decides; see report Needs."
+  },
+  {
+    "id": "R2-12",
+    "title": "Build Notes editor pane with tree list and tag/colour/pin inspector",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/life/screens/Notes.jsx", "src/life/screens/NoteInspector.jsx"],
+    "reads": ["src/life/ui/MasterDetail.jsx", "src/life/notesTree.js"],
+    "deps": ["R2-06", "R2-08"],
+    "acceptance": "At >=1280px the tree list, a body editor and an inspector (tags, colour, pin, parent, created) are visible together; at 390px a tapped note opens the editor full-screen with a back control; nest/unnest by drag still blocks cycles (canNest); cascade delete shows the confirm and undo toast",
+    "notes": "Leave a labelled slot in NoteInspector for the Sketch component of R2-19."
+  },
+  {
+    "id": "R2-13",
+    "title": "Build Habits dense rows with pet inspector and last-30-days calendar helper",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/life/screens/Habits.jsx",
+      "src/life/screens/HabitInspector.jsx",
+      "src/life/habitView.js",
+      "test/lifeHabitView.test.js"
+    ],
+    "reads": ["src/life/ui/MasterDetail.jsx", "src/life/logic.js"],
+    "deps": ["R2-05", "R2-08", "R2-09"],
+    "acceptance": "node --test test/lifeHabitView.test.js passes for lastNDays(checkins,now,30) -> [{date,checked}] across a DST change and month ends; at >=1024px a habit row opens an inspector with pet, health bar, traits, earnings and the 30-day grid; check-in, edit, remove-with-undo and reorder still work; phone keeps cards",
+    "notes": "Assumes the recommended A-rows choice; if the user picks B tiles, only HabitInspector/Habits.jsx styling changes."
+  },
+  {
+    "id": "R2-14",
+    "title": "Build Growth block layout with per-domain inspector and domainBreakdown helper",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/life/screens/Growth.jsx",
+      "src/life/screens/GrowthInspector.jsx",
+      "src/life/growth.js",
+      "test/lifeGrowth.test.js"
+    ],
+    "reads": ["src/life/ui/MasterDetail.jsx", "src/life/logic.js", "test/growth.test.js"],
+    "deps": ["R2-05", "R2-08"],
+    "acceptance": "node --test test/lifeGrowth.test.js passes: domainBreakdown(habits,domain) lists contributing habits whose points sum to computeStats(habits)[domain] before the 100 cap; at >=1024px clicking a domain bar opens its breakdown and titles; mood picker and 30-day strip unchanged; node --test test/growth.test.js still passes",
+    "notes": "logic.js is not edited; the new helper lives in growth.js."
+  },
+  {
+    "id": "R2-15",
+    "title": "Add pure lifeTileData function that feeds Today tiles from Life data",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/life/todayTiles.js", "test/lifeTodayTiles.test.js"],
+    "reads": ["src/life/selectors.js", "src/life/progress.js", "src/life/logic.js"],
+    "deps": ["R2-01", "R2-02"],
+    "acceptance": "node --test test/lifeTodayTiles.test.js passes; lifeTileData(tasks,reminders,habits,moodLog,now) returns {streak:{current,best},wallet:{total,today},pets:[{id,species,stage,mood,health}],tasks:{overdue,today,next},reminders:{due,next},mood:{today,avg,trend},level:{level,pct}} for empty and populated inputs"
+  },
+  {
+    "id": "R2-16",
+    "title": "Build Life Today tile components (streak, wallet, pets, tasks, mood, level pill)",
+    "size": "M",
+    "phaseHint": "P0 shell+design system",
+    "writes": [
+      "src/life/tiles/StreakTile.jsx",
+      "src/life/tiles/WalletTile.jsx",
+      "src/life/tiles/PetsTile.jsx",
+      "src/life/tiles/TasksTile.jsx",
+      "src/life/tiles/MoodTile.jsx",
+      "src/life/tiles/LevelPill.jsx"
+    ],
+    "reads": ["src/life/todayTiles.js", "src/life/LifeData.jsx"],
+    "deps": ["R2-07", "R2-15"],
+    "acceptance": "Each tile renders from useLife() and lifeTileData with no extra store reads, at 2/4/6 column widths, in all 7 themes in dark and light; completing a task from TasksTile updates the Life Tasks screen after navigating there; npm run build succeeds",
+    "notes": "Needs the tile primitive and pastel tokens from the shell/design-system task (other agents) before it can be styled; wrap tiles in whatever primitive that task exports."
+  },
+  {
+    "id": "R2-17",
+    "title": "Export Life view registry and accept view/onViewChange props for router and palette",
+    "size": "S",
+    "phaseHint": "P0 shell+design system",
+    "writes": ["src/life/views.js", "src/tabs/Life.jsx"],
+    "reads": ["src/App.jsx"],
+    "deps": ["R2-07", "R2-10", "R2-11", "R2-12", "R2-13", "R2-14"],
+    "acceptance": "views.js exports LIFE_VIEWS [{id:'tasks',path:'/life/tasks',label,icon,group,shortcut}] for the 5 views; Life({view,onViewChange}) renders the requested screen and the internal two-row pill bar is hidden when onViewChange is supplied; the palette can list the 5 entries from LIFE_VIEWS",
+    "notes": "Last Life.jsx edit; the route table itself lives in the shell task."
+  },
+  {
+    "id": "R2-18",
+    "title": "Stamp updatedAt on every Life write in the provider",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/life/LifeData.jsx"],
+    "reads": ["src/life/records.js"],
+    "deps": ["R2-03", "R2-07"],
+    "acceptance": "After completing a task, renaming a reminder, checking in a habit and editing a note, the stored records carry numeric updatedAt and untouched records keep their old value (inspect via IndexedDB or a node test on the provider's updater); npm test passes"
+  },
+  {
+    "id": "R2-19",
+    "title": "Add Apple Pencil sketch canvas with pressure to the note inspector",
+    "size": "M",
+    "phaseHint": "P3 native shell",
+    "writes": ["src/life/screens/Sketch.jsx", "src/life/sketchLogic.js", "test/sketchLogic.test.js"],
+    "reads": ["IDEAS.md", "src/life/screens/NoteInspector.jsx"],
+    "deps": ["R2-12"],
+    "acceptance": "node --test test/sketchLogic.test.js passes for stroke-to-width mapping (pressure 0-1) and undo-last-stroke; on a real iPad Safari or Pencil device a stroke width follows pressure; drawing never blocks page scroll outside the canvas (touch-action:none only on the canvas)",
+    "notes": "Persistence (new `drawings` synced key vs local) needs the user's decision first; this task keeps the canvas in memory and exports a PNG blob via props."
+  }
+]

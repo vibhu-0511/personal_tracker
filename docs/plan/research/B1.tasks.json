@@ -1,0 +1,139 @@
+[
+  {
+    "id": "B1-01",
+    "title": "Write blueprint errata with the canonical numbers and resolved contradictions",
+    "size": "S",
+    "phaseHint": "P0",
+    "writes": ["docs/plan/blueprint-errata.md"],
+    "reads": ["docs/plan/research/B1-report.md", "docs/plan/blueprint.txt", "docs/forge-blueprint.html", "docs/plan/swarm.json"],
+    "deps": [],
+    "acceptance": "test -f docs/plan/blueprint-errata.md && grep -c '^| E-' docs/plan/blueprint-errata.md prints >= 22 (one row per gap in B1-report.md, each with Decision and Owner columns); rail 72px, sidebar 220px, 6 tabs and inspector >=1024 are stated once as canonical",
+    "notes": "Open user decisions stay marked OPEN, not guessed. blueprint.html itself is not edited."
+  },
+  {
+    "id": "B1-02",
+    "title": "Write ADR-0001 hybrid shell and Today home",
+    "size": "S",
+    "phaseHint": "P0",
+    "writes": ["docs/adr/0001-hybrid-shell-and-today.md"],
+    "reads": ["docs/plan/swarm.json", "docs/plan/blueprint-errata.md", "src/App.jsx", "src/styles.css"],
+    "deps": ["B1-01"],
+    "acceptance": "File has Context, Decision, Consequences, Alternatives (A, B, C rejected parts) sections; states container-query root, breakpoints 600/1024, routes, inspector from 1024, Today tab id (not 'Today'), and the fixed-position containing-block rule; grep -c '^## ' prints >= 4",
+    "notes": "Router library choice is taken from R1's recommendation; record it here once R1 is accepted."
+  },
+  {
+    "id": "B1-03",
+    "title": "Write ADR-0002 delivery path: PWA first, Capacitor second, API base URL and CORS",
+    "size": "S",
+    "phaseHint": "P1",
+    "writes": ["docs/adr/0002-delivery-path.md"],
+    "reads": ["docs/plan/blueprint.txt", "api/agent.js", "src/tabs/Agents.jsx", "src/tabs/Invest.jsx", "vite.config.js"],
+    "deps": ["B1-01"],
+    "acceptance": "File defines VITE_API_BASE handling for capacitor://localhost, the CORS allow-list rule, and states the Groq key never ships in a bundle; grep -q 'capacitor://localhost' docs/adr/0002-delivery-path.md",
+    "notes": "Documents the decision only; the code change belongs to R5/R7 tasks."
+  },
+  {
+    "id": "B1-04",
+    "title": "Write ADR-0003 sync v2 design decisions",
+    "size": "S",
+    "phaseHint": "P2",
+    "writes": ["docs/adr/0003-sync-v2.md"],
+    "reads": ["docs/plan/blueprint.txt", "src/sync/logic.js", "src/sync/engine.js", "src/store.js", "docs/superpowers/specs/2026-09-15-cloud-sync-design.md"],
+    "deps": ["B1-01"],
+    "acceptance": "File decides: rev bump on every write (trigger), per-table cursor, HLC column, tombstone GC rule, treatment of all 17 keys in src/store.js SYNCED_KEYS (table of key -> row shape), per-key flagged migration and rollback; grep -c 'SYNCED_KEYS\\|moodLog\\|settings' docs/adr/0003-sync-v2.md >= 3",
+    "notes": "Coordinate with R6's schema proposal; this ADR records the accepted outcome."
+  },
+  {
+    "id": "B1-05",
+    "title": "Write ADR-0004 Level/XP derivation for the Today header",
+    "size": "S",
+    "phaseHint": "P0",
+    "writes": ["docs/adr/0004-level-xp.md"],
+    "reads": ["src/life/logic.js", "src/tabs/Life.jsx", "docs/plan/blueprint-errata.md"],
+    "deps": ["B1-01"],
+    "acceptance": "File states the formula, its inputs (existing earnings/streak data only, no new synced key), 3 worked examples including total 1240 and 0, and the behaviour when check-ins are deleted; formula is marked user-approved",
+    "notes": "Blocked until the user answers the Level/XP question in B1-report.md Needs from the user."
+  },
+  {
+    "id": "B1-06",
+    "title": "Create the ADR index",
+    "size": "S",
+    "phaseHint": "P0",
+    "writes": ["docs/adr/README.md"],
+    "reads": ["docs/adr/0001-hybrid-shell-and-today.md", "docs/adr/0002-delivery-path.md", "docs/adr/0003-sync-v2.md", "docs/adr/0004-level-xp.md"],
+    "deps": ["B1-02", "B1-03", "B1-04", "B1-05"],
+    "acceptance": "docs/adr/README.md lists each ADR file with status and date; node -e \"const fs=require('fs');const t=fs.readFileSync('docs/adr/README.md','utf8');process.exit(fs.readdirSync('docs/adr').filter(f=>/^\\d{4}-/.test(f)).every(f=>t.includes(f))?0:1)\" exits 0",
+    "notes": "Single owner of the index so ADR tasks stay parallel."
+  },
+  {
+    "id": "B1-07",
+    "title": "Write the definition-of-done checklist for the deployed build",
+    "size": "S",
+    "phaseHint": "P4",
+    "writes": ["docs/qa/definition-of-done.md"],
+    "reads": ["docs/plan/research/B1-report.md", "docs/plan/blueprint.txt"],
+    "deps": [],
+    "acceptance": "File has sections Responsive matrix, Offline and install, Sync two devices, Native, Quality and ops; every item is a checkbox with a pass/fail condition; grep -c '^- \\[ \\]' docs/qa/definition-of-done.md >= 20",
+    "notes": "Copy of the DoD in B1-report.md, expanded with exact viewport sizes and commands once Playwright projects exist."
+  },
+  {
+    "id": "B1-08",
+    "title": "Add learning-track generator, validation test and rendered track doc",
+    "size": "M",
+    "phaseHint": "P0",
+    "writes": [
+      "docs/learning/concept-phase-map.json",
+      "docs/learning/learning-track.md",
+      "scripts/plan/learning-track.mjs",
+      "test/learningTrack.test.js"
+    ],
+    "reads": ["docs/plan/research/B1-concept-phase-map.json", "docs/forge-blueprint.html"],
+    "deps": [],
+    "acceptance": "node scripts/plan/learning-track.mjs exits 0 and writes docs/learning/learning-track.md (55 concepts, per-phase prerequisite table); node --test test/learningTrack.test.js passes: 55 unique ids, all requires resolve, no cycle, no prerequisite in a later phase",
+    "notes": "Copy the JSON out of docs/plan/research so the track survives research cleanup. Script is pure node, no dependencies."
+  },
+  {
+    "id": "B1-09",
+    "title": "Write the Supabase free-tier runbook (keep-alive, JSON export, restore drill)",
+    "size": "S",
+    "phaseHint": "P2",
+    "writes": ["docs/runbooks/supabase-free-tier.md"],
+    "reads": ["docs/superpowers/specs/2026-09-15-cloud-sync-design.md", "src/store.js", "src/sync/engine.js"],
+    "deps": [],
+    "acceptance": "Runbook lists the keep-alive scheduler options with the chosen one marked, the exact export procedure for all 17 keys, and a numbered restore drill; grep -c '^[0-9]\\.' docs/runbooks/supabase-free-tier.md >= 5",
+    "notes": "Scheduler choice (Vercel cron vs external) needs the user; mark OPEN if unanswered."
+  },
+  {
+    "id": "B1-10",
+    "title": "Update README for the P0 shell (layout, routes, shortcuts, themes, tests)",
+    "size": "M",
+    "phaseHint": "P0",
+    "writes": ["README.md"],
+    "reads": ["src/App.jsx", "src/styles.css", "docs/adr/README.md", "package.json"],
+    "deps": ["B1-06"],
+    "acceptance": "README.md Layout section lists the new router/shell/Today files that exist on disk (each path ls-checks), documents Cmd/Ctrl+K, Cmd+1..6, N, X, the 7 themes and the breakpoints; 'Not built yet' no longer uses 'Phase 2/3' for the quant and RSS ideas",
+    "notes": "Schedule after the P0 gate; paths must be verified against the merged tree."
+  },
+  {
+    "id": "B1-11",
+    "title": "Update README for PWA, sync v2 and native shell",
+    "size": "M",
+    "phaseHint": "P3",
+    "writes": ["README.md"],
+    "reads": ["docs/adr/0002-delivery-path.md", "docs/adr/0003-sync-v2.md", "docs/runbooks/supabase-free-tier.md", "package.json"],
+    "deps": ["B1-10", "B1-09"],
+    "acceptance": "README.md documents install/offline behaviour, env vars including the API base, the sync v2 migration flag and the export command, and links docs/runbooks/*.md; every link path exists (ls)",
+    "notes": "Second editor of README.md, hence the dep on B1-10. Schedule after P3 build tasks merge."
+  },
+  {
+    "id": "B1-12",
+    "title": "Write the iOS release runbook (signing, TestFlight, API base)",
+    "size": "S",
+    "phaseHint": "P3",
+    "writes": ["docs/runbooks/ios-release.md"],
+    "reads": ["docs/adr/0002-delivery-path.md", "docs/plan/blueprint.txt"],
+    "deps": ["B1-03"],
+    "acceptance": "Runbook has numbered steps for Apple Developer enrolment, bundle id, signing, archive, TestFlight upload, and the post-install DoD native checks; grep -c '^[0-9]\\.' docs/runbooks/ios-release.md >= 8",
+    "notes": "Needs the user's Apple account facts, so some steps are marked USER."
+  }
+]
