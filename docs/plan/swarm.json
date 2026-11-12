@@ -18,7 +18,7 @@
     "React 18 + Vite 5 SPA, tabs are component state in src/App.jsx (no router). Tabs: Life, LogicBuilding, Expenses (Money), Invest, Agents; all lazy-loaded.",
     "Local-first store: src/store.js wraps localforage/IndexedDB; src/sync/{logic,engine}.js reconciles each key against Supabase table kv_store with last-write-wins per whole key, 700ms debounce.",
     "Serverless /api/*.js (Vercel style) also mounted into the Vite dev server by a plugin in vite.config.js. /api/agent is owner-gated and proxies Groq.",
-    "Tests: node --test \"test/*.test.js\". No CI, no linter, no router, no service worker, no vercel.json, node_modules not installed in this checkout.",
+    "Tests: node --test \"test/*.test.js\". No CI, no linter, no router, no service worker, no vercel.json. node_modules may be absent on a fresh checkout: run npm ci first (the baseline is 97 passing tests, build OK).",
     "public/dsa/mastery-map.html is a separate 8,320-line standalone page synced through the same Supabase session."
   ],
   "report": {

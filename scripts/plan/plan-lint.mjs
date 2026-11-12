@@ -135,6 +135,13 @@ export function renderPlan(plan) {
   out.push(`# ${plan.meta?.title || 'Build plan'}`, '', '> Generated from `docs/plan/plan.json` by `scripts/plan/plan-lint.mjs --render`. Edit the JSON, not this file.', '')
   if (plan.meta?.decision) out.push(`**Decision:** ${plan.meta.decision}`, '')
   out.push(`**${stats.phases} phases · ${stats.waves} waves · ${stats.tasks} tasks · widest wave ${stats.maxWidth} tasks in parallel**`, '')
+  const you = tasks.filter((x) => x.owner === 'user')
+  if (you.length) out.push(`**${you.length} tasks are yours** (marked 👤): ${you.map((x) => `\`${x.id}\``).join(', ')}`, '')
+  if (plan.meta?.openDecisions?.length) {
+    out.push('## Open decisions (defaults are assumed so nothing blocks)', '', '| # | Decision | Default assumed | Affects |', '|---|---|---|---|')
+    plan.meta.openDecisions.forEach((d) => out.push(`| ${d.id} | ${esc(d.question)} | ${esc(d.default)} | ${esc(d.affects)} |`))
+    out.push('')
+  }
   out.push('```mermaid', 'flowchart LR')
   phases.forEach((p, i) => out.push(`  ${p.id}["${p.id} · ${esc(p.name)}"]${i ? '' : ''}`))
   phases.slice(1).forEach((p, i) => out.push(`  ${phases[i].id} --> ${p.id}`))
@@ -150,9 +157,19 @@ export function renderPlan(plan) {
       const wt = pt.filter((t) => t.wave === w)
       out.push(`### ${p.id} · Wave ${w} — ${wt.length} in parallel`, '')
       out.push('| Task | Title | Size | Writes | Depends on | Acceptance |', '|---|---|---|---|---|---|')
-      for (const t of wt) out.push(`| \`${t.id}\` | ${esc(t.title)} | ${t.size} | ${esc((t.writes || []).map((x) => `\`${x}\``).join('<br>'))} | ${esc((t.deps || []).join(', ') || '—')} | ${esc(t.acceptance)} |`)
+      for (const t of wt) out.push(`| \`${t.id}\`${t.owner === 'user' ? ' 👤' : ''}${t.urgent ? ' ⚡' : ''} | ${esc(t.title)} | ${t.size} | ${esc((t.writes || []).map((x) => `\`${x}\``).join('<br>'))} | ${esc((t.deps || []).join(', ') || '—')} | ${esc(t.acceptance)} |`)
       out.push('')
     }
+  }
+  if (plan.meta?.merged?.length) {
+    out.push('## Merged proposals', '', 'Overlapping proposals from different research agents, folded into one task each.', '', '| Proposal | Folded into | Why |', '|---|---|---|')
+    plan.meta.merged.forEach((m) => out.push(`| \`${m.id}\` | \`${m.into}\` | ${esc(m.why)} |`))
+    out.push('')
+  }
+  if (plan.meta?.deferred?.length) {
+    out.push('## Deferred', '', '| Proposal | Why |', '|---|---|')
+    plan.meta.deferred.forEach((m) => out.push(`| \`${m.id}\` | ${esc(m.why)} |`))
+    out.push('')
   }
   return out.join('\n')
 }

@@ -34,6 +34,19 @@ Gate: `node scripts/plan/swarm-prompt.mjs --check` and `node scripts/plan/plan-l
 
 Input: all reports + proposals. Output: `docs/plan/plan.json`, rendered to `PLAN.md`.
 
+Humans decide, the scheduler schedules:
+
+- **`docs/plan/synthesis.json`** holds the judgment calls: phase per proposal, which overlapping proposals merge into which (`drop`), what is deferred, per-task overrides (extra deps/writes, notes, `urgent`), extra tasks (including `USER:` tasks only the user can do), phase goals/exit criteria/learning lists, and the open decisions with their assumed defaults.
+- **`node scripts/plan/plan-synthesize.mjs`** applies it: rewrites dependencies through merges, adds one gate task per phase, then list-schedules each phase. A task runs in the earliest wave where all its dependencies are done, it does not overlap another task's writes **or reads** in that wave, and the wave is at most 6 wide. Longest dependency chains go first; `urgent` tasks go before everything.
+- A proposal that is not assigned, dropped or deferred, a dependency on a later phase, or a cycle is an error, so nothing is silently lost.
+
+```bash
+node scripts/plan/plan-synthesize.mjs                                           # synthesis.json + research/*.tasks.json -> plan.json
+node scripts/plan/plan-lint.mjs docs/plan/plan.json --render docs/plan/PLAN.md  # validate and render
+```
+
+`docs/plan/OPEN-DECISIONS.md` is created once and then belongs to the user; the synthesizer never overwrites it.
+
 Phases (from blueprint 2.7, adjusted by research):
 
 | Phase | Goal |
@@ -85,8 +98,11 @@ Re-planning is normal: when a wave reveals new facts, edit `plan.json`, re-lint,
 | `docs/plan/swarm.json` | swarm roster, decision, output contract |
 | `docs/plan/blueprint.txt` | clean text of the blueprint (regenerate with `scripts/plan/blueprint-text.mjs`) |
 | `docs/plan/research/` | agent reports and task proposals |
-| `docs/plan/plan.json` | the plan (source of truth) |
+| `docs/plan/synthesis.json` | human decisions: phases, merges, overrides, open decisions |
+| `docs/plan/plan.json` | the plan (generated; source of truth for execution) |
+| `docs/plan/OPEN-DECISIONS.md` | decisions with assumed defaults; user-owned |
 | `docs/plan/PLAN.md` | generated view of the plan |
 | `scripts/plan/swarm-prompt.mjs` | prompt generator + completeness gate |
+| `scripts/plan/plan-synthesize.mjs` | proposals + synthesis.json -> scheduled plan |
 | `scripts/plan/plan-lint.mjs` | plan validator + renderer |
-| `test/planLint.test.js` | tests for the validator |
+| `test/planLint.test.js`, `test/planSynthesize.test.js` | tests for the validator and the scheduler |
