@@ -1,0 +1,200 @@
+[
+  {
+    "id": "R6-01",
+    "title": "Make kv_store writes throw on error and retry failed pushes with backoff in sync v1",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/cloudKv.js", "src/store.js", "src/sync/engine.js", "test/syncCloudKv.test.js", "test/syncEngine.test.js"],
+    "reads": ["src/store.js", "src/sync/engine.js", "node_modules/@supabase/postgrest-js/dist/index.cjs"],
+    "deps": ["R2-04"],
+    "acceptance": "node --test test/syncCloudKv.test.js test/syncEngine.test.js passes; a fake supabase whose upsert resolves {error} makes cloud.write reject, the key stays pending, the failed flag is set, and a timer-driven retry (1s, 2s, 4s ... capped 5 min) later pushes it",
+    "notes": "store.js:30-37 ignores the {error} that supabase-js returns instead of throwing (postgrest-js index.cjs:418), so v1 treats failed writes as success. Ship before any v2 work; needs R2-04 first because both edit src/store.js."
+  },
+  {
+    "id": "R6-02",
+    "title": "Add record-level merge primitives (HLC format contract, shouldApply, tombstone, drift clamp)",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/records.js", "test/syncRecords.test.js"],
+    "reads": ["src/sync/hlc.js", "docs/plan/research/R6-sync-v2.sql"],
+    "deps": ["X1-16"],
+    "acceptance": "node --test test/syncRecords.test.js passes; covers: hlc string is '<15-digit ms>-<4-hex counter>-<node>' (matches records_hlc_chk in the SQL), higher hlc wins, equal hlc is a no-op, tombstone beats an older edit and loses to a newer one (the three Lab 1 'per record + tombstone' outcomes), remote hlc more than 24h ahead is rejected",
+    "notes": "Pins the string format X1-16 must emit so SQL substr(hlc,1,15) and client compare agree; if X1-16 chose another format, change this task and the SQL together."
+  },
+  {
+    "id": "R6-03",
+    "title": "Write the list diff: changed/deleted records from a saved array, fractional positions, stale-snapshot guard",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/diff.js", "test/syncDiff.test.js"],
+    "reads": ["src/sync/records.js", "src/dnd/logic.js", "src/undo.js"],
+    "deps": ["R6-02"],
+    "acceptance": "node --test test/syncDiff.test.js passes; covers: unchanged items emit no op, edit emits one upsert, removal emits one tombstone only for ids that were served to the caller, a record that arrived by pull after the last get() is never tombstoned by a stale save, placeItem() reorder emits one pos change, prepend emits one pos change, undo re-add emits an upsert that resurrects, midpoint exhaustion triggers renumbering, numeric legacy ids are stringified for the record id but kept in the body",
+    "notes": "Items served to the UI carry an enumerable '__v' field (it survives {...spread}) holding the hlc they were read at; diff compares against that base, not against the current record."
+  },
+  {
+    "id": "R6-04",
+    "title": "Write per-key adapters mapping the 17 SYNCED_KEYS to record entries and back",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/adapters.js", "test/syncAdapters.test.js", "test/fixtures/sync-v1-blobs.json"],
+    "reads": ["src/store.js", "src/life/logic.js", "src/tabs/Life.jsx", "src/tabs/Invest.jsx", "docs/plan/research/R6-sync-v2.sql"],
+    "deps": ["R6-02"],
+    "acceptance": "node --test test/syncAdapters.test.js passes; for every key fromEntries(toEntries(blob)) deep-equals the blob (order included); entry ids equal the ids forge_backfill() produces for the same fixture (habits plus habitCheckins 'habitId:YYYY-MM-DD', investProgress 'done:<id>' / 'quiz:<id>' / 'tasks:<id>' / 'current', moodLog by date, settings '_'); moodLog resolve() prefers source 'logged' over 'derived' regardless of hlc",
+    "notes": "Families: id-list (10 keys), flat map (progress, examProgress, puzzleProgress, budgets), moodLog by date, investProgress leaf map, settings doc. Habits split checkins into their own collection so two devices checking in on different days both survive."
+  },
+  {
+    "id": "R6-05",
+    "title": "Add the outbox: dirty-set coalescing, batching of 200, retry classification and jittered backoff",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/outbox.js", "test/syncOutbox.test.js"],
+    "reads": ["src/sync/engine.js"],
+    "deps": ["R6-02"],
+    "acceptance": "node --test test/syncOutbox.test.js passes; covers: 3 edits to one record coalesce to 1 dirty entry, ack removes an entry only if its hlc still equals the pushed hlc, network and 5xx are retryable with delays 1s,2s,4s,... cap 300s plus jitter, 401 triggers a session refresh then retry, a constraint error bisects the batch to isolate and quarantine one bad record",
+    "notes": "Outbox stores only (collection,id) pairs; payloads are read from the record store at send time, so replays are idempotent by (collection,id,hlc)."
+  },
+  {
+    "id": "R6-06",
+    "title": "Build in-memory fakes of the v2 cloud and db that mirror the SQL semantics",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["test/helpers/fakeCloudV2.js", "test/helpers/fakeDb.js", "test/syncFakeCloudV2.test.js"],
+    "reads": ["docs/plan/research/R6-sync-v2.sql", "test/syncEngine.test.js"],
+    "deps": ["R6-02"],
+    "acceptance": "node --test test/syncFakeCloudV2.test.js passes with these vectors from the validated SQL: fresh row applies, newer edit applies, replay returns zero rows, stale hlc returns zero rows, tombstone with newer hlc applies, year-2100 hlc rejected, rev strictly increases on every applied write including updates, second user sees zero rows; the fake also supports failure injection (offline, 503, constraint error), delta pull by rev, and a realtime emitter",
+    "notes": "test/helpers/ is outside the 'test/*.test.js' glob so it is not run as a test file."
+  },
+  {
+    "id": "R6-07",
+    "title": "Create engine2 local half: record store in IndexedDB, get/save/update, materialisation, subscribe",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/engine2.js", "test/syncEngine2Local.test.js"],
+    "reads": ["src/sync/engine.js", "src/sync/records.js", "src/sync/diff.js", "src/sync/adapters.js", "src/sync/outbox.js", "test/helpers/fakeDb.js"],
+    "deps": ["R6-03", "R6-04", "R6-05", "R6-06"],
+    "acceptance": "node --test test/syncEngine2Local.test.js passes; covers: get(key) materialises the same shape as v1 getSynced; save(key,next) writes only changed records plus dirty marks before resolving; update(key,fn) is serialised per key (two concurrent updates both survive); subscribe(key) fires once per change with a new array reference; a write failure to the db calls onLocalWriteError and sets failed; writes are guarded by an injected lock (Web Locks) and announced on an injected BroadcastChannel so a second tab reloads its cache",
+    "notes": "Local layout: r2:<collection> = {recs:{id:{b,h,d,p}}}, r2:outbox, r2:meta {cursor,userId,deviceId,lastPullAt}. Engine takes db, cloud, now, lock, bus by injection like createSyncEngine does."
+  },
+  {
+    "id": "R6-08",
+    "title": "Add engine2 network half: outbox drain, delta pull, realtime apply, long-offline resync",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/engine2.js", "test/syncEngine2Net.test.js"],
+    "reads": ["src/sync/engine.js", "test/helpers/fakeCloudV2.js", "test/syncEngine.test.js"],
+    "deps": ["R6-07"],
+    "acceptance": "node --test test/syncEngine2Net.test.js passes with fake timers; covers: 700ms debounce then one forge_push batch, offline then online drains, pull uses 'rev > cursor - 50' loops until a short page, realtime payload applied without refetch, own echo is a no-op, flush() pushes immediately, a record absent from the cloud and older than the pull start after >60 days offline is dropped as GC'd while one in the outbox is kept, claimOwner for a new user wipes records, outbox and cursor together",
+    "notes": "Second writer of src/sync/engine2.js; must run after R6-07."
+  },
+  {
+    "id": "R6-09",
+    "title": "Write the Supabase glue for v2: forge_push RPC, delta pull and realtime subscription",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/cloudV2.js", "test/syncCloudV2.test.js"],
+    "reads": ["src/supabaseClient.js", "docs/plan/research/R6-sync-v2.sql", "test/helpers/fakeCloudV2.js"],
+    "deps": ["R6-06"],
+    "acceptance": "node --test test/syncCloudV2.test.js passes against a fake supabase client; push() calls rpc('forge_push', {rows}) in batches of at most 200 and throws on any {error}; pull() pages 1000 rows ordered by rev; subscribe() uses one channel with filter user_id=eq.<uid> and event '*' and reports SUBSCRIBED after reconnect so the engine can delta-pull",
+    "notes": "supabaseClient.js throws at import without env vars, so the client is injected, as in createSyncEngine."
+  },
+  {
+    "id": "R6-10",
+    "title": "Add backfill, verification and rollback SQL migrations plus the cutover runbook",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["supabase/migrations/0002_sync_v2_backfill.sql", "supabase/migrations/0003_sync_v2_verify.sql", "supabase/rollback/sync_v2_down.sql", "docs/runbooks/sync-v2-cutover.md"],
+    "reads": ["docs/plan/research/R6-sync-v2.sql", "supabase/migrations/0001_sync_v2.sql"],
+    "deps": ["X1-17"],
+    "acceptance": "On a scratch PostgreSQL 16 with an auth.users, auth.uid(), anon/authenticated and publication stub: psql -v ON_ERROR_STOP=1 -f 0001 -f 0002 -f 0003 applies twice; select * from forge_backfill() returns per-collection counts; select * from v2_verify shows ok = true for every key on a fixture kv_store that includes a duplicate-id task and a numeric id expense; runbook lists each user step with the expected output",
+    "notes": "0001 is X1-17's file and must contain sections 0-5 of R6-sync-v2.sql (generic records table, forge_push, stamp trigger, GC fn); R6-sync-v2.sql was run end to end on PG16 for this report. Running it on the live project is a user action (R6-16)."
+  },
+  {
+    "id": "R6-11",
+    "title": "Write the migration helpers: per-key flags, v1 blob mirror, additive blob import, local seed, verifier",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/migrate.js", "test/syncMigrate.test.js"],
+    "reads": ["src/sync/engine2.js", "src/sync/adapters.js", "src/sync/logic.js", "src/backup/backup.js"],
+    "deps": ["R6-08", "X1-07"],
+    "acceptance": "node --test test/syncMigrate.test.js passes; covers: flags from VITE_SYNC_V2_KEYS with a localStorage override, every v2 save also rewrites the v1 shape {data, updatedAt} locally and the kv_store blob (so flipping a flag off resumes v1 with current data), importBlob(key, blob) only adds or updates records and never tombstones, seedFromLocalBlob pushes local records that are missing or newer in the cloud with hlc derived from blob.updatedAt, verify(key) deep-equals materialised records against the blob",
+    "notes": "seedFromLocalBlob covers edits that v1's swallowed write errors never uploaded. Reuse X1-07's export for the pre-cutover JSON download; do not duplicate it."
+  },
+  {
+    "id": "R6-12",
+    "title": "Route store.js getSynced/saveSynced/mutate to v1 or v2 per key behind flags",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/sync/router.js", "src/store.js", "test/syncRouter.test.js"],
+    "reads": ["src/store.js", "src/sync/engine.js", "src/sync/engine2.js", "src/sync/cloudV2.js", "src/sync/migrate.js"],
+    "deps": ["R6-01", "R6-08", "R6-09", "R6-11"],
+    "acceptance": "node --test test/syncRouter.test.js passes; with flags off every existing store export behaves byte-identically (all getX/saveX/mutate signatures unchanged, SYNCED_KEYS unchanged, dsa_mastery_v1 untouched); with a key on, get/save/mutate hit engine2; npm run build succeeds",
+    "notes": "Routing logic lives in router.js because store.js cannot be imported under node:test (supabaseClient.js throws without env). store.js is a cross-area hot spot; R6-01 and R2-04 edit it earlier."
+  },
+  {
+    "id": "R6-13",
+    "title": "Add useSynced and useSyncStatus hooks over a per-key snapshot store",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/useSynced.js", "src/sync/snapshotStore.js", "test/syncSnapshotStore.test.js"],
+    "reads": ["src/useHydrate.js", "src/useLatest.js", "src/store.js"],
+    "deps": ["R6-12"],
+    "acceptance": "node --test test/syncSnapshotStore.test.js passes (stable snapshot reference between changes, one notification per change, ready true synchronously once a key is cached); npm run build succeeds; useSynced(key) returns {value, ready, error, save, update} and useSyncStatus() returns {failed, pending, lastSyncedAt}",
+    "notes": "Built on useSyncExternalStore. Existing useHydrate stays for non-synced loaders. update(fn) is the stale-snapshot-safe write path call sites should move to."
+  },
+  {
+    "id": "R6-14",
+    "title": "Replace the kv_store realtime effect and KEY_TO_TAB in App.jsx with engine subscriptions",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["src/App.jsx"],
+    "reads": ["src/App.jsx", "src/store.js", "src/useSynced.js"],
+    "deps": ["R6-13", "R1-09"],
+    "acceptance": "npm run build succeeds; in two browser profiles an edit on one appears on the other within 5 s without the open tab showing Loading; with all v2 flags off the old kv_store channel still runs; the banner reads pending counts; render is no longer gated on a network pull when a local cursor exists",
+    "notes": "Must be sequenced after R1-09 (shell rewires App.jsx). KEY_TO_TAB maps to 'Today', 'Exams', 'Puzzles' (App.jsx:36-41), which collide with the new Today home; subscriptions remove the mapping."
+  },
+  {
+    "id": "R6-15",
+    "title": "Add two-device simulation and undo-resurrection tests",
+    "size": "M",
+    "phaseHint": "P2 sync v2",
+    "writes": ["test/syncTwoDevice.test.js", "test/syncUndo.test.js"],
+    "reads": ["src/sync/engine2.js", "src/undo.js", "test/helpers/fakeCloudV2.js", "test/helpers/fakeDb.js", "test/undo.test.js"],
+    "deps": ["R6-08"],
+    "acceptance": "node --test test/syncTwoDevice.test.js test/syncUndo.test.js passes; two engines sharing one fake cloud reproduce all 16 edit-toggle combinations x 2 'edited last' settings of Lab 1 with zero lost edits under 'per record + tombstone', a wrong-clock phone (+1 year) does not win after the laptop receives its hlc, two devices checking in a habit on different days both keep their check-in, delete then undo through deleteWithUndo resurrects the record with a newer hlc and a concurrent remote edit is overwritten only if the undo is later",
+    "notes": "Existing test/undo.test.js stays untouched and must keep passing."
+  },
+  {
+    "id": "R6-16",
+    "title": "USER: take the backup, apply the SQL migrations on Supabase, run the backfill and record v2_verify output",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["docs/runbooks/sync-v2-cutover-log.md"],
+    "reads": ["docs/runbooks/sync-v2-cutover.md", "supabase/migrations/0001_sync_v2.sql"],
+    "deps": ["R6-10"],
+    "acceptance": "User pastes into the log: the kv_store_backup_20261112 row count equals kv_store row count; select * from v2_verify shows ok = true for every row; select * from forge_backfill() counts",
+    "notes": "Only the user can do this: dashboard SQL editor, optional pg_cron enablement for tombstone GC. Marked 'user'; no agent has dashboard access."
+  },
+  {
+    "id": "R6-17",
+    "title": "USER: roll v2 out per key (Vercel env VITE_SYNC_V2_KEYS) in three stages and confirm each device",
+    "size": "S",
+    "phaseHint": "P2 sync v2",
+    "writes": ["docs/runbooks/sync-v2-cutover-log.md"],
+    "reads": ["docs/runbooks/sync-v2-cutover.md"],
+    "deps": ["R6-14", "R6-15", "R6-16"],
+    "acceptance": "Stage 1 puzzleProgress, examProgress, examNotes, watchlist, progress; stage 2 loans, goals, budgets, expenses, reminders, notes, tasks, investProgress; stage 3 habits, moodLog, settings. After each stage: v2_verify ok, select count(distinct device_id) from records where device_id <> 'backfill' equals the number of devices, no failed banner for 48 h",
+    "notes": "User-only: editing Vercel env vars and opening each device once. Per-key rollback is flipping the key out of the env var."
+  },
+  {
+    "id": "R6-18",
+    "title": "Retire the v1 blob mirror for migrated keys after the rollback window",
+    "size": "S",
+    "phaseHint": "P4 quality+ops",
+    "writes": ["src/sync/migrate.js", "src/sync/router.js", "src/store.js", "test/syncMigrate.test.js", "test/syncRouter.test.js"],
+    "reads": ["docs/runbooks/sync-v2-cutover-log.md"],
+    "deps": ["R6-17"],
+    "acceptance": "node --test passes; the kv_store and local-blob mirror is removed for every key except dsa_mastery_v1; kv_store table, its policies, its realtime publication and kv_store_backup_20261112 are not dropped",
+    "notes": "Only after 14 days of clean v2_verify and the user confirming no device runs a pre-v2 build."
+  }
+]

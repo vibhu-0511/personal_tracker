@@ -147,7 +147,7 @@ Each tile is `<section aria-labelledby>`; whole-tile navigation uses a real `<a 
 
 ## 4. The 18 sub-views (blueprint says 17)
 
-Real Money has 5 views: `overview, txns, budget, goals, loans` (`src/tabs/Expenses.jsx:427-433`); blueprint merges overview+txns into "Spend" (blueprint:1371). Logic's DSA map is a link, not a view (`src/tabs/LogicBuilding.jsx:73-80`). Life views are 2 groups x (3+2) (`Life.jsx:35-45`). Recommendation: keep 5 Money routes (no rewrite of a 1,353-line file); label the first "Overview".
+Real Money has 5 views: `overview, txns, budget, goals, loans` (`src/tabs/Expenses.jsx:427-433`); blueprint merges overview+txns into "Spend" (blueprint:1372). Logic's DSA map is a link, not a view (`src/tabs/LogicBuilding.jsx:73-80`). Life views are 2 groups x (3+2) (`Life.jsx:35-45`). Recommendation: keep 5 Money routes (no rewrite of a 1,353-line file); label the first "Overview".
 
 Style: A = list/blocks + inspector; T = B tiles. Default A except Habits (recommend T grid inside A shell, phase after P0 because `src/dnd/Dnd.jsx` uses `verticalListSortingStrategy` and needs `rectSortingStrategy` for a grid).
 
