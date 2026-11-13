@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "live": "node tools/live/server.mjs",
+    "live:demo": "node tools/live/demo.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

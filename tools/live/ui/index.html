@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forge Live</title>
+<style>
+/* Layout: control room. Harness strip on top, agent graph and build graph side by side, feed and inspector below. */
+:root{
+  --bg:#0b1219; --panel:#111c27; --panel2:#182736; --fg:#e4ecf4; --muted:#8aa0b5; --line:#233648;
+  --accent:#6fa8ff; --ok:#4cc38a; --run:#f0a93c; --bad:#ff7b72; --mine:#aa9cff; --idle:#5d7389; --commit:#4cc3d0;
+  --f-shell:#f0a93c; --f-file:#6fa8ff; --f-search:#4cc3d0; --f-agent:#aa9cff; --f-skill:#e58fd0; --f-mcp:#7bd88f; --f-web:#8fb7ff; --f-artifact:#ffb86b; --f-task:#9bb0c4; --f-other:#9bb0c4; --f-event:#5d7389;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#eef2f6; --panel:#fff; --panel2:#e8eef4; --fg:#14202e; --muted:#566879; --line:#d3dbe5;
+  --accent:#2159c9; --ok:#1a7f4b; --run:#a85f00; --bad:#c0392b; --mine:#6b4cc4; --idle:#8696a8; --commit:#0b7a86;
+  --f-shell:#b86e00; --f-file:#2159c9; --f-search:#0b7a86; --f-agent:#6b4cc4; --f-skill:#b0409a; --f-mcp:#1a7f4b; --f-web:#3a66b8; --f-artifact:#c0630a; --f-task:#566879; --f-other:#566879; --f-event:#8696a8}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:13px/1.45 var(--sans);padding:14px max(14px,env(safe-area-inset-right)) 28px max(14px,env(safe-area-inset-left))}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--mono)} .muted{color:var(--muted)}
+.eyebrow{font:500 10.5px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:18px;letter-spacing:-.01em}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-flex;gap:6px;align-items:center;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font:11.5px var(--mono);color:var(--muted);white-space:nowrap}
+.chip b{color:var(--fg);font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--idle)}
+.chip[data-s="on"] .dot{background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:beat 1.8s infinite}
+.chip[data-s="wait"] .dot{background:var(--run)}
+@keyframes beat{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.chip.flash{animation:flash .9s} @keyframes flash{0%{background:color-mix(in srgb,var(--accent) 35%,var(--panel))}}
+.chip.ok b{color:var(--ok)} .chip.bad b{color:var(--bad)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0;display:flex;flex-direction:column}
+.panel>.hd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:7px;padding:3px 10px;font-size:12px}
+@media (hover:hover){.btn:hover{border-color:var(--accent)}}
+.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+/* harness strip */
+.strip{display:flex;flex-wrap:wrap;gap:0;align-items:center;padding:10px 12px}
+.st{display:flex;flex-direction:column;gap:2px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);min-width:86px;transition:border-color .2s,background .2s,transform .2s}
+.st b{font:600 12px var(--mono)} .st span{font-size:10.5px;color:var(--muted)}
+.st.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--panel2));transform:translateY(-2px)}
+.sl{width:22px;height:2px;background:var(--line);position:relative;overflow:hidden}
+.sl.on::after{content:"";position:absolute;top:0;left:-8px;width:8px;height:2px;background:var(--accent);animation:run .5s linear infinite}
+@keyframes run{to{left:22px}}
+.counts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+/* layout */
+.main{display:grid;gap:14px;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}
+.low{display:grid;gap:14px;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}
+@media (max-width:1000px){.main,.low{grid-template-columns:minmax(0,1fr)}}
+/* agent graph */
+.gscroll{overflow:auto;height:360px;background:
+  radial-gradient(circle at 1px 1px,color-mix(in srgb,var(--line) 70%,transparent) 1px,transparent 0) 0 0/22px 22px}
+svg text{font-family:var(--sans);fill:var(--fg)}
+.lane text.ll{font:500 10.5px var(--mono);fill:var(--muted)}
+.lane rect.band{fill:color-mix(in srgb,var(--panel2) 60%,transparent)}
+.nd{cursor:pointer;animation:enter .35s ease-out;transform-box:fill-box}
+@keyframes enter{from{opacity:0;transform:translateY(10px) scale(.92)}}
+.nd rect.box{fill:var(--panel2);stroke:var(--c,var(--idle));stroke-width:1.4;transition:fill .3s}
+.nd.sel rect.box{stroke-width:2.6;fill:color-mix(in srgb,var(--c) 14%,var(--panel2))}
+.nd .tl{font:600 9.5px var(--mono);fill:var(--c)} .nd .lb{font-size:11px}
+.nd .ring{fill:none;stroke:var(--run);stroke-width:2;opacity:0}
+.nd[data-state="running"] .ring{opacity:1;stroke-dasharray:6 5;animation:march .7s linear infinite}
+.nd[data-state="running"] rect.box{fill:color-mix(in srgb,var(--run) 12%,var(--panel2))}
+@keyframes march{to{stroke-dashoffset:-11}}
+.nd .ok{display:none;fill:none;stroke:var(--ok);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.nd .fail{display:none;fill:none;stroke:var(--bad);stroke-width:2.2;stroke-linecap:round}
+.nd[data-state="ok"] .ok{display:block} .nd[data-state="fail"] .fail{display:block}
+.nd[data-state="fail"] rect.box{stroke:var(--bad)}
+.nd.done-flash rect.box{animation:doneflash .8s}
+@keyframes doneflash{0%{fill:color-mix(in srgb,var(--ok) 40%,var(--panel2))}}
+.nd.mark rect.box{rx:18;stroke-dasharray:3 3;fill:transparent}
+.nd.mark .lb{font-size:10.5px;fill:var(--muted)}
+.ed{fill:none;stroke:var(--line);stroke-width:1.6;stroke-dasharray:1;stroke-dashoffset:0;animation:draw .5s ease-out}
+.ed.spawn{stroke:var(--f-agent);stroke-dasharray:4 3;animation:none}
+.ed.live{stroke:var(--run);stroke-dasharray:.02 .03;animation:flow .5s linear infinite}
+@keyframes draw{from{stroke-dashoffset:1}} @keyframes flow{to{stroke-dashoffset:-.05}}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+.empty code{font-family:var(--mono);background:var(--panel2);padding:2px 6px;border-radius:5px}
+/* build graph */
+.phases{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding:10px 12px 0}
+.ph{text-align:left;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.ph.sel{border-color:var(--accent)} .ph.act{box-shadow:0 0 0 1px var(--run) inset}
+.ph b{font:600 12px var(--mono)} .ph span.n{font:10px var(--mono);color:var(--muted)}
+.bar{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--panel);gap:1px}
+.bar i{display:block;min-width:0;flex-basis:0;background:var(--c)}
+[data-s="merged"]{--c:var(--ok)}[data-s="committed"]{--c:var(--commit)}[data-s="running"]{--c:var(--run)}[data-s="failed"]{--c:var(--bad)}[data-s="blocked"]{--c:var(--bad)}[data-s="yours"]{--c:var(--mine)}[data-s="queued"]{--c:var(--idle)}
+.waves{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px 0}
+.wv{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:2px 10px;font:11px var(--mono)}
+.wv.sel{border-color:var(--accent);color:var(--accent)} .wv.act{box-shadow:0 0 0 1px var(--run) inset}
+.tasks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:12px;overflow:auto;max-height:272px;align-content:start}
+.tk{border:1px solid var(--line);border-left:3px solid var(--c);background:var(--panel2);border-radius:8px;padding:7px 8px;text-align:left;display:flex;flex-direction:column;gap:4px;min-width:0;transition:background .3s}
+.tk.sel{border-color:var(--accent);border-left-color:var(--c)}
+.tk b{font:600 11.5px var(--mono)} .tk .t{font-size:11px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tk .pl{display:flex;gap:3px;align-items:center} .tk .pl i{width:14px;height:4px;border-radius:2px;background:var(--line)} .tk .pl i.on{background:var(--c)}
+.tk .pl em{font:10px var(--mono);color:var(--c);margin-left:auto;font-style:normal}
+.tk[data-s="running"]{animation:glow 1.6s ease-in-out infinite} @keyframes glow{50%{background:color-mix(in srgb,var(--run) 14%,var(--panel2))}}
+.tk.changed{animation:flipin .9s} @keyframes flipin{0%{background:color-mix(in srgb,var(--c) 45%,var(--panel2));transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* feed + inspector */
+.feed{height:300px;overflow:auto;font:11.5px/1.5 var(--mono);padding:8px 10px;display:flex;flex-direction:column;gap:1px}
+.ln{display:grid;grid-template-columns:62px 118px 1fr;gap:8px;padding:1px 4px;border-radius:4px;cursor:default;min-width:0}
+.ln:hover{background:var(--panel2)} .ln .ts{color:var(--muted)} .ln .ev{color:var(--c,var(--muted));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ln .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .ln.fail .tx{color:var(--bad)} .ln.say .tx{color:var(--accent);font-family:var(--sans)}
+.insp{padding:12px;overflow:auto;height:300px;display:flex;flex-direction:column;gap:8px}
+.insp h3{margin:0;font-size:13px;overflow-wrap:anywhere} .insp pre{margin:0;background:var(--panel2);border-radius:7px;padding:8px 10px;font:11.5px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:150px;overflow:auto}
+.insp dl{display:grid;grid-template-columns:90px 1fr;gap:4px 10px;margin:0;font-size:12px} .insp dt{color:var(--muted)} .insp dd{margin:0;overflow-wrap:anywhere}
+.pill{display:inline-block;font:500 10.5px var(--mono);padding:1px 8px;border-radius:999px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--panel))}
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--line);font:10.5px var(--mono);color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;border:2px solid var(--c);margin-right:4px;vertical-align:-1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div style="display:flex;flex-direction:column;gap:5px"><span class="eyebrow">Claude Code · live harness view</span><h1>Forge Live</h1></div>
+    <div class="chips">
+      <span class="chip" id="conn" data-s="wait"><i class="dot"></i><span id="connt">connecting</span></span>
+      <span class="chip" id="cwd">cwd <b>—</b></span>
+      <span class="chip" id="repo">git <b>—</b></span>
+      <span class="chip" id="tests">tests <b>—</b></span>
+      <span class="chip" id="builds">build <b>—</b></span>
+      <span class="chip" id="rate">events <b>0</b></span>
+    </div>
+  </header>
+
+  <section class="panel" aria-label="Harness stage">
+    <div class="strip" id="strip"></div>
+  </section>
+
+  <div class="main">
+    <section class="panel" aria-label="Agent graph">
+      <div class="hd"><div><span class="eyebrow">Agent graph</span> <span class="muted" id="gsub"></span></div>
+        <div class="chips"><button class="btn" id="follow" aria-pressed="true">Follow</button><button class="btn" id="demo">Run demo</button><button class="btn" id="clear">Clear</button></div></div>
+      <div class="gscroll" id="gscroll"><svg id="g" width="600" height="300"><g id="bands"></g><g id="edges"></g><g id="nodes"></g><g id="lanelabels"></g></svg></div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <section class="panel" aria-label="Build graph">
+      <div class="hd"><div><span class="eyebrow">Build graph</span> <span class="muted" id="bsub"></span></div><button class="btn" id="auto" aria-pressed="true">Follow active wave</button></div>
+      <div class="phases" id="phases"></div>
+      <div class="waves" id="waves"></div>
+      <div class="tasks" id="tasks"></div>
+    </section>
+  </div>
+
+  <div class="low">
+    <section class="panel" aria-label="Event feed">
+      <div class="hd"><span class="eyebrow">Event feed</span><button class="btn" id="pause" aria-pressed="false">Pause scroll</button></div>
+      <div class="feed" id="feed"></div>
+    </section>
+    <section class="panel" aria-label="Inspector">
+      <div class="hd"><span class="eyebrow">Inspector</span><span class="muted">click a node or task</span></div>
+      <div class="insp" id="insp"><span class="muted">Nothing selected.</span></div>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+import { newModel, reduce, FAMILIES } from '/lib/graph.mjs'
+
+const $ = id => document.getElementById(id)
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+const NS = 'http://www.w3.org/2000/svg'
+const sv = (n, a = {}, p) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e }
+const hhmmss = t => new Date(t).toTimeString().slice(0, 8)
+
+let model = newModel()
+let plan = { phases: [], tasks: [] }
+let build = { tasks: {}, repo: {} }
+let sel = null           // {type:'node'|'task', id}
+let dirtyGraph = false, dirtyBuild = false
+let evCount = 0, evWindow = []
+
+/* ---------- harness strip ---------- */
+const STAGES = [['prompt', 'Prompt', 'you speak'], ['context', 'Context', 'assembled'], ['model', 'Model', 'thinks'], ['gate', 'Gate', 'permission'], ['tool', 'Tool', 'runs'], ['result', 'Result', 'back to model'], ['final', 'Final', 'answer']]
+$('strip').innerHTML = STAGES.map((s, i) => `${i ? '<span class="sl" data-l="' + s[0] + '"></span>' : ''}<div class="st" data-st="${s[0]}"><b>${s[1]}</b><span>${s[2]}</span></div>`).join('') +
+  '<div class="counts"><span class="chip" id="c-tools">tools <b>0</b></span><span class="chip" id="c-run">running <b>0</b></span><span class="chip" id="c-err">errors <b>0</b></span><span class="chip" id="c-ag">subagents <b>0</b></span></div>'
+let lit = null, stageTimers = []
+function light(name) {
+  lit = name
+  document.querySelectorAll('.st').forEach(e => e.classList.toggle('on', e.dataset.st === name))
+  document.querySelectorAll('.sl').forEach(e => e.classList.toggle('on', e.dataset.l === name))
+}
+function stageFor(ev) {
+  stageTimers.forEach(clearTimeout); stageTimers = []
+  const seq = (...p) => p.forEach(([n, d]) => stageTimers.push(setTimeout(() => light(n), d)))
+  switch (ev.event) {
+    case 'UserPromptSubmit': light('prompt'); seq(['context', 250], ['model', 550]); break
+    case 'PreToolUse': light('gate'); seq(['tool', 280]); break
+    case 'PostToolUse': case 'PostToolUseFailure': light('result'); seq(['model', 350]); break
+    case 'AssistantText': light('model'); break
+    case 'Stop': light('final'); seq([null, 3500]); break
+  }
+}
+
+/* ---------- connection ---------- */
+function setConn(s, t) { $('conn').dataset.s = s; $('connt').textContent = t }
+function connect() {
+  const es = new EventSource('/events')
+  es.onopen = () => setConn('on', 'live')
+  es.onerror = () => setConn('wait', 'reconnecting…')
+  es.addEventListener('hello', e => { const d = JSON.parse(e.data); applyBuild(d.build) })
+  es.addEventListener('build', e => applyBuild(JSON.parse(e.data)))
+  es.addEventListener('ev', e => ingest(JSON.parse(e.data)))
+}
+fetch('/api/plan').then(r => r.json()).then(p => { plan = p; dirtyBuild = true; schedule() }).catch(() => {})
+
+/* ---------- ingest ---------- */
+const FEED_MAX = 500
+function ingest(ev) {
+  const fresh = Date.now() - ev.ts < 6000
+  const prevCwd = model.cwd
+  reduce(model, ev)
+  evCount++; evWindow.push(ev.ts)
+  if (fresh) stageFor(ev)
+  feedLine(ev)
+  if (ev.cwd && prevCwd && ev.cwd !== prevCwd) { const c = $('cwd'); c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash') }
+  dirtyGraph = true; schedule()
+}
+let raf = 0
+function schedule() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (dirtyGraph) { renderGraph(); renderTop() } if (dirtyBuild) renderBuild(); dirtyGraph = dirtyBuild = false }) }
+
+function applyBuild(b) {
+  const prev = build.tasks
+  build = b || build
+  build._changed = new Set(Object.keys(build.tasks || {}).filter(id => prev[id] && prev[id].s !== build.tasks[id].s))
+  dirtyBuild = true; dirtyGraph = true; schedule()
+}
+
+/* ---------- header chips ---------- */
+function renderTop() {
+  $('cwd').innerHTML = `cwd <b>${esc((model.cwd || '—').replace(/^.*\/(?=[^/]+\/[^/]+$)/, '…/'))}</b>`
+  const c = model.counts
+  $('c-tools').innerHTML = `tools <b>${c.total}</b>`; $('c-run').innerHTML = `running <b>${c.running}</b>`
+  $('c-err').innerHTML = `errors <b>${c.error}</b>`; $('c-ag').innerHTML = `subagents <b>${c.agents}</b>`
+  const t = model.checks.tests
+  if (t) { $('tests').className = 'chip ' + (t.fail ? 'bad' : 'ok'); $('tests').innerHTML = `tests <b>${t.pass} pass${t.fail ? ' · ' + t.fail + ' fail' : ''}</b>` }
+  const b = model.checks.build
+  if (b) { $('builds').className = 'chip ' + (b.ok ? 'ok' : 'bad'); $('builds').innerHTML = `build <b>${b.ok ? 'green' : 'failed'}</b>` }
+}
+setInterval(() => {
+  const now = Date.now(); evWindow = evWindow.filter(t => now - t < 10000)
+  $('rate').innerHTML = `events <b>${evCount}</b> · ${(evWindow.length / 10).toFixed(1)}/s`
+  const r = build.repo && build.repo.head
+  if (r) $('repo').innerHTML = `git <b>${esc(r.branch)}@${esc(r.sha)}</b>${build.repo.dirty ? ' · ' + build.repo.dirty + ' dirty' : ''}`
+}, 1000)
+
+/* ---------- agent graph ---------- */
+const COLW = 140, X0 = 118, ROWH = 94, Y0 = 18, W = 124, H = 52, MAXN = 160
+const nodeEls = new Map(), edgeEls = new Map()
+function visCols(vis) {   // widest lane determines the svg width (same walk as the layout below)
+  const col = new Map(), last = {}; let max = 0
+  for (const n of vis) { let c = (last[n.lane] ?? -1) + 1; if (n.parent && col.has(n.parent)) c = Math.max(c, col.get(n.parent) + 1); col.set(n.id, c); last[n.lane] = c; max = Math.max(max, c) }
+  return max
+}
+let follow = true
+const famColor = f => `var(--f-${f})`
+const clipS = (s, n) => s.length > n ? s.slice(0, n - 1) + '…' : s
+
+function renderGraph() {
+  const nodes = model.nodes, vis = nodes.slice(-MAXN), hidden = nodes.length - vis.length
+  $('gsub').textContent = nodes.length ? `${nodes.length} steps${hidden ? ` · showing last ${MAXN}` : ''}` : ''
+  const lanes = model.lanes, laneIdx = Object.fromEntries(lanes.map((l, i) => [l, i]))
+  const svg = $('g'), width = X0 + (visCols(vis) + 1) * COLW, height = Y0 + lanes.length * ROWH + 10
+  svg.setAttribute('width', Math.max(width, 600)); svg.setAttribute('height', Math.max(height, 300))
+  const bands = $('bands'); bands.innerHTML = ''
+  lanes.forEach((l, i) => {
+    const g = sv('g', { class: 'lane' }, bands)
+    sv('rect', { class: 'band', x: 0, y: Y0 + i * ROWH - 8, width: Math.max(width, 600), height: ROWH - 6, rx: 6 }, g)
+  })
+  const labels = $('lanelabels'); labels.innerHTML = ''   // drawn on top, pinned to the left edge while the graph scrolls
+  lanes.forEach((l, i) => {
+    sv('rect', { x: 0, y: Y0 + i * ROWH - 8, width: 104, height: ROWH - 6, rx: 6, fill: 'var(--panel)', opacity: .92 }, labels)
+    sv('text', { class: 'll', x: 10, y: Y0 + i * ROWH + 24, style: 'font:500 10.5px var(--mono);fill:var(--muted)' }, labels).textContent = clipS(model.laneInfo[l].label, 14)
+  })
+  labels.setAttribute('transform', `translate(${$('gscroll').scrollLeft},0)`)
+  // columns are per lane; a subagent lane starts one column after the Agent call that spawned it
+  const pos = new Map(), col = new Map(), lastCol = {}
+  let maxCol = 0
+  for (const n of vis) {
+    let c = (lastCol[n.lane] ?? -1) + 1
+    if (n.parent && col.has(n.parent)) c = Math.max(c, col.get(n.parent) + 1)
+    col.set(n.id, c); lastCol[n.lane] = c; maxCol = Math.max(maxCol, c)
+    pos.set(n.id, { x: X0 + c * COLW, y: Y0 + laneIdx[n.lane] * ROWH })
+  }
+  const alive = new Set(vis.map(n => n.id))
+  for (const [id, g] of nodeEls) if (!alive.has(id)) { g.remove(); nodeEls.delete(id) }
+  for (const n of vis) {
+    const p = pos.get(n.id)
+    let g = nodeEls.get(n.id)
+    if (!g) {
+      g = sv('g', { class: 'nd' + (n.type === 'mark' ? ' mark' : ''), tabindex: 0, role: 'button' }, $('nodes'))
+      g.style.setProperty('--c', famColor(n.family))
+      sv('rect', { class: 'box', width: W, height: n.type === 'mark' ? 34 : H, rx: 9 }, g)
+      sv('rect', { class: 'ring', x: -3, y: -3, width: W + 6, height: (n.type === 'mark' ? 34 : H) + 6, rx: 12 }, g)
+      if (n.type !== 'mark') {
+        sv('text', { class: 'tl', x: 9, y: 15 }, g).textContent = clipS(n.tool.replace(/^mcp__/, 'mcp:'), 18)
+        sv('path', { class: 'ok', d: `M${W - 21} 10l4 4 8-9` }, g)
+        sv('path', { class: 'fail', d: `M${W - 21} 6l9 9M${W - 12} 6l-9 9` }, g)
+        const t1 = sv('text', { class: 'lb', x: 9, y: 32 }, g), t2 = sv('text', { class: 'lb', x: 9, y: 45 }, g)
+        t1.textContent = clipS(n.label, 21); t2.textContent = n.label.length > 21 ? clipS(n.label.slice(21), 21) : ''
+        if (n.cd) { const c = sv('text', { class: 'tl', x: W - 9, y: 15, 'text-anchor': 'end' }, g); c.textContent = 'cd'; c.style.fill = 'var(--accent)' }
+      } else {
+        sv('text', { class: 'lb', x: 10, y: 21 }, g).textContent = clipS(n.label, 21)
+      }
+      sv('title', {}, g).textContent = `${n.tool}\n${n.label}`
+      g.addEventListener('click', () => select({ type: 'node', id: n.id }))
+      g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select({ type: 'node', id: n.id }) } })
+      nodeEls.set(n.id, g)
+    }
+    g.setAttribute('transform', `translate(${p.x},${p.y})`)
+    if (g.dataset.state && g.dataset.state !== n.state && n.state === 'ok') { g.classList.remove('done-flash'); void g.getBoundingClientRect(); g.classList.add('done-flash') }
+    g.dataset.state = n.state
+    g.classList.toggle('sel', !!sel && sel.type === 'node' && sel.id === n.id)
+  }
+  // edges: consecutive nodes in a lane, plus spawn edges parent -> first node of an agent lane
+  const want = new Map()
+  const lastInLane = {}
+  for (const n of vis) {
+    const prev = lastInLane[n.lane]
+    if (prev) want.set(prev.id + '>' + n.id, { a: prev, b: n, kind: '' })
+    lastInLane[n.lane] = n
+    if (n.parent && alive.has(n.parent)) want.set(n.parent + '>' + n.id, { a: nodes.find(x => x.id === n.parent), b: n, kind: 'spawn' })
+  }
+  for (const [k, e] of edgeEls) if (!want.has(k)) { e.remove(); edgeEls.delete(k) }
+  for (const [k, w] of want) {
+    const pa = pos.get(w.a.id), pb = pos.get(w.b.id); if (!pa || !pb) continue
+    const same = w.a.lane === w.b.lane
+    const x1 = pa.x + W, y1 = pa.y + H / 2, x2 = pb.x, y2 = pb.y + H / 2
+    const d = same ? `M${x1} ${y1}C${x1 + 20} ${y1} ${x2 - 20} ${y2} ${x2} ${y2}` : `M${pa.x + W / 2} ${pa.y + H}C${pa.x + W / 2} ${pb.y + 20} ${x2 - 40} ${y2} ${x2} ${y2}`
+    let e = edgeEls.get(k)
+    if (!e) { e = sv('path', { class: 'ed ' + w.kind, pathLength: 1 }, $('edges')); edgeEls.set(k, e) }
+    e.setAttribute('d', d)
+    e.classList.toggle('live', w.b.state === 'running' && w.kind !== 'spawn')
+  }
+  if (follow) { const s = $('gscroll'); s.scrollLeft = s.scrollWidth }
+  if (!nodes.length && !$('g').querySelector('.empty')) {}
+  $('gscroll').style.backgroundImage = ''
+  if (sel && sel.type === 'node') renderInspector()
+  // legend
+  const used = [...new Set(nodes.map(n => n.family))]
+  $('legend').innerHTML = used.map(f => `<span style="--c:${famColor(f)}"><i></i>${FAMILIES[f] || f}</span>`).join('')
+}
+
+/* ---------- feed ---------- */
+const feed = $('feed')
+let keepScroll = true
+function feedLine(ev) {
+  if (!ev) return
+  let fam = ev.tool ? null : 'event', txt = '', cls = ''
+  const node = ev.toolUseId && model.nodes.find(n => n.toolUseId === ev.toolUseId)
+  switch (ev.event) {
+    case 'PreToolUse': txt = `${ev.tool}  ${node ? node.label : ''}`; break
+    case 'PostToolUse': case 'PostToolUseFailure': {
+      const first = (ev.output || '').split('\n').find(l => l.trim()) || ''
+      const dur = node && node.t1 && node.t0 ? ` (${((node.t1 - node.t0) / 1000).toFixed(1)}s)` : ''
+      txt = `${ev.error ? '✗' : '✓'} ${ev.tool}${dur}  ${first.slice(0, 160)}`; cls = ev.error ? 'fail' : ''; break
+    }
+    case 'UserPromptSubmit': txt = '› ' + (ev.prompt || '').split('\n')[0].slice(0, 200); break
+    case 'AssistantText': txt = (ev.text || '').replace(/\s+/g, ' ').slice(0, 240); cls = 'say'; break
+    case 'Notification': txt = ev.message || ''; break
+    default: txt = [ev.source, ev.trigger, ev.agentType].filter(Boolean).join(' · ')
+  }
+  const fm = ev.tool ? Object.keys(FAMILIES).find(f => f === (model.nodes.find(n => n.tool === ev.tool) || {}).family) : null
+  const row = document.createElement('div')
+  row.className = 'ln ' + cls
+  row.style.setProperty('--c', ev.tool ? famColor(fm || 'other') : 'var(--muted)')
+  row.innerHTML = `<span class="ts">${hhmmss(ev.ts)}</span><span class="ev">${esc(ev.event === 'AssistantText' ? 'assistant' : ev.event.replace('ToolUse', ''))}</span><span class="tx" title="${esc(txt)}">${esc(txt)}</span>`
+  feed.appendChild(row)
+  while (feed.childElementCount > FEED_MAX) feed.firstChild.remove()
+  if (keepScroll) feed.scrollTop = feed.scrollHeight
+}
+
+/* ---------- build graph ---------- */
+let selPhase = null, selWave = null, autoFollow = true
+const ORDER = ['merged', 'committed', 'running', 'failed', 'blocked', 'yours', 'queued']
+const st = t => (build.tasks[t.id] && build.tasks[t.id].s) || (t.o === 'user' ? 'yours' : 'queued')
+const tally = l => { const c = { total: l.length }; ORDER.forEach(k => c[k] = 0); l.forEach(t => c[st(t)]++); return c }
+const barHtml = c => `<div class="bar">${ORDER.map(k => c[k] ? `<i data-s="${k}" style="flex-grow:${c[k]}"></i>` : '').join('')}</div>`
+function activeWave() {
+  const waves = []
+  for (const t of plan.tasks) { const k = t.p + '-' + t.w; if (!waves.includes(k)) waves.push(k) }
+  waves.sort((a, b) => a.split('-')[0] === b.split('-')[0] ? a.split('-')[1] - b.split('-')[1] : a.localeCompare(b))
+  const of = k => plan.tasks.filter(t => t.p + '-' + t.w === k)
+  return waves.find(k => of(k).some(t => ['running', 'committed'].includes(st(t)))) || waves.find(k => of(k).some(t => st(t) === 'queued')) || waves[0]
+}
+function renderBuild() {
+  if (!plan.tasks.length) { $('tasks').innerHTML = '<div class="muted">No docs/plan/plan.json found.</div>'; return }
+  const act = activeWave(); const [ap, aw] = (act || 'P0-1').split('-')
+  if (autoFollow) { selPhase = ap; selWave = act }
+  $('bsub').textContent = `active: ${ap} · wave ${aw}`
+  $('phases').innerHTML = plan.phases.map(p => { const c = tally(plan.tasks.filter(t => t.p === p.id)); return `<button class="ph ${p.id === selPhase ? 'sel' : ''} ${p.id === ap ? 'act' : ''}" data-ph="${p.id}" title="${esc(p.name)}"><b>${p.id}</b>${barHtml(c)}<span class="n">${c.merged}/${c.total}</span></button>` }).join('')
+  const wk = [...new Set(plan.tasks.filter(t => t.p === selPhase).map(t => t.w))].sort((a, b) => a - b)
+  $('waves').innerHTML = wk.map(w => { const k = selPhase + '-' + w; const c = tally(plan.tasks.filter(t => t.p === selPhase && t.w === w)); return `<button class="wv ${k === selWave ? 'sel' : ''} ${k === act ? 'act' : ''}" data-wv="${k}">W${w} · ${c.merged}/${c.total}</button>` }).join('')
+  const tasks = plan.tasks.filter(t => t.p + '-' + t.w === selWave)
+  $('tasks').innerHTML = tasks.map(t => {
+    const s = st(t), steps = ['queued', 'running', 'committed', 'merged'], i = steps.indexOf(s)
+    const ch = build._changed && build._changed.has(t.id) ? ' changed' : ''
+    return `<button class="tk${ch} ${sel && sel.type === 'task' && sel.id === t.id ? 'sel' : ''}" data-s="${s}" data-tk="${t.id}"><b>${t.id}</b><span class="t">${esc(t.t)}</span><span class="pl">${s === 'yours' ? '' : steps.map((x, j) => `<i class="${j <= i ? 'on' : ''}"></i>`).join('')}<em>${s}</em></span></button>`
+  }).join('')
+  $('auto').setAttribute('aria-pressed', String(autoFollow))
+  build._changed = new Set()
+  if (sel && sel.type === 'task') renderInspector()
+}
+
+/* ---------- inspector ---------- */
+function select(s) { sel = s; renderInspector(); dirtyGraph = true; dirtyBuild = true; schedule() }
+function renderInspector() {
+  const box = $('insp')
+  if (!sel) return
+  if (sel.type === 'node') {
+    const n = model.nodes.find(x => x.id === sel.id); if (!n) return
+    const dur = n.t1 ? ((n.t1 - n.t0) / 1000).toFixed(2) + 's' : 'running…'
+    const input = n.input === undefined ? '' : (typeof n.input === 'string' ? n.input : JSON.stringify(n.input, null, 2))
+    box.innerHTML = `<h3>${esc(n.tool)} <span class="pill" data-s="${n.state === 'ok' ? 'merged' : n.state === 'fail' ? 'failed' : 'running'}">${n.state}</span></h3>
+      <dl><dt>lane</dt><dd>${esc(model.laneInfo[n.lane].label)}</dd><dt>time</dt><dd class="mono">${hhmmss(n.t0)} · ${dur}</dd><dt>cwd</dt><dd class="mono">${esc(n.cwd || '—')}</dd>${n.cd ? `<dt>cd to</dt><dd class="mono">${esc(n.cd)}</dd>` : ''}</dl>
+      ${input ? `<span class="eyebrow">Input</span><pre>${esc(input)}</pre>` : ''}
+      ${n.output ? `<span class="eyebrow">Output</span><pre>${esc(n.output)}</pre>` : ''}`
+  } else {
+    const t = plan.tasks.find(x => x.id === sel.id); if (!t) return
+    const b = build.tasks[t.id] || {}
+    box.innerHTML = `<h3>${esc(t.id)} · ${esc(t.t)} <span class="pill" data-s="${st(t)}">${st(t)}</span></h3>
+      <dl><dt>phase / wave</dt><dd class="mono">${t.p} · wave ${t.w} · size ${t.s}${t.u ? ' · urgent' : ''}</dd><dt>branch</dt><dd class="mono">${esc(b.branch || '—')}${b.sha ? ' @ ' + esc(b.sha) : ''}</dd><dt>depends on</dt><dd class="mono">${t.d.length ? esc(t.d.join(', ')) : '—'}</dd>${b.note ? `<dt>note</dt><dd>${esc(b.note)}</dd>` : ''}</dl>
+      <span class="eyebrow">May write</span><pre>${esc(t.wr.join('\n'))}</pre><span class="eyebrow">Acceptance</span><pre>${esc(t.a)}</pre>`
+  }
+}
+
+/* ---------- controls ---------- */
+document.addEventListener('click', e => {
+  const ph = e.target.closest('[data-ph]'); if (ph) { autoFollow = false; selPhase = ph.dataset.ph; selWave = plan.tasks.find(t => t.p === selPhase)?.p + '-' + plan.tasks.find(t => t.p === selPhase)?.w; dirtyBuild = true; schedule(); return }
+  const wv = e.target.closest('[data-wv]'); if (wv) { autoFollow = false; selWave = wv.dataset.wv; dirtyBuild = true; schedule(); return }
+  const tk = e.target.closest('[data-tk]'); if (tk) { select({ type: 'task', id: tk.dataset.tk }); return }
+})
+$('auto').onclick = () => { autoFollow = !autoFollow; dirtyBuild = true; schedule() }
+$('follow').onclick = e => { follow = !follow; e.currentTarget.setAttribute('aria-pressed', String(follow)); if (follow) { const s = $('gscroll'); s.scrollLeft = s.scrollWidth } }
+$('pause').onclick = e => { keepScroll = !keepScroll; e.currentTarget.setAttribute('aria-pressed', String(!keepScroll)); e.currentTarget.textContent = keepScroll ? 'Pause scroll' : 'Resume scroll' }
+$('demo').onclick = () => fetch('/demo', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+$('clear').onclick = () => { model = newModel(); nodeEls.forEach(g => g.remove()); nodeEls.clear(); edgeEls.forEach(g => g.remove()); edgeEls.clear(); feed.innerHTML = ''; sel = null; $('insp').innerHTML = '<span class="muted">Nothing selected.</span>'; light(null); dirtyGraph = true; schedule() }
+$('gscroll').addEventListener('scroll', () => { const s = $('gscroll'); const ll = $('lanelabels'); if (ll) ll.setAttribute('transform', `translate(${s.scrollLeft},0)`); if (s.scrollWidth - s.scrollLeft - s.clientWidth > 80 && follow) { follow = false; $('follow').setAttribute('aria-pressed', 'false') } })
+
+renderGraph(); renderTop(); connect()
+</script>
+</body>
+</html>
