@@ -1,0 +1,3 @@
+/* Invest shell. The disclaimer banner (.invest-disclaimer) is styled in styles.css. */
+.invest-shell { min-width: 0; }
+.invest-shell > .invest-disclaimer { margin-bottom: 10px; }
