@@ -5,7 +5,7 @@ const BRANCH_RE = /^wave\/(P\d+)-W(\d+)\/([A-Za-z0-9-]+)$/
 const MERGE_RE = /wave\/(P\d+)-W(\d+)\/([A-Za-z0-9-]+)/g
 
 // plan: [{id, o?}]  repo: {branches:[{name,sha,own,inHead,worktree}], mergeSubjects:[str]}
-// own = commits on the branch that are not on the base branch; inHead = tip reachable from HEAD.
+// own = commits on the branch since it forked from HEAD; inHead = tip reachable from HEAD.
 export function deriveStatuses(plan, repo, overrides = {}) {
   const byId = {}
   for (const b of repo.branches || []) { const m = BRANCH_RE.exec(b.name); if (m) byId[m[3]] = b }
@@ -38,7 +38,9 @@ export async function readRepo(cwd, baseRefs = ['origin/master', 'master', 'orig
   const wtBranches = new Set([...wt.out.matchAll(/^branch refs\/heads\/(.+)$/gm)].map(m => m[1]))
   const branches = await Promise.all(refs.out.split('\n').filter(Boolean).map(async line => {
     const [name, sha] = line.split('|')
-    const own = baseRef ? +((await git(['rev-list', '--count', `${baseRef}..${name}`], cwd)).out || 0) : 0
+    // own = commits made on the branch since it forked from HEAD's history (0 for a fresh worktree)
+    const mb = (await git(['merge-base', name, 'HEAD'], cwd)).out
+    const own = mb ? +((await git(['rev-list', '--count', `${mb}..${name}`], cwd)).out || 0) : 0
     const inHead = (await git(['merge-base', '--is-ancestor', name, 'HEAD'], cwd)).ok
     return { name, sha, own, inHead, worktree: wtBranches.has(name) }
   }))
