@@ -25,6 +25,13 @@ const engine = createSyncEngine({
   onLocalWriteError: () => showToast('Could not save — storage full'),
 })
 
+// engine.mutate saves directly, so announce the key change here (useStoreKey listeners).
+async function mutateEmit(key, fn, fallback) {
+  const result = await engine.mutate(key, fn, fallback)
+  emitStoreKey(key)
+  return result
+}
+
 export const onSyncStatusChange = engine.onStatusChange
 export const reconcileKey = engine.reconcileKey
 export const flush = engine.flush
@@ -67,7 +74,7 @@ export async function getProgress() {
   return await getSynced('progress', {})
 }
 export async function markProblem(problemId, status, tags) {
-  return engine.mutate('progress', (progress) => {
+  return mutateEmit('progress', (progress) => {
     progress[problemId] = { status, tags, updatedAt: Date.now() }
     return progress
   }, {})
@@ -143,7 +150,7 @@ export async function saveReminders(reminders) {
   await saveSynced('reminders', reminders)
 }
 export async function mutateReminders(fn) {
-  return engine.mutate('reminders', fn, [])
+  return mutateEmit('reminders', fn, [])
 }
 
 export async function getHabits() {
@@ -175,14 +182,14 @@ export async function saveChecklists(checklists) {
 }
 
 export async function mutateTasks(fn) {
-  return engine.mutate('tasks', fn, [])
+  return mutateEmit('tasks', fn, [])
 }
 export async function mutateHabits(fn) {
-  return engine.mutate('habits', fn, [])
+  return mutateEmit('habits', fn, [])
 }
 export async function mutateMoodLog(fn) {
-  return engine.mutate('moodLog', fn, [])
+  return mutateEmit('moodLog', fn, [])
 }
 export async function mutateNotes(fn) {
-  return engine.mutate('notes', fn, [])
+  return mutateEmit('notes', fn, [])
 }
