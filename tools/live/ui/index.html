@@ -161,7 +161,7 @@ svg text{font-family:var(--sans);fill:var(--fg)}
 </div>
 
 <script type="module">
-import { newModel, reduce, FAMILIES } from '/lib/graph.mjs'
+import { newModel, reduce, FAMILIES } from '/lib/graph.mjs'   // @@IMPORT
 
 const $ = id => document.getElementById(id)
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
@@ -208,7 +208,7 @@ function connect() {
   es.addEventListener('build', e => applyBuild(JSON.parse(e.data)))
   es.addEventListener('ev', e => ingest(JSON.parse(e.data)))
 }
-fetch('/api/plan').then(r => r.json()).then(p => { plan = p; dirtyBuild = true; schedule() }).catch(() => {})
+fetch('/api/plan').then(r => r.json()).then(p => { plan = p; dirtyBuild = true; schedule() }).catch(() => {})   // @@PLAN
 
 /* ---------- ingest ---------- */
 const FEED_MAX = 500
@@ -439,11 +439,11 @@ document.addEventListener('click', e => {
 $('auto').onclick = () => { autoFollow = !autoFollow; dirtyBuild = true; schedule() }
 $('follow').onclick = e => { follow = !follow; e.currentTarget.setAttribute('aria-pressed', String(follow)); if (follow) { const s = $('gscroll'); s.scrollLeft = s.scrollWidth } }
 $('pause').onclick = e => { keepScroll = !keepScroll; e.currentTarget.setAttribute('aria-pressed', String(!keepScroll)); e.currentTarget.textContent = keepScroll ? 'Pause scroll' : 'Resume scroll' }
-$('demo').onclick = () => fetch('/demo', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+$('demo').onclick = () => fetch('/demo', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })   // @@DEMO
 $('clear').onclick = () => { model = newModel(); nodeEls.forEach(g => g.remove()); nodeEls.clear(); edgeEls.forEach(g => g.remove()); edgeEls.clear(); feed.innerHTML = ''; sel = null; $('insp').innerHTML = '<span class="muted">Nothing selected.</span>'; light(null); dirtyGraph = true; schedule() }
 $('gscroll').addEventListener('scroll', () => { const s = $('gscroll'); const ll = $('lanelabels'); if (ll) ll.setAttribute('transform', `translate(${s.scrollLeft},0)`); if (s.scrollWidth - s.scrollLeft - s.clientWidth > 80 && follow) { follow = false; $('follow').setAttribute('aria-pressed', 'false') } })
 
-renderGraph(); renderTop(); connect()
+renderGraph(); renderTop(); connect()   // @@START
 </script>
 </body>
 </html>

@@ -58,6 +58,15 @@ test('subagent events get their own lane linked to the spawning Agent call', () 
   assert.equal(m.nodes[1].parent, m.nodes[0].id)
 })
 
+test('parent_tool_use_id links a subagent lane to the exact Agent call', () => {
+  const m = newModel()
+  reduce(m, pre('Agent', { description: 'a' }, 'a1'))
+  reduce(m, pre('Agent', { description: 'b' }, 'a2'))
+  reduce(m, pre('Read', { file_path: '/f' }, 'r1', { agent_id: 'ag1', agent_label: 'task a', parent_tool_use_id: 'a1' }))
+  assert.equal(m.nodes[2].parent, m.nodes[0].id)
+  assert.equal(m.laneInfo.ag1.label, 'task a')
+})
+
 test('lifecycle events become marks and drive the stage', () => {
   const m = newModel()
   reduce(m, normalize({ hook_event_name: 'UserPromptSubmit', session_id: 's', prompt: 'hello' }, 1))

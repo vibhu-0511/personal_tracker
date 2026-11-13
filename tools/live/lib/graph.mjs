@@ -83,6 +83,8 @@ export function normalize(p, ts = Date.now()) {
     session: p.session_id || 'unknown',
     agent: p.agent_id || null,
     agentType: p.agent_type || null,
+    agentLabel: p.agent_label || null,
+    parentUse: p.parent_tool_use_id || null,
     cwd: p.cwd || null,
     transcript: p.transcript_path || null,
     tool: p.tool_name || null,
@@ -106,7 +108,7 @@ export function newModel() {
 
 function laneOf(m, ev) {
   const key = ev.agent || 'main'
-  if (!m.laneInfo[key]) { m.lanes.push(key); m.laneInfo[key] = { label: ev.agentType || `agent ${String(key).slice(-6)}` } }
+  if (!m.laneInfo[key]) { m.lanes.push(key); m.laneInfo[key] = { label: ev.agentLabel || ev.agentType || `agent ${String(key).slice(-6)}` } }
   return key
 }
 
@@ -114,7 +116,8 @@ function addNode(m, ev, n) {
   const lane = laneOf(m, ev)
   const node = { id: 'n' + (++m.seq), seq: m.seq, lane, t0: ev.ts, t1: null, cwd: ev.cwd, ...n }
   if (lane !== 'main' && !m.nodes.some(x => x.lane === lane)) {
-    const parent = [...m.nodes].reverse().find(x => x.lane === 'main' && x.family === 'agent' && x.state === 'running')
+    const exact = ev.parentUse && m.byUse[ev.parentUse]
+    const parent = exact ? m.nodes.find(x => x.id === exact) : [...m.nodes].reverse().find(x => x.lane === 'main' && x.family === 'agent' && x.state === 'running')
     if (parent) node.parent = parent.id
   }
   m.nodes.push(node)
