@@ -1,0 +1,38 @@
+/* LearnScreen layout (R4-16). Reuses shared .invest-*, .agent-*, .exam-* classes
+   from styles.css; only layout and spacing live here. */
+.learn-progress { margin-bottom: 12px; }
+.learn-progress-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
+
+.learn-phase { margin-bottom: 10px; }
+.learn-phase-name { margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+.learn-phase-mods { display: flex; flex-direction: column; gap: 6px; }
+
+.learn-module { margin-top: 12px; }
+.learn-module-title { font-size: 19px; margin-bottom: 12px; }
+.learn-tasks, .learn-quiz, .learn-resources { margin-top: 12px; }
+.learn-quiz-q { margin-bottom: 16px; }
+.learn-quiz-prompt { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+.learn-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; }
+
+.learn-resources-list { padding-left: 18px; color: var(--text-secondary); font-size: 13.5px; line-height: 1.8; }
+
+.learn-gloss-row { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.learn-gloss-term { font-weight: 700; color: var(--accent); }
+
+/* Two-pane layout: module list left, ModuleView right. */
+@media (min-width: 1024px) {
+  .learn-panes {
+    display: grid;
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .learn-list {
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .learn-module { margin-top: 0; }
+}
