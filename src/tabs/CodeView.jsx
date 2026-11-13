@@ -37,7 +37,7 @@ function buildUrl(handle, filters) {
   return `/api/cf?${params}`
 }
 
-export default function Today({ cfHandle, syncTick = 0, onChange }) {
+export default function CodeView({ cfHandle, syncTick = 0, onChange }) {
   const [cf, setCf] = useState(null)
   const [cfError, setCfError] = useState('')
   const [loading, setLoading] = useState(false)
