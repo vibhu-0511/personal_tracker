@@ -1,1 +1,115 @@
-/* shell: responsive grid shell (app frame, content area, breakpoints) */
+/* shell: responsive grid shell (app frame, content area, breakpoints)
+   The app root is the size container. It has a fixed height and the inner
+   .page is the only scroller, so fixed-position behaviour inside the container
+   never matters (errata E-09). Breakpoints are container widths (C-5, C-6):
+   below 600 bottom tabs, 600-1023 rail, 1024 and up sidebar (+ inspector). */
+
+.app-root {
+  container: app / inline-size;
+  height: 100vh; /* fallback for browsers without dvh */
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Phone: top bar, page, bottom tabs. --tabbar-h includes the safe-area inset. */
+.app-shell {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) var(--tabbar-h);
+  grid-template-areas:
+    "top"
+    "page"
+    "nav";
+}
+
+.topbar { grid-area: top; }
+.nav { grid-area: nav; }
+
+.page {
+  grid-area: page;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px 24px;
+}
+
+/* The inspector is a wide-layout pane; below 1024 R1-08's Sheet replaces it. */
+.inspector-slot { display: none; }
+
+/* Rail: 72px nav column. Nav is not at the bottom, so the tab bar offset is 0
+   and overlays (FAB, toast, sheets) that read --tabbar-h follow (errata E-08). */
+@container app (min-width: 600px) {
+  .app-shell {
+    --tabbar-h: 0px;
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "nav top"
+      "nav page";
+  }
+  .page { padding: 0 24px 32px; }
+}
+
+/* Sidebar: 220px nav column; the inspector (when provided) is a right column. */
+@container app (min-width: 1024px) {
+  .app-shell {
+    grid-template-columns: var(--side-w) minmax(0, 1fr);
+  }
+  .app-shell.has-inspector {
+    grid-template-columns: var(--side-w) minmax(0, 1fr) var(--inspector-w);
+    grid-template-areas:
+      "nav top top"
+      "nav page inspector";
+  }
+  .inspector-slot {
+    grid-area: inspector;
+    display: block;
+    min-width: 0;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 16px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+  }
+}
+
+/* Top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: calc(52px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-lead { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.topbar-brand { font-size: 20px; line-height: 1; }
+.topbar-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+@container app (min-width: 600px) {
+  .topbar {
+    min-height: 56px;
+    padding: 0 24px;
+  }
+  .topbar-brand { display: none; } /* the rail carries the brand */
+}
