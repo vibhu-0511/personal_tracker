@@ -5,7 +5,7 @@ import {
   getChecklists, saveChecklists,
 } from '../store.js'
 import { dateKey, earnings, ensureTodayEntry } from '../life/logic.js'
-import Notes from './Notes.jsx'
+import Notes from '../life/screens/Notes.jsx'
 import TasksView from '../life/screens/Tasks.jsx'
 import RemindersView from '../life/screens/Reminders.jsx'
 import HabitsView from '../life/screens/Habits.jsx'
