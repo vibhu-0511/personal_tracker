@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
   dateKey,
   computeStats,
@@ -8,8 +9,32 @@ import {
   emotionSummary,
   DOMAINS,
 } from '../logic.js'
+import MasterDetail from '../ui/MasterDetail.jsx'
+import GrowthInspector from './GrowthInspector.jsx'
+
+// Same 1024px container threshold as Habits.jsx and life.css `@container app`.
+const INSPECTOR_MIN = 1024
+
+function useWide() {
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const el = typeof document === 'undefined' ? null : document.querySelector('.app-root')
+    const measure = () => setWide((el ? el.clientWidth : window.innerWidth) >= INSPECTOR_MIN)
+    measure()
+    if (el && typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(measure)
+      ro.observe(el)
+      return () => ro.disconnect()
+    }
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+  return wide
+}
 
 export default function GrowthView({ habits, moodLog, onMoodLog, now }) {
+  const [selectedDomain, setSelectedDomain] = useState(null)
+  const wide = useWide()
   const stats = computeStats(habits)
   const titles = unlockedTitles(stats)
   const summary = emotionSummary(moodLog, now)
@@ -20,21 +45,46 @@ export default function GrowthView({ habits, moodLog, onMoodLog, now }) {
     onMoodLog(logManualMood(moodLog, now, value))
   }
 
-  return (
+  const selected = wide ? selectedDomain : null
+
+  const body = (
     <div>
       <div className="card" style={{ marginBottom: 12 }}>
         <div className="h3" style={{ marginBottom: 10 }}>Growth</div>
-        {DOMAINS.map((d) => (
-          <div key={d.id} style={{ marginBottom: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-              <span>{d.label}</span>
-              <span className="meta">{stats[d.id]}</span>
+        {DOMAINS.map((d) => {
+          const bar = (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                <span>{d.label}</span>
+                <span className="meta">{stats[d.id]}</span>
+              </div>
+              <div className="habit-health-bar">
+                <div className="habit-health-fill" style={{ width: `${stats[d.id]}%` }} />
+              </div>
+            </>
+          )
+          return (
+            <div key={d.id} style={{ marginBottom: 10 }}>
+              {wide ? (
+                <button
+                  type="button"
+                  className={`growth-domain${selected === d.id ? ' selected' : ''}`}
+                  data-selected={selected === d.id ? 'true' : 'false'}
+                  aria-pressed={selected === d.id}
+                  aria-label={`Show ${d.label} breakdown`}
+                  onClick={() => setSelectedDomain(selected === d.id ? null : d.id)}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', background: 'none', color: 'inherit',
+                    font: 'inherit', cursor: 'pointer', padding: 6, margin: -6, borderRadius: 8,
+                    border: `1px solid ${selected === d.id ? 'var(--accent)' : 'transparent'}`,
+                  }}
+                >
+                  {bar}
+                </button>
+              ) : bar}
             </div>
-            <div className="habit-health-bar">
-              <div className="habit-health-fill" style={{ width: `${stats[d.id]}%` }} />
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="card" style={{ marginBottom: 12 }}>
@@ -101,5 +151,27 @@ export default function GrowthView({ habits, moodLog, onMoodLog, now }) {
         )}
       </div>
     </div>
+  )
+
+  if (!wide) return body
+  return (
+    <MasterDetail
+      hasSelection={selected != null}
+      onBack={() => setSelectedDomain(null)}
+      list={body}
+      inspector={selected ? (
+        <GrowthInspector
+          domain={selected}
+          habits={habits}
+          stat={stats[selected]}
+          onClose={() => setSelectedDomain(null)}
+        />
+      ) : (
+        <div className="empty-state">
+          <div className="empty-icon">🌱</div>
+          <div className="empty-text">Select a domain to see what feeds it.</div>
+        </div>
+      )}
+    />
   )
 }
