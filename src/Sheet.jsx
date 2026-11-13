@@ -4,7 +4,9 @@ import { useEffect, useRef } from 'react'
 // focus restore on close, and backdrop-click-to-close all come from the
 // browser for free — the ad-hoc <div className="money-backdrop" onClick>
 // sheets had none of that.
-export default function Sheet({ open, onClose, className = '', children }) {
+// variant="side" adds .sheet-dialog--side: a right-hand sheet from 600px
+// (bottom sheet on phones); styled in styles/inspector.css.
+export default function Sheet({ open, onClose, variant, className = '', children }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -17,7 +19,7 @@ export default function Sheet({ open, onClose, className = '', children }) {
   return (
     <dialog
       ref={ref}
-      className={`sheet-dialog ${className}`}
+      className={`sheet-dialog${variant === 'side' ? ' sheet-dialog--side' : ''} ${className}`.trim()}
       onClose={onClose}
       onClick={(e) => { if (e.target === ref.current) onClose() }}
     >

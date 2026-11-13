@@ -1,1 +1,66 @@
-/* inspector: right-hand inspector pane */
+/* inspector: right-hand inspector pane (R1-08)
+   The pane shows inline from 1024px container width (shell.css); below that the
+   Sheet (side variant) takes over. --inspector-min is the same threshold read by
+   Inspector.jsx, since custom properties cannot be used in @container queries:
+   if you change it, change the 1024px in shell.css to match. */
+:root { --inspector-min: 1024px; }
+
+.inspector-pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.inspector-body { min-width: 0; flex: 1 1 auto; }
+
+.inspector-close {
+  position: sticky;
+  top: 0;
+  align-self: flex-end;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.inspector-close:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (pointer: coarse) {
+  .inspector-close { width: 44px; height: 44px; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .inspector-close:hover { background: var(--hover); }
+}
+
+/* Sheet side variant (Sheet variant="side"): right-hand sheet from 600px.
+   Below 600 it stays the bottom sheet. Sheets render in the top layer, so these
+   use viewport media queries. */
+@media (min-width: 600px) {
+  .sheet-dialog.sheet-dialog--side {
+    inset: 0 0 0 auto;
+    width: min(440px, 100%);
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+    border: none;
+    border-left: 1px solid var(--border);
+    border-radius: 20px 0 0 20px;
+    animation: overlaySlideInRight 0.25s ease-out;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-dialog.sheet-dialog--side { animation: none; }
+}
