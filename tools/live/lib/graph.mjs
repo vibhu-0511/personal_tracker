@@ -174,3 +174,38 @@ export function reduce(m, ev) {
   }
   return m
 }
+
+// Content blocks of one transcript message -> normalized events. Shared by the local feed
+// writer (transcript files) and the connector adapter (list_events), which carry the same blocks.
+function blockText(c) {
+  if (typeof c === 'string') return c
+  if (Array.isArray(c)) return c.map(b => (b && (b.text || (typeof b.content === 'string' ? b.content : ''))) || '').join('\n')
+  return ''
+}
+export function messageEvents(role, content, ts, ctx = {}) {
+  const common = { session_id: ctx.session || 'ccr', agent_id: ctx.agentId || null, agent_label: ctx.agentLabel || null, parent_tool_use_id: ctx.parentUse || null }
+  const useName = ctx.useName || (ctx.useName = new Map())
+  const out = []
+  if (role === 'assistant' && Array.isArray(content)) {
+    for (const b of content) {
+      if (b.type === 'tool_use') {
+        useName.set(b.id, b.name)
+        out.push(normalize({ ...common, hook_event_name: 'PreToolUse', tool_name: b.name, tool_input: b.input, tool_use_id: b.id }, ts))
+      } else if (b.type === 'text' && b.text && b.text.trim()) {
+        out.push(normalize({ ...common, kind: 'transcript', hook_event_name: 'AssistantText', text: b.text.slice(0, 1500) }, ts))
+      }
+    }
+  } else if (role === 'user') {
+    if (typeof content === 'string') {
+      if (!ctx.agentId && !/^\s*<(task-notification|system-reminder)/.test(content)) out.push(normalize({ ...common, hook_event_name: 'UserPromptSubmit', prompt: content }, ts))
+    } else if (Array.isArray(content)) {
+      for (const b of content) {
+        if (b.type !== 'tool_result') continue
+        const t = blockText(b.content)
+        out.push(normalize({ ...common, hook_event_name: b.is_error ? 'PostToolUseFailure' : 'PostToolUse', tool_name: useName.get(b.tool_use_id) || 'tool', tool_use_id: b.tool_use_id,
+          tool_response: b.is_error ? { error: t || 'error' } : { stdout: t } }, ts))
+      }
+    }
+  }
+  return out
+}

@@ -161,7 +161,7 @@ svg text{font-family:var(--sans);fill:var(--fg)}
 </div>
 
 <script type="module">
-import { newModel, reduce, FAMILIES } from '/lib/graph.mjs'   // @@IMPORT
+import { newModel, reduce, FAMILIES, messageEvents } from '/lib/graph.mjs'   // @@IMPORT
 
 const $ = id => document.getElementById(id)
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
