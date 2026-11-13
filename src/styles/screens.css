@@ -1,1 +1,32 @@
 /* screens: per-tab screen styles */
+
+/* Wide-pane rules for legacy single-column blocks (R1-11).
+   Container-width gated on the `app` container (shell.css), so nothing changes
+   below 600px. Inline grids in Expenses.jsx are intentionally left alone. */
+:root {
+  --page-max: 960px;
+  --chat-bubble-max: 70ch;
+}
+
+@container app (min-width: 600px) {
+  /* Page content: a centred column instead of an unbounded stretch. */
+  .page > * {
+    max-width: var(--page-max);
+    margin-inline: auto;
+  }
+
+  /* Stat rows keep equal columns whatever the card content is. */
+  .stat-row > .stat-card,
+  .life-stats > .life-stat {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .expense-cat-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .chat-bubble {
+    max-width: var(--chat-bubble-max);
+  }
+}
