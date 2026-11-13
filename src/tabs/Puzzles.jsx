@@ -1,297 +1,318 @@
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { loadPuzzles } from '../puzzles.js'
 import { getPuzzleProgress, savePuzzleProgress } from '../store.js'
 import { useHydrate } from '../useHydrate.js'
+import { fetchJson, isCancelled } from '../logic/apiClient.js'
+import { localDaySeed, shuffleDaily } from '../logic/stats.js'
+import { useSplit } from '../logic/useSplit.js'
+import Sheet from '../Sheet.jsx'
+import Row from '../ui/Row.jsx'
+import Check from '../ui/Check.jsx'
+import Chip from '../ui/Chip.jsx'
+import '../logic/logic.css'
+import '../logic/puzzles.css'
 
 const DIFFICULTIES = ['easy', 'medium', 'hard']
+const DIFF_TONE = { easy: 'success', medium: 'warn', hard: 'hot' }
+const PICKS = 5
 
-const DIFF_COLORS = {
-  easy: 'var(--success)',
-  medium: 'var(--warn)',
-  hard: 'var(--danger)',
+const SOURCES = [
+  ['PuzzledQuant', 'https://www.puzzledquant.com/'],
+  ['Jane Street', 'https://www.janestreet.com/puzzles/'],
+  ['Nigel Coldwell', 'https://puzzles.nigelcoldwell.co.uk/'],
+  ['r/mathriddles', 'https://www.reddit.com/r/mathriddles/'],
+]
+
+// The one row used for both Today's Picks and Browse All. Memoised with stable
+// callbacks from the parent so toggling one puzzle re-renders one row, not 145.
+export const PuzzleRow = memo(function PuzzleRow({ puzzle, solved, selected, onSelect, onToggleSolved }) {
+  const { id, title, difficulty, category, source } = puzzle
+  return (
+    <Row
+      className="pz-row"
+      dense
+      selected={selected}
+      done={solved}
+      onSelect={() => onSelect(id)}
+      lead={
+        <Check
+          checked={solved}
+          onChange={() => onToggleSolved(id)}
+          label={solved ? `Solved: ${title} (unmark)` : `Mark ${title} solved`}
+        />
+      }
+      title={title}
+      sub={source ? `${category} · ${source}` : category}
+      trail={<Chip tone={DIFF_TONE[difficulty] || 'muted'}>{difficulty}</Chip>}
+    />
+  )
+})
+
+function PuzzleDetail({ puzzle, solved, onToggleSolved, onClose }) {
+  const [hintOpen, setHintOpen] = useState(false)
+  const { id, title, difficulty, category, source, description, hint, solution, url } = puzzle
+  return (
+    <div className="pz-detail fade-in">
+      <div className="pz-detail-head">
+        <h2 className="h3 pz-detail-title">{title}</h2>
+        {onClose && (
+          <button type="button" className="inspector-close" onClick={onClose} aria-label="Close">×</button>
+        )}
+      </div>
+      <div className="pz-detail-chips">
+        <Chip tone={DIFF_TONE[difficulty] || 'muted'}>{difficulty}</Chip>
+        <Chip tone="muted">{category}</Chip>
+        {source && <span className="meta">{source}</span>}
+      </div>
+
+      <div className="note-body pz-detail-desc">{description}</div>
+
+      {hint && (
+        <div className="pz-detail-block">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            aria-expanded={hintOpen}
+            onClick={() => setHintOpen((v) => !v)}
+          >
+            {hintOpen ? '🔓 Hint' : '🔒 Show hint'}
+          </button>
+          {hintOpen && <div className="meta pz-hint">{hint}</div>}
+        </div>
+      )}
+
+      {solution && (
+        <details className="pz-detail-block">
+          <summary className="meta pz-summary">Show solution</summary>
+          <div className="small pz-solution">{solution}</div>
+        </details>
+      )}
+
+      <div className="pz-detail-actions">
+        <button
+          type="button"
+          className={`btn btn-sm${solved ? ' btn-success' : ''}`}
+          role="switch"
+          aria-checked={solved}
+          onClick={() => onToggleSolved(id)}
+        >
+          {solved ? '✓ Solved' : '☐ Mark solved'}
+        </button>
+        {url && (
+          <a href={url} target="_blank" rel="noreferrer" className="btn btn-sm pz-link">
+            Open source →
+          </a>
+        )}
+      </div>
+    </div>
+  )
 }
 
-function shuffleDaily(arr, seed) {
-  const copy = [...arr]
-  let s = seed
-  for (let i = copy.length - 1; i > 0; i--) {
-    s = (s * 9301 + 49297) % 233280
-    const j = s % (i + 1)
-    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+function LichessDaily({ state, onRetry }) {
+  if (state.status === 'loading') {
+    return (
+      <div className="loading" role="status">
+        <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
+        Loading daily chess puzzle...
+      </div>
+    )
   }
-  return copy
+  if (state.status === 'error') {
+    return (
+      <div className="banner-warn pz-banner" role="alert">
+        <span>Chess puzzle: {state.message}</span>
+        <button type="button" className="btn btn-sm" onClick={onRetry}>Retry</button>
+      </div>
+    )
+  }
+  const p = state.data
+  const themes = Array.isArray(p.themes) ? p.themes.slice(0, 3).join(', ') : ''
+  return (
+    <div className="puzzle-card">
+      <div className="puzzle-icon">♟️</div>
+      <div className="pz-grow">
+        <a className="puzzle-link" href={p.url} target="_blank" rel="noreferrer">Daily Chess Puzzle</a>
+        <div className="meta">Rating {p.rating}{themes ? ` · ${themes}` : ''}</div>
+      </div>
+      <span className="meta pz-arrow">→</span>
+    </div>
+  )
 }
 
-export default function Puzzles({ syncTick = 0, onChange }) {
-  const [puzzle, setPuzzle] = useState(null)
-  const [puzzleError, setPuzzleError] = useState('')
+// `fetchDaily` and `loadBank` are injectable so tests can run without a network.
+export default function Puzzles({
+  syncTick = 0,
+  onChange,
+  fetchDaily = fetchJson,
+  loadBank = loadPuzzles,
+}) {
+  const rootRef = useRef(null)
+  const split = useSplit(rootRef)
+
+  const [daily, setDaily] = useState({ status: 'loading' })
+  const [attempt, setAttempt] = useState(0)
   const [puzzles, setPuzzles] = useState([])
+  const [bankError, setBankError] = useState('')
+  const [saveError, setSaveError] = useState('')
   const [category, setCategory] = useState('all')
   const [difficulty, setDifficulty] = useState('all')
-  const [expanded, setExpanded] = useState({})
-  const [showHint, setShowHint] = useState({})
+  const [selectedId, setSelectedId] = useState(null)
   const [progress, setProgress] = useState({})
+  const progressRef = useRef(progress)
+  progressRef.current = progress
+
+  // Lichess daily: loading -> ok | error (with Retry). Aborted on unmount so the
+  // StrictMode double mount does not leave a stale request behind.
+  useEffect(() => {
+    const ctrl = new AbortController()
+    setDaily({ status: 'loading' })
+    fetchDaily('/api/puzzle', { signal: ctrl.signal })
+      .then((j) => {
+        if (isCancelled(j)) return
+        if (j && j.error) setDaily({ status: 'error', message: String(j.error) })
+        else setDaily({ status: 'ok', data: j })
+      })
+      .catch((e) => {
+        if (ctrl.signal.aborted) return
+        setDaily({ status: 'error', message: e?.message || 'Could not load the daily puzzle.' })
+      })
+    return () => ctrl.abort()
+  }, [attempt, fetchDaily])
+  const retryDaily = useCallback(() => setAttempt((n) => n + 1), [])
 
   useEffect(() => {
-    fetch('/api/puzzle')
-      .then((r) => r.json())
-      .then((j) => (j.error ? setPuzzleError(j.error) : setPuzzle(j)))
-      .catch((e) => setPuzzleError(e.message))
-  }, [])
-
-  useEffect(() => {
-    loadPuzzles().then(setPuzzles)
-  }, [])
-
-  const categories = useMemo(() => [...new Set(puzzles.map((p) => p.category))].sort(), [puzzles])
+    let alive = true
+    Promise.resolve()
+      .then(loadBank)
+      .then((list) => { if (alive) setPuzzles(Array.isArray(list) ? list : []) })
+      .catch((e) => { if (alive) setBankError(e?.message || 'Failed to load puzzles') })
+    return () => { alive = false }
+  }, [loadBank])
 
   const { error: progressError } = useHydrate([() => getPuzzleProgress().then(setProgress)], [syncTick])
 
-  const daySeed = Math.floor(Date.now() / 86400000)
-  const filtered = puzzles.filter((p) => {
-    if (category !== 'all' && p.category !== category) return false
-    if (difficulty !== 'all' && p.difficulty !== difficulty) return false
-    return true
-  })
-  // "Today's Picks" is seeded from the full bank, not the filtered view, so
-  // changing category/difficulty filters doesn't change what "today" means.
-  const daily = shuffleDaily(puzzles, daySeed).slice(0, 5)
+  const categories = useMemo(() => [...new Set(puzzles.map((p) => p.category))].sort(), [puzzles])
 
-  function toggleExpand(id) {
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
-  }
+  // Today's Picks depend only on the bank and the local day, never on filters.
+  const picks = useMemo(
+    () => shuffleDaily(puzzles, localDaySeed()).slice(0, PICKS),
+    [puzzles]
+  )
+  const pickIds = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
 
-  function toggleHint(id) {
-    setShowHint((prev) => ({ ...prev, [id]: !prev[id] }))
-  }
+  const browse = useMemo(
+    () => puzzles.filter((p) => (
+      !pickIds.has(p.id)
+      && (category === 'all' || p.category === category)
+      && (difficulty === 'all' || p.difficulty === difficulty)
+    )),
+    [puzzles, pickIds, category, difficulty]
+  )
 
-  function toggleSolved(id) {
-    const next = { ...progress, [id]: !progress[id] }
+  const selected = useMemo(
+    () => (selectedId == null ? null : puzzles.find((p) => p.id === selectedId) || null),
+    [puzzles, selectedId]
+  )
+
+  const select = useCallback((id) => setSelectedId(id), [])
+  const closeSelected = useCallback(() => setSelectedId(null), [])
+
+  const toggleSolved = useCallback((id) => {
+    const prev = progressRef.current
+    const next = { ...prev, [id]: !prev[id] }
+    progressRef.current = next
     setProgress(next)
-    savePuzzleProgress(next).then(() => onChange?.())
-  }
+    setSaveError('')
+    savePuzzleProgress(next)
+      .then(() => onChange?.())
+      .catch((e) => {
+        progressRef.current = prev
+        setProgress(prev)
+        setSaveError(e?.message || 'Failed to save')
+      })
+  }, [onChange])
+
+  const renderRow = (p) => (
+    <PuzzleRow
+      key={p.id}
+      puzzle={p}
+      solved={!!progress[p.id]}
+      selected={p.id === selectedId}
+      onSelect={select}
+      onToggleSolved={toggleSolved}
+    />
+  )
+
+  const detail = selected && (
+    <PuzzleDetail
+      key={selected.id}
+      puzzle={selected}
+      solved={!!progress[selected.id]}
+      onToggleSolved={toggleSolved}
+      onClose={split ? null : closeSelected}
+    />
+  )
 
   return (
-    <div className="fade-in">
-      {/* Lichess daily */}
-      {puzzleError && <div className="banner-warn">Chess puzzle: {puzzleError}</div>}
+    <div className="fade-in" ref={rootRef}>
+      {bankError && <div className="banner-warn">Couldn't load the puzzle bank: {bankError}</div>}
       {progressError && <div className="banner-warn">Couldn't load your puzzle progress: {progressError}</div>}
-      {!puzzle && !puzzleError && (
-        <div className="loading">
-          <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
-          Loading daily chess puzzle...
-        </div>
-      )}
-      {puzzle && (
-        <div className="puzzle-card">
-          <div className="puzzle-icon">♟️</div>
-          <div style={{ flex: 1 }}>
-            <a className="puzzle-link" href={puzzle.url} target="_blank" rel="noreferrer">
-              Daily Chess Puzzle
-            </a>
-            <div className="meta">
-              Rating {puzzle.rating} · {puzzle.themes.slice(0, 3).join(', ')}
-            </div>
+      {saveError && <div className="banner-warn" role="alert">Couldn't save your progress: {saveError}</div>}
+
+      <div className="logic-split">
+        <div className="logic-list">
+          <LichessDaily state={daily} onRetry={retryDaily} />
+
+          <div className="section-header">
+            <span className="section-title">Today's Picks</span>
+            <span className="meta">{picks.length} picks</span>
           </div>
-          <span className="meta" style={{ fontSize: 20 }}>→</span>
-        </div>
-      )}
+          <ul className="pz-list">{picks.map(renderRow)}</ul>
 
-      {/* Filters */}
-      <div className="section-header">
-        <span className="section-title">Today's Picks</span>
-        <span className="meta">{daily.length} picks</span>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto' }}>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          style={{ flex: 1, fontSize: 13 }}
-        >
-          <option value="all">All categories</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        <select
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
-          style={{ flex: 1, fontSize: 13 }}
-        >
-          <option value="all">All levels</option>
-          {DIFFICULTIES.map((d) => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Puzzle cards */}
-      {daily.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-icon">🧩</div>
-          <div className="empty-text">No puzzles match your filters.</div>
-        </div>
-      )}
-
-      {daily.map((p) => (
-        <div className="card" key={p.id}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <div className="h3" style={{ marginBottom: 4 }}>{p.title}</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span
-                  className="chip"
-                  style={{
-                    background: `color-mix(in srgb, ${DIFF_COLORS[p.difficulty]} 15%, transparent)`,
-                    color: DIFF_COLORS[p.difficulty],
-                  }}
-                >
-                  {p.difficulty}
-                </span>
-                <span className="chip chip-muted">{p.category}</span>
-                <span className="meta">{p.source}</span>
-              </div>
-            </div>
-            <button
-              className={`btn btn-sm${progress[p.id] ? ' btn-success' : ''}`}
-              onClick={() => toggleSolved(p.id)}
-              style={{ flexShrink: 0 }}
-              title={progress[p.id] ? 'Solved (tap to unmark)' : 'Mark solved'}
-            >
-              {progress[p.id] ? '✓' : '☐'}
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => toggleExpand(p.id)}
-              style={{ flexShrink: 0 }}
-            >
-              {expanded[p.id] ? '▲' : '▼'}
-            </button>
+          <div className="section-header pz-browse-head">
+            <span className="section-title">Browse All ({browse.length})</span>
+          </div>
+          <div className="pz-filters">
+            <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category">
+              <option value="all">All categories</option>
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} aria-label="Difficulty">
+              <option value="all">All levels</option>
+              {DIFFICULTIES.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
           </div>
 
-          {expanded[p.id] && (
-            <div style={{ marginTop: 12 }} className="fade-in">
-              <div className="note-body" style={{ marginBottom: 10 }}>{p.description}</div>
-
-              {p.hint && (
-                <div style={{ marginBottom: 8 }}>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => toggleHint(p.id)}
-                    style={{ padding: '4px 8px', fontSize: 12 }}
-                  >
-                    {showHint[p.id] ? '🔓 Hint' : '🔒 Show hint'}
-                  </button>
-                  {showHint[p.id] && (
-                    <div className="meta" style={{ marginTop: 6, fontStyle: 'italic' }}>
-                      {p.hint}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {p.solution && (
-                <details style={{ marginTop: 4 }}>
-                  <summary className="meta" style={{ cursor: 'pointer' }}>Show solution</summary>
-                  <div className="small" style={{ marginTop: 6, padding: '8px 12px', background: 'var(--bg)', borderRadius: 'var(--radius-xs)' }}>
-                    {p.solution}
-                  </div>
-                </details>
-              )}
-
-              {p.url && (
-                <a
-                  href={p.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-sm"
-                  style={{ marginTop: 10, display: 'inline-flex', textDecoration: 'none' }}
-                >
-                  Open source →
-                </a>
-              )}
+          {puzzles.length > 0 && browse.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon">🧩</div>
+              <div className="empty-text">No puzzles match your filters.</div>
             </div>
           )}
-        </div>
-      ))}
+          <ul className="pz-list">{browse.map(renderRow)}</ul>
 
-      {/* Browse all */}
-      <div className="section-header" style={{ marginTop: 8 }}>
-        <span className="section-title">Browse All ({filtered.length})</span>
-      </div>
-
-      {filtered
-        .filter((p) => !daily.some((d) => d.id === p.id))
-        .map((p) => (
-          <div className="card" key={p.id} style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <span className="h3" style={{ fontSize: 14 }}>{p.title}</span>
-                <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
-                  <span
-                    className="chip"
-                    style={{
-                      fontSize: 11,
-                      padding: '1px 8px',
-                      background: `color-mix(in srgb, ${DIFF_COLORS[p.difficulty]} 15%, transparent)`,
-                      color: DIFF_COLORS[p.difficulty],
-                    }}
-                  >
-                    {p.difficulty}
-                  </span>
-                  <span className="chip chip-muted" style={{ fontSize: 11, padding: '1px 8px' }}>{p.category}</span>
-                </div>
-              </div>
-              <button
-                className={`btn btn-sm${progress[p.id] ? ' btn-success' : ''}`}
-                onClick={() => toggleSolved(p.id)}
-                title={progress[p.id] ? 'Solved (tap to unmark)' : 'Mark solved'}
-              >
-                {progress[p.id] ? '✓' : '☐'}
-              </button>
-              <button className="btn btn-ghost btn-sm" onClick={() => toggleExpand(p.id)}>
-                {expanded[p.id] ? '▲' : '▼'}
-              </button>
+          <div className="card pz-sources">
+            <div className="meta">More puzzle sources</div>
+            <div className="pz-source-links">
+              {SOURCES.map(([label, href]) => (
+                <a key={href} href={href} target="_blank" rel="noreferrer" className="btn btn-sm pz-link">{label}</a>
+              ))}
             </div>
-
-            {expanded[p.id] && (
-              <div style={{ marginTop: 10 }} className="fade-in">
-                <div className="note-body" style={{ marginBottom: 8 }}>{p.description}</div>
-                {p.hint && (
-                  <div style={{ marginBottom: 6 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => toggleHint(p.id)} style={{ padding: '4px 8px', fontSize: 12 }}>
-                      {showHint[p.id] ? '🔓 Hint' : '🔒 Show hint'}
-                    </button>
-                    {showHint[p.id] && <div className="meta" style={{ marginTop: 4, fontStyle: 'italic' }}>{p.hint}</div>}
-                  </div>
-                )}
-                {p.solution && (
-                  <details>
-                    <summary className="meta" style={{ cursor: 'pointer' }}>Show solution</summary>
-                    <div className="small" style={{ marginTop: 6, padding: '8px 12px', background: 'var(--bg)', borderRadius: 'var(--radius-xs)' }}>{p.solution}</div>
-                  </details>
-                )}
-                {p.url && (
-                  <a href={p.url} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ marginTop: 8, display: 'inline-flex', textDecoration: 'none' }}>
-                    Open source →
-                  </a>
-                )}
-              </div>
-            )}
           </div>
-        ))}
-
-      {/* Source links */}
-      <div className="card" style={{ marginTop: 12, textAlign: 'center' }}>
-        <div className="meta" style={{ marginBottom: 8 }}>More puzzle sources</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-          <a href="https://www.puzzledquant.com/" target="_blank" rel="noreferrer" className="btn btn-sm" style={{ textDecoration: 'none' }}>PuzzledQuant</a>
-          <a href="https://www.janestreet.com/puzzles/" target="_blank" rel="noreferrer" className="btn btn-sm" style={{ textDecoration: 'none' }}>Jane Street</a>
-          <a href="https://puzzles.nigelcoldwell.co.uk/" target="_blank" rel="noreferrer" className="btn btn-sm" style={{ textDecoration: 'none' }}>Nigel Coldwell</a>
-          <a href="https://www.reddit.com/r/mathriddles/" target="_blank" rel="noreferrer" className="btn btn-sm" style={{ textDecoration: 'none' }}>r/mathriddles</a>
         </div>
+
+        {split && (
+          <aside className="logic-inspector card" aria-label="Puzzle details">
+            {detail || <div className="logic-empty">Select a puzzle to see its details.</div>}
+          </aside>
+        )}
       </div>
+
+      {!split && (
+        <Sheet open={!!selected} onClose={closeSelected} variant="side">
+          {detail}
+        </Sheet>
+      )}
     </div>
   )
 }
