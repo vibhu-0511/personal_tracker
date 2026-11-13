@@ -19,8 +19,10 @@
 .learn-gloss-row { padding: 8px 0; border-bottom: 1px solid var(--border); }
 .learn-gloss-term { font-weight: 700; color: var(--accent); }
 
-/* Two-pane layout: module list left, ModuleView right. */
-@media (min-width: 1024px) {
+/* Two-pane layout: module list left (its own scroller), ModuleView right.
+   Gated on the shell's `app` container, not the viewport. Below 1024px it stays
+   the single column. */
+@container app (min-width: 1024px) {
   .learn-panes {
     display: grid;
     grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
@@ -29,10 +31,12 @@
   }
   .learn-list {
     position: sticky;
-    top: 12px;
-    max-height: calc(100vh - 24px);
+    top: 0;
+    max-height: calc(100dvh - 24px);
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding-right: 4px;
   }
+  .learn-detail { min-width: 0; }
   .learn-module { margin-top: 0; }
 }

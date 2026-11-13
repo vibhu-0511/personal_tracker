@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { InspectorProvider } from '../shell/Inspector.jsx'
 import { InvestProvider, useInvest } from './InvestContext.jsx'
 import { INVEST_SCREENS, INVEST_DISCLAIMER, DEFAULT_INVEST_SCREEN } from './index.js'
 import './invest.css'
@@ -60,7 +61,9 @@ function InvestShell({ view: viewProp, onViewChange, initialView, initialWatchTy
 export default function InvestApp({ syncTick = 0, ...shellProps }) {
   return (
     <InvestProvider syncTick={syncTick}>
-      <InvestShell {...shellProps} />
+      <InspectorProvider>
+        <InvestShell {...shellProps} />
+      </InspectorProvider>
     </InvestProvider>
   )
 }
