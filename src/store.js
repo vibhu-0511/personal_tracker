@@ -171,3 +171,16 @@ export async function getChecklists() {
 export async function saveChecklists(checklists) {
   await saveSynced('checklists', checklists)
 }
+
+export async function mutateTasks(fn) {
+  return engine.mutate('tasks', fn, [])
+}
+export async function mutateHabits(fn) {
+  return engine.mutate('habits', fn, [])
+}
+export async function mutateMoodLog(fn) {
+  return engine.mutate('moodLog', fn, [])
+}
+export async function mutateNotes(fn) {
+  return engine.mutate('notes', fn, [])
+}
