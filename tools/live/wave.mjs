@@ -26,7 +26,7 @@ const order = (a, b) => phaseNo(a.phase) - phaseNo(b.phase) || a.wave - b.wave
 const branchOf = t => `wave/${t.phase}-W${t.wave}/${t.id}`
 const tail = (s, n = 25) => String(s).trim().split('\n').slice(-n).join('\n')
 
-async function statuses() { return deriveStatuses(plan.tasks, await readRepo(ROOT), overrides) }
+async function statuses() { return deriveStatuses(plan.tasks.map(t => ({ ...t, o: t.owner || '' })), await readRepo(ROOT), overrides) }
 
 async function next() {
   const st = await statuses()
