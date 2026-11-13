@@ -1,33 +1,16 @@
 import { useState } from 'react'
-import { getNotes, saveNotes } from '../store.js'
-import { showToast } from '../toast.js'
-import { useHydrate } from '../useHydrate.js'
-import { useLatest } from '../useLatest.js'
-import { deleteWithUndo } from '../undo.js'
-import { newId } from '../id.js'
-import { DndArea, DropList, DropZone, SortableRow, useDragging } from '../dnd/Dnd.jsx'
-import { placeItem, canNest } from '../dnd/logic.js'
-import { formatAdded } from '../time.js'
+import { getNotes, saveNotes } from '../../store.js'
+import { showToast } from '../../toast.js'
+import { useHydrate } from '../../useHydrate.js'
+import { useLatest } from '../../useLatest.js'
+import { deleteWithUndo } from '../../undo.js'
+import { newId } from '../../id.js'
+import { DndArea, DropList, DropZone, SortableRow, useDragging } from '../../dnd/Dnd.jsx'
+import { placeItem, canNest } from '../../dnd/logic.js'
+import { formatAdded } from '../../time.js'
+import { buildChildMap, sortSiblings, collectDescendantIds, countDescendants } from '../notesTree.js'
 
 const COLORS = ['', 'red', 'orange', 'green', 'blue', 'purple']
-
-function buildChildMap(notes) {
-  const map = {}
-  for (const n of notes) {
-    const p = n.parentId || null
-    ;(map[p] ||= []).push(n)
-  }
-  return map
-}
-
-function sortSiblings(list) {
-  return [...list].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
-}
-
-function collectDescendantIds(id, childMap) {
-  const kids = childMap[id] || []
-  return kids.flatMap((k) => [k.id, ...collectDescendantIds(k.id, childMap)])
-}
 
 function ColorPicker({ value, onChange }) {
   return (
@@ -364,7 +347,7 @@ export default function Notes({ syncTick = 0 }) {
     subComposeFor, setSubComposeFor, addSubNote,
     toggleExpand,
     onTagClick: (t) => setFilter((f) => (f.trim().toLowerCase() === t.toLowerCase() ? '' : t)),
-    descCount: (id) => collectDescendantIds(id, childMap).length,
+    descCount: (id) => countDescendants(id, childMap),
   }
 
   return (
