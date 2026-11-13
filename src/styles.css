@@ -271,7 +271,7 @@ body {
   color: var(--text);
   transition: all 0.15s;
 }
-.btn:hover { border-color: var(--border-light); background: var(--border); }
+@media (hover: hover) and (pointer: fine) { .btn:hover { border-color: var(--border-light); background: var(--border); } }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.4; cursor: default; transform: none; }
 
@@ -280,7 +280,7 @@ body {
   border-color: var(--accent-solid);
   color: #fff;
 }
-.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+@media (hover: hover) and (pointer: fine) { .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); } }
 
 .btn-sm { padding: 6px 12px; font-size: 13px; }
 
@@ -289,17 +289,17 @@ body {
   border-color: transparent;
   color: var(--text-secondary);
 }
-.btn-ghost:hover { color: var(--text); background: var(--accent-dim); }
+@media (hover: hover) and (pointer: fine) { .btn-ghost:hover { color: var(--text); background: var(--accent-dim); } }
 
 .btn-success { background: var(--success-dim); border-color: transparent; color: var(--success); }
-.btn-success:hover { background: rgba(74, 222, 128, 0.2); }
+@media (hover: hover) and (pointer: fine) { .btn-success:hover { background: rgba(74, 222, 128, 0.2); } }
 
 .btn-danger-ghost {
   background: transparent;
   border-color: transparent;
   color: var(--text-tertiary);
 }
-.btn-danger-ghost:hover { color: var(--danger); background: var(--danger-dim); }
+@media (hover: hover) and (pointer: fine) { .btn-danger-ghost:hover { color: var(--danger); background: var(--danger-dim); } }
 
 /* ── Inputs ── */
 input, textarea, select {
@@ -316,6 +316,16 @@ input, textarea, select {
 }
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent);
+}
+
+/* ── Focus ring (keyboard only; inputs keep outline:none plus a ring on :focus-visible) ── */
+:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 1px;
 }
 textarea { resize: vertical; }
 select { cursor: pointer; }
@@ -335,7 +345,7 @@ select { cursor: pointer; }
   color: var(--text-secondary);
   transition: all 0.2s;
 }
-.gear-btn:hover { background: var(--surface-raised); color: var(--text); }
+@media (hover: hover) and (pointer: fine) { .gear-btn:hover { background: var(--surface-raised); color: var(--text); } }
 
 /* ── Settings Panel ── */
 .settings-panel {
@@ -361,7 +371,7 @@ select { cursor: pointer; }
   font-size: 14px;
   display: block;
 }
-.problem-name:hover { color: var(--accent); }
+@media (hover: hover) and (pointer: fine) { .problem-name:hover { color: var(--accent); } }
 .problem-actions {
   display: flex;
   gap: 6px;
@@ -396,7 +406,7 @@ select { cursor: pointer; }
   font-weight: 600;
   font-size: 14px;
 }
-.puzzle-link:hover { text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) { .puzzle-link:hover { text-decoration: underline; } }
 
 /* ── Section Headers ── */
 .section-header {
@@ -479,7 +489,7 @@ select { cursor: pointer; }
   color: var(--text-secondary);
   transition: all 0.2s;
 }
-.agent-pill:hover { border-color: var(--border-light); }
+@media (hover: hover) and (pointer: fine) { .agent-pill:hover { border-color: var(--border-light); } }
 .agent-pill.active {
   background: var(--accent-dim);
   border-color: var(--accent);
@@ -497,7 +507,7 @@ select { cursor: pointer; }
   white-space: nowrap;
   flex-shrink: 0;
 }
-.agent-more-select:hover { border-color: var(--border-light); }
+@media (hover: hover) and (pointer: fine) { .agent-more-select:hover { border-color: var(--border-light); } }
 .agent-more-select.active {
   background: var(--accent-dim);
   border-color: var(--accent);
@@ -560,7 +570,7 @@ select { cursor: pointer; }
   flex-shrink: 0;
   transition: all 0.15s;
 }
-.send-btn:hover { background: #3b82f6; }
+@media (hover: hover) and (pointer: fine) { .send-btn:hover { background: #3b82f6; } }
 .send-btn:disabled { opacity: 0.3; cursor: default; }
 .send-btn:active { transform: scale(0.92); }
 
@@ -665,7 +675,7 @@ select { cursor: pointer; }
   margin-bottom: 8px;
   transition: all 0.15s;
 }
-.cf-filter-toggle:hover { border-color: var(--border-light); color: var(--text); }
+@media (hover: hover) and (pointer: fine) { .cf-filter-toggle:hover { border-color: var(--border-light); color: var(--text); } }
 .cf-filter-toggle.active { border-color: var(--accent); color: var(--accent); }
 
 .cf-filter-badge {
@@ -699,7 +709,7 @@ select { cursor: pointer; }
   font-weight: 500;
   transition: all 0.15s;
 }
-.cf-tag-chip:hover { border-color: var(--border-light); }
+@media (hover: hover) and (pointer: fine) { .cf-tag-chip:hover { border-color: var(--border-light); } }
 .cf-tag-chip.active {
   background: var(--accent-dim);
   border-color: var(--accent);
@@ -726,7 +736,7 @@ select { cursor: pointer; }
   cursor: pointer;
   transition: all 0.15s;
 }
-.expense-cat-btn:hover { border-color: var(--border-light); }
+@media (hover: hover) and (pointer: fine) { .expense-cat-btn:hover { border-color: var(--border-light); } }
 .expense-cat-btn.active {
   background: var(--accent-dim);
   border-color: var(--accent);
@@ -754,7 +764,7 @@ select { cursor: pointer; }
   transition: all 0.2s;
   padding-bottom: env(safe-area-inset-bottom);
 }
-.expense-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(37, 99, 235, 0.5); }
+@media (hover: hover) and (pointer: fine) { .expense-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(37, 99, 235, 0.5); } }
 .expense-fab:active { transform: scale(0.95); }
 
 /* ── Exams ── */
@@ -782,7 +792,7 @@ select { cursor: pointer; }
   font: inherit;
   transition: background 0.15s;
 }
-.exam-section-header:hover { background: var(--surface-raised); }
+@media (hover: hover) and (pointer: fine) { .exam-section-header:hover { background: var(--surface-raised); } }
 
 .exam-section-arrow {
   color: var(--text-tertiary);
@@ -920,7 +930,7 @@ select { cursor: pointer; }
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.invest-mod-btn:hover:not(:disabled) { border-color: var(--border-light); }
+@media (hover: hover) and (pointer: fine) { .invest-mod-btn:hover:not(:disabled) { border-color: var(--border-light); } }
 .invest-mod-btn.active { border-color: var(--accent); background: var(--accent-dim); }
 .invest-mod-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -966,7 +976,7 @@ select { cursor: pointer; }
   border-radius: var(--radius-xs); margin-bottom: 7px; cursor: pointer; font-size: 13.5px;
   background: var(--surface); color: var(--text); font: inherit; transition: border-color 0.15s;
 }
-.invest-opt:hover:not(:disabled) { border-color: var(--border-light); }
+@media (hover: hover) and (pointer: fine) { .invest-opt:hover:not(:disabled) { border-color: var(--border-light); } }
 .invest-opt.sel { border-color: var(--accent); }
 .invest-opt.correct { border-color: var(--success); background: var(--success-dim); }
 .invest-opt.wrong { border-color: var(--danger); background: var(--danger-dim); }
@@ -1136,4 +1146,12 @@ select { cursor: pointer; }
   color: var(--text-tertiary);
   border: 1px dashed var(--border, rgba(128,128,128,.4));
   border-radius: 8px;
+}
+
+/* ── Coarse pointers: 44px touch targets (buttons, rows, tab buttons) ── */
+@media (pointer: coarse) {
+  .btn, .btn-sm, .gear-btn, .send-btn, .agent-pill, .tab-btn,
+  .life-row, .exam-topic-row, .exam-section-header {
+    min-height: 44px;
+  }
 }
