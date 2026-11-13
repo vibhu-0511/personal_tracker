@@ -1,1 +1,120 @@
-/* tokens: design tokens and themes (colors, spacing, type, radii, dark mode) */
+/* tokens: design tokens and themes (colors, spacing, type, radii, dark mode)
+   Imported in main.jsx AFTER styles.css so these names and the cream overrides win.
+   Families: dark (ocean :root, forest, sunset, grape, rose: only accent tokens differ,
+   those stay in styles.css) and light (sky, cream: full surface set). */
+
+/* ── Hybrid tokens, dark default (ocean + 4 dark accents) ── */
+:root {
+  /* interaction */
+  --hover: rgba(255, 255, 255, 0.04);
+  --track: var(--border);
+  --on-accent: #fff;
+  --focus-ring: var(--accent);
+  --accent-bright: var(--accent);
+
+  /* shell geometry */
+  --rail-w: 72px;
+  --side-w: 220px;
+  --tabbar-h: calc(56px + env(safe-area-inset-bottom, 0px));
+  --inspector-w: 300px;
+
+  /* tiles */
+  --tile-radius: 22px;
+  --tile-pad: 14px;
+  --tile-shadow: none;
+  --tile-sec: #a3adc0;
+  --tile-peach: #382a22;
+  --tile-mint: #1c362d;
+  --tile-butter: #38311e;
+  --tile-lilac: #2f2841;
+  --tile-sky: #222d41;
+  --tile-plain: var(--surface);
+  --tile-inner: rgba(255, 255, 255, 0.06);
+
+  /* type */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+
+  /* chart palette (>= 3:1 against dark --surface) */
+  --chart-1: #7c8cff;
+  --chart-2: #3dd6c6;
+  --chart-3: #ffb86b;
+  --chart-4: #ff7a90;
+  --chart-5: #a78bfa;
+  --chart-6: #6b7488;
+}
+
+@media (min-width: 1280px) {
+  :root { --inspector-w: 320px; }
+}
+
+/* ── Light family (sky + cream): shared overrides ── */
+:root[data-accent="sky"],
+:root[data-accent="cream"] {
+  /* status colours darkened for light surfaces (>= 4.5:1) */
+  --success: #136d42;
+  --success-dim: rgba(19, 109, 66, 0.14);
+  --warn: #8a5a00;
+  --warn-dim: rgba(138, 90, 0, 0.14);
+  --danger: #b4281d;
+  --danger-dim: rgba(180, 40, 29, 0.14);
+
+  --tile-peach: #ffe3d6;
+  --tile-mint: #dcf3e8;
+  --tile-butter: #fff1bd;
+  --tile-lilac: #e8e0ff;
+  --tile-sky: #d9edff;
+  --tile-inner: rgba(255, 255, 255, 0.65);
+
+  --chart-1: #d6402b;
+  --chart-2: #16805a;
+  --chart-3: #b07400;
+  --chart-4: #6d4fe0;
+  --chart-5: #2b72c9;
+  --chart-6: #857565;
+}
+
+/* ── Sky refinements ── */
+:root[data-accent="sky"] {
+  --hover: rgba(15, 23, 42, 0.05);
+  --track: rgba(15, 23, 42, 0.1);
+  --focus-ring: #2563eb;
+  --tile-sec: #5b6478;
+  --tile-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+}
+
+/* ── Cream (7th theme) ── */
+:root[data-accent="cream"] {
+  --bg: #fff6e9;
+  --surface: #ffffff;
+  --surface-raised: #fff0dc;
+  --border: #f0e3d0;
+  --border-light: #e4d2b8;
+  --text: #2b2438;
+  --text-secondary: #5f5670;
+  --text-tertiary: #706680;
+  --accent: #c2412d;
+  --accent-dim: rgba(214, 64, 43, 0.12);
+  --accent-solid: #d6402b;
+  --accent-hover: #b8341f;
+  --accent-bright: #ff6b57;
+  --radius: 22px;
+  --radius-sm: 16px;
+  --radius-xs: 14px;
+  --hover: rgba(43, 36, 56, 0.06);
+  --track: #f2e6d4;
+  --focus-ring: #c2412d;
+  --tile-sec: #5f5670;
+  --tile-shadow: 0 2px 0 rgba(120, 80, 30, 0.08), 0 10px 24px rgba(120, 80, 30, 0.07);
+  --font-ui: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+  color-scheme: light;
+}
+:root[data-accent="cream"] body {
+  font-family: var(--font-ui);
+}
+/* inactive tab label is 10px text: keep it on the AA-safe secondary colour */
+:root[data-accent="cream"] .tab-btn {
+  color: var(--text-secondary);
+}
+:root[data-accent="cream"] .tab-btn.active {
+  color: var(--accent);
+}
