@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient.js'
 import { showToast } from './toast.js'
 import { createSyncEngine } from './sync/engine.js'
 import { createCloudKv } from './sync/cloudKv.js'
+import { emitStoreKey } from './storeEvents.js'
 
 const db = localforage.createInstance({ name: 'forge' })
 
@@ -35,6 +36,7 @@ async function getSynced(key, fallback) {
 
 async function saveSynced(key, data) {
   await engine.save(key, data)
+  emitStoreKey(key)
 }
 
 export const SYNCED_KEYS = [
