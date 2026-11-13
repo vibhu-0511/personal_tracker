@@ -9,7 +9,13 @@
     "preview": "vite preview",
     "test": "node --test \"test/*.test.js\"",
     "live": "node tools/live/server.mjs",
-    "live:demo": "node tools/live/demo.mjs"
+    "live:demo": "node tools/live/demo.mjs",
+    "lint": "eslint .",
+    "test:e2e": "playwright test",
+    "build:e2e": "vite build --mode e2e --outDir dist-e2e",
+    "preview:e2e": "vite preview --mode e2e --outDir dist-e2e --port 4173 --strictPort",
+    "icons": "pwa-assets-generator",
+    "size": "node scripts/ci/bundle-budget.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -23,7 +29,15 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@vite-pwa/assets-generator": "1.0.2",
     "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^5.4.11"
+    "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.14.0",
+    "vite": "^5.4.11",
+    "vite-plugin-pwa": "2.0.0",
+    "workbox-window": "7.4.1"
   }
 }
