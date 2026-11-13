@@ -19,6 +19,10 @@
   --radius: 14px;
   --radius-sm: 10px;
   --radius-xs: 8px;
+  /* glass / gradient tokens (themed below; cream overrides at the end of the accent block) */
+  --nav-bg: rgba(10, 12, 16, 0.85);
+  --nav-blur: none;
+  --title-grad-end: #a78bfa;
   color-scheme: dark;
 }
 
@@ -63,7 +67,16 @@
   --radius: 22px;
   --radius-sm: 16px;
   --radius-xs: 14px;
+  --nav-bg: rgba(255, 255, 255, 0.7);
+  --nav-blur: blur(20px);
+  --title-grad-end: #7c3aed;
   color-scheme: light;
+}
+/* cream is defined in tokens.css (loaded after); only the tokens it lacks live here */
+:root[data-accent="cream"] {
+  --nav-bg: rgba(255, 246, 233, 0.92);
+  --nav-blur: blur(20px);
+  --title-grad-end: #6d4fe0;
 }
 :root[data-accent="sky"] body {
   background-color: var(--bg);
@@ -72,11 +85,6 @@
   background-position: top center;
   background-attachment: fixed;
 }
-:root[data-accent="sky"] .app-header {
-  background: rgba(255, 255, 255, 0.55);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-}
 :root[data-accent="sky"] .card,
 :root[data-accent="sky"] .stat-card,
 :root[data-accent="sky"] .settings-panel {
@@ -84,11 +92,6 @@
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
-}
-:root[data-accent="sky"] .tab-bar {
-  background: rgba(255, 255, 255, 0.7);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
 }
 
 :root { --accent-hover: #3b82f6; }
@@ -103,13 +106,11 @@ body {
   overflow-x: hidden;
 }
 
-/* ── Layout ── */
+/* ── Auth / loading / error screens (the signed-in app lives in .app-root, shell.css) ── */
 .app {
   max-width: 640px;
   margin: 0 auto;
   min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
   padding: env(safe-area-inset-top) 16px 0;
 }
 
@@ -118,69 +119,20 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 12px 0 8px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--bg);
+  background: var(--nav-bg);
+  -webkit-backdrop-filter: var(--nav-blur);
+  backdrop-filter: var(--nav-blur);
 }
 
 .app-title {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  background: linear-gradient(135deg, var(--accent), var(--title-grad-end));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-
-.content { flex: 1; padding-bottom: 100px; }
-
-/* ── Bottom Tab Bar ── */
-.tab-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  z-index: 100;
-  background: rgba(10, 12, 16, 0.85);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.tab-bar-inner {
-  display: flex;
-  max-width: 640px;
-  width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.tab-bar-inner::-webkit-scrollbar { display: none; }
-
-.tab-btn {
-  flex: 1 0 64px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 0 6px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-tertiary);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  transition: color 0.2s;
-}
-
-.tab-btn .tab-icon { font-size: 22px; line-height: 1; }
-
-.tab-btn.active { color: var(--accent); }
 
 /* ── Cards ── */
 .card {
@@ -380,7 +332,7 @@ select { cursor: pointer; }
 
 /* ── Puzzle Card ── */
 .puzzle-card {
-  background: linear-gradient(145deg, #1a1e28, #13161d);
+  background: linear-gradient(145deg, var(--surface-raised), var(--surface));
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
   padding: 16px;
@@ -570,7 +522,7 @@ select { cursor: pointer; }
   flex-shrink: 0;
   transition: all 0.15s;
 }
-@media (hover: hover) and (pointer: fine) { .send-btn:hover { background: #3b82f6; } }
+@media (hover: hover) and (pointer: fine) { .send-btn:hover { background: var(--accent-hover); } }
 .send-btn:disabled { opacity: 0.3; cursor: default; }
 .send-btn:active { transform: scale(0.92); }
 
@@ -631,7 +583,7 @@ select { cursor: pointer; }
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(64px + env(safe-area-inset-bottom));
+  /* bottom offset comes from --tabbar-h in overlays.css */
   z-index: 300;
   display: flex;
   flex-direction: column;
@@ -745,8 +697,7 @@ select { cursor: pointer; }
 
 .expense-fab {
   position: fixed;
-  bottom: 80px;
-  right: max(16px, calc((100vw - 640px) / 2 + 16px));
+  /* bottom / right offsets come from --tabbar-h in overlays.css */
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -762,9 +713,8 @@ select { cursor: pointer; }
   justify-content: center;
   z-index: 50;
   transition: all 0.2s;
-  padding-bottom: env(safe-area-inset-bottom);
 }
-@media (hover: hover) and (pointer: fine) { .expense-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(37, 99, 235, 0.5); } }
+@media (hover: hover) and (pointer: fine) { .expense-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px color-mix(in srgb, var(--accent-solid) 50%, transparent); } }
 .expense-fab:active { transform: scale(0.95); }
 
 /* ── Exams ── */
@@ -837,24 +787,11 @@ select { cursor: pointer; }
 }
 
 .sheet-dialog {
+  /* placement, size and animation per breakpoint live in overlays.css */
   position: fixed;
-  bottom: 0;
-  top: auto;
-  left: 0;
-  right: 0;
   z-index: 200;
   background: var(--surface);
   color: inherit;
-  border: none;
-  border-top: 1px solid var(--border);
-  border-radius: 20px 20px 0 0;
-  padding: 20px;
-  max-width: 640px;
-  width: 100%;
-  margin: 0 auto;
-  animation: slideUp 0.25s ease-out;
-  max-height: 85vh;
-  overflow-y: auto;
 }
 .sheet-dialog::backdrop {
   background: rgba(0, 0, 0, 0.5);
@@ -1148,9 +1085,9 @@ select { cursor: pointer; }
   border-radius: 8px;
 }
 
-/* ── Coarse pointers: 44px touch targets (buttons, rows, tab buttons) ── */
+/* ── Coarse pointers: 44px touch targets (buttons, rows) ── */
 @media (pointer: coarse) {
-  .btn, .btn-sm, .gear-btn, .send-btn, .agent-pill, .tab-btn,
+  .btn, .btn-sm, .gear-btn, .send-btn, .agent-pill,
   .life-row, .exam-topic-row, .exam-section-header {
     min-height: 44px;
   }
