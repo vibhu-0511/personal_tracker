@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { DndArea, DropList, SortableRow } from '../../dnd/Dnd.jsx'
 import { placeItem } from '../../dnd/logic.js'
@@ -17,8 +17,31 @@ import { useLatest } from '../../useLatest.js'
 import { deleteWithUndo } from '../../undo.js'
 import { newId } from '../../id.js'
 import { fireConfetti } from '../confetti.js'
+import MasterDetail from '../ui/MasterDetail.jsx'
+import HabitInspector from './HabitInspector.jsx'
 
 const SPECIES = ['🐶', '🐱', '🐰', '🦊', '🐼', '🐧', '🐉']
+
+// Dense rows plus the inspector start at the same 1024px container width as the shell's
+// inspector pane (life.css `@container app (min-width: 1024px)`); below it the cards stay.
+const INSPECTOR_MIN = 1024
+
+function useWide() {
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const el = typeof document === 'undefined' ? null : document.querySelector('.app-root')
+    const measure = () => setWide((el ? el.clientWidth : window.innerWidth) >= INSPECTOR_MIN)
+    measure()
+    if (el && typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(measure)
+      ro.observe(el)
+      return () => ro.disconnect()
+    }
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+  return wide
+}
 
 export default function HabitsView({ habits, onUpdate, now }) {
   const [showAdd, setShowAdd] = useState(false)
@@ -31,6 +54,8 @@ export default function HabitsView({ habits, onUpdate, now }) {
   const [editName, setEditName] = useState('')
   const [editCategory, setEditCategory] = useState('exercise')
   const [editDomain, setEditDomain] = useState('other')
+  const [selectedId, setSelectedId] = useState(null)
+  const wide = useWide()
   const habitsRef = useLatest(habits)
 
   function addHabit() {
@@ -66,6 +91,10 @@ export default function HabitsView({ habits, onUpdate, now }) {
     setEditingId(null)
   }
 
+  function patchHabit(id, patch) {
+    onUpdate(habits.map((h) => (h.id === id ? { ...h, ...patch } : h)))
+  }
+
   async function checkIn(habit) {
     const key = dateKey(now)
     const already = habit.checkins.includes(key)
@@ -84,8 +113,93 @@ export default function HabitsView({ habits, onUpdate, now }) {
     }
   }
 
-  return (
-    <div>
+  const selectedHabit = wide ? habits.find((h) => h.id === selectedId) || null : null
+
+  const body = wide ? (
+    <MasterDetail
+      hasSelection={selectedHabit != null}
+      onBack={() => setSelectedId(null)}
+      list={<div>
+      <DndArea onMove={({ id, overId, after }) => onUpdate(placeItem(habits, id, overId, { after }))}>
+      <DropList id="habits" type="habit" items={habits.map((h) => h.id)}>
+        {habits.map((h) => {
+          const pet = petState(h, now)
+          const { current } = streaks(h.checkins, now)
+          const money = earnings(h, now)
+          const checkedToday = h.checkins.includes(dateKey(now))
+          const selected = h.id === selectedId
+          return (
+            <SortableRow key={h.id} id={h.id} type="habit">
+            {(handle) => (
+              <div
+                className={`habit-row${selected ? ' selected' : ''}`}
+                data-selected={selected ? 'true' : 'false'}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', marginBottom: 6,
+                  background: 'var(--surface)', borderRadius: 10, position: 'relative',
+                  border: `1px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
+                }}
+              >
+                {coinFlash[h.id] != null && <div className="coin-float">+₹{Math.round(coinFlash[h.id])}</div>}
+                {handle}
+                <button
+                  type="button"
+                  className="habit-row-open"
+                  aria-pressed={selected}
+                  aria-label={`Open ${h.name}`}
+                  onClick={() => setSelectedId(selected ? null : h.id)}
+                  style={{
+                    flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                    background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit', cursor: 'pointer',
+                  }}
+                >
+                  <span className={`pet-avatar pet-mood-${pet.mood}`}>{h.species}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span className="habit-name" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {h.name}
+                    </span>
+                    <span className="habit-meta" style={{ display: 'block' }}>
+                      {current > 0 && <span className="habit-streak-flame">🔥</span>} {current}d · {pet.health}% · ₹{Math.round(money.total)}
+                    </span>
+                  </span>
+                </button>
+                <button
+                  className={`habit-checkin-btn${checkedToday ? ' checked-in' : ''}`}
+                  style={{ width: 'auto', marginTop: 0, padding: '6px 12px' }}
+                  onClick={() => checkIn(h)}
+                  aria-label={checkedToday ? `Undo check-in for ${h.name}` : `Check in ${h.name}`}
+                >
+                  {checkedToday ? '✓ Done' : 'Check in'}
+                </button>
+                <button className="life-icon-btn" title="Remove habit" aria-label="Remove habit" onClick={() => removeHabit(h.id)}>
+                  🗑️
+                </button>
+              </div>
+            )}
+            </SortableRow>
+          )
+        })}
+      </DropList>
+      </DndArea>
+      </div>}
+      inspector={selectedHabit ? (
+        <HabitInspector
+          habit={selectedHabit}
+          now={now}
+          flash={coinFlash[selectedHabit.id]}
+          onCheckIn={checkIn}
+          onChange={patchHabit}
+          onRemove={removeHabit}
+          onClose={() => setSelectedId(null)}
+        />
+      ) : (
+        <div className="empty-state">
+          <div className="empty-icon">🐾</div>
+          <div className="empty-text">Select a habit to see its pet.</div>
+        </div>
+      )}
+    />
+  ) : (
       <DndArea onMove={({ id, overId, after }) => onUpdate(placeItem(habits, id, overId, { after }))}>
       <DropList id="habits" type="habit" items={habits.map((h) => h.id)}>
       <AnimatePresence initial={false}>
@@ -191,6 +305,12 @@ export default function HabitsView({ habits, onUpdate, now }) {
       </AnimatePresence>
       </DropList>
       </DndArea>
+
+  )
+
+  return (
+    <div>
+      {body}
 
       {habits.length === 0 && !showAdd && (
         <div className="empty-state">
