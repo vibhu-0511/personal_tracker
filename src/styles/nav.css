@@ -1,1 +1,121 @@
-/* nav: bottom tabs, rail and sidebar navigation */
+/* nav: bottom tabs, rail and sidebar navigation
+   One markup (.nav > .nav-brand + .nav-list > .nav-item), three layouts by
+   container width. Items share the width equally with min-width:0 and a 10px
+   label so six tabs fit at 375px without scrolling (errata E-01). */
+
+/* Bottom tabs (below 600px) */
+.nav {
+  display: flex;
+  box-sizing: border-box;
+  height: var(--tabbar-h);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
+.nav-brand { display: none; }
+.nav-list { display: flex; width: 100%; min-width: 0; }
+
+.nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 2px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s, background-color 0.2s;
+}
+.nav-icon { font-size: 22px; line-height: 1; }
+.nav-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-item[aria-current="page"] { color: var(--accent); }
+
+/* Visible keyboard focus on every item; inset so overflow:hidden cannot clip it. */
+.nav-item:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -3px;
+  border-radius: var(--radius-xs);
+}
+
+/* Hover only for real hover devices (errata E-06). */
+@media (hover: hover) and (pointer: fine) {
+  .nav-item:hover { background: var(--hover); color: var(--text); }
+  .nav-item[aria-current="page"]:hover { color: var(--accent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item { transition: none; }
+}
+
+/* Rail (600px to 1023px): 72px column, icon over label */
+@container app (min-width: 600px) {
+  .nav {
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    padding: env(safe-area-inset-top, 0px) 0 0;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    font-weight: 700;
+  }
+  .nav-brand-icon { font-size: 24px; line-height: 1; }
+  .nav-brand-text { display: none; }
+  .nav-list {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 6px;
+  }
+  .nav-item {
+    flex: 0 0 auto;
+    min-height: 56px;
+    border-radius: var(--radius-sm);
+  }
+  .nav-item[aria-current="page"] { background: var(--accent-dim); }
+  .nav-item:focus-visible { border-radius: var(--radius-sm); outline-offset: -2px; }
+}
+
+/* Sidebar (1024px and up): 220px column, icon beside label */
+@container app (min-width: 1024px) {
+  .nav-brand {
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 20px;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+  }
+  .nav-brand-text { display: inline; }
+  .nav-list { padding: 8px 12px; }
+  .nav-item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 14px;
+    letter-spacing: 0;
+  }
+  .nav-icon { font-size: 20px; width: 24px; text-align: center; }
+}
