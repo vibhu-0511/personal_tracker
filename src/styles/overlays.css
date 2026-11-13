@@ -1,1 +1,87 @@
-/* overlays: sheets, toasts and other overlays */
+/* overlays: sheets, toasts and other overlays
+   Overrides the legacy .sheet-dialog, .toast-stack and .expense-fab rules in
+   styles.css (deleted later in R1-10). Loaded after styles.css, same specificity.
+   Placement derives from --tabbar-h (tokens.css); no literal bottom offsets.
+   Breakpoints (viewport): <600 bottom tabs, 600-1023 rail, >=1024 sidebar. */
+
+/* Rail or sidebar is active: no bottom tab bar to clear */
+@media (min-width: 600px) {
+  :root { --tabbar-h: 0px; }
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes overlaySlideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* ── Sheet: bottom sheet below 600 ── */
+.sheet-dialog {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  max-height: 85dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  animation: slideUp 0.25s ease-out;
+}
+
+/* ── Sheet: centred modal, 600-1023 ── */
+@media (min-width: 600px) {
+  .sheet-dialog {
+    inset: 0;
+    width: calc(100% - 32px);
+    max-width: 520px;
+    height: fit-content;
+    margin: auto;
+    padding: 20px;
+    max-height: min(85dvh, 720px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    animation: overlayFadeIn 0.2s ease-out;
+  }
+}
+
+/* ── Sheet: right-side sheet, >=1024 ── */
+@media (min-width: 1024px) {
+  .sheet-dialog {
+    inset: 0 0 0 auto;
+    width: 440px;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+    border: none;
+    border-left: 1px solid var(--border);
+    border-radius: 20px 0 0 20px;
+    animation: overlaySlideInRight 0.25s ease-out;
+  }
+}
+
+/* ── Toast stack ── */
+.toast-stack {
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px);
+}
+
+/* ── FAB ── */
+.expense-fab {
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px);
+  right: 16px;
+  padding-bottom: 0;
+}
+@media (min-width: 600px) {
+  .expense-fab { right: 24px; }
+}
+@media (min-width: 1024px) {
+  .expense-fab { display: none; }
+}
