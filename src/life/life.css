@@ -1,0 +1,61 @@
+/* Life screens (R2-08): MasterDetail layout. New Life rules go here, not in
+   src/styles.css. Layout switches with `@container app` (the .app-root
+   container), never by device or viewport width.
+
+   Panes:  < 600   list only (detail is a Sheet)
+           1024+   list | inspector
+           1280+   list | detail | inspector
+   The 1280px detail threshold is mirrored by DETAIL_INLINE_MIN in
+   ui/MasterDetail.jsx; keep the two in step. */
+
+.md-root {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+.md-list,
+.md-detail,
+.md-inspector { min-width: 0; }
+
+/* Inspector and detail panes are hidden until the container is wide enough. */
+.md-detail,
+.md-inspector { display: none; }
+
+.md-sheet-body { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.md-back {
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.md-back:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+@media (pointer: coarse) {
+  .md-back { min-height: 44px; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .md-back:hover { background: var(--hover); }
+}
+
+@container app (min-width: 1024px) {
+  .md-root { grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); }
+  .md-inspector {
+    display: block;
+    position: sticky;
+    top: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+@container app (min-width: 1280px) {
+  .md-root { grid-template-columns: 360px minmax(0, 1fr) 300px; }
+  .md-detail { display: block; }
+}
