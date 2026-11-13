@@ -89,7 +89,7 @@ export function screenEntries() {
 }
 
 // Build a flat list of searchable entries. Tasks use `title`, notes use `body`
-// (the shape in src/tabs/Notes.jsx). Malformed rows are skipped, not thrown.
+// (the shape in src/life/screens/Notes.jsx). Malformed rows are skipped, not thrown.
 export function buildIndex({ tasks = [], notes = [] } = {}) {
   const entries = screenEntries()
   for (const t of Array.isArray(tasks) ? tasks : []) {
