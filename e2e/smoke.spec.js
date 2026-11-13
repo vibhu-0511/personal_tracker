@@ -16,13 +16,13 @@ test('app boots signed in with seeded kv_store rows', async ({ page, hermetic },
     if (req.url().includes('/rest/v1/kv_store') && req.method() === 'GET') kvReads.push(req.url())
   })
 
-  await page.goto('/')
+  await page.goto('/#/life/tasks')
 
   // Signed in: no sign-in form, the tab bar is up.
   await expect(page.getByLabel('Email')).toHaveCount(0)
-  const tabBar = page.locator('nav.tab-bar')
+  const tabBar = page.getByRole('navigation', { name: 'Primary' })
   await expect(tabBar).toBeVisible()
-  await expect(tabBar.getByRole('button', { name: /Life/ })).toBeVisible()
+  await expect(tabBar.getByRole('link', { name: /Life/ })).toBeVisible()
 
   // Seeded kv_store rows were fetched and rendered (settings.cfHandle is set,
   // so the first-run settings panel stays closed; tasks come from the seed).

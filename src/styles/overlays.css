@@ -70,12 +70,12 @@
 
 /* ── Toast stack ── */
 .toast-stack {
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px);
+  bottom: calc(max(var(--tabbar-h), env(safe-area-inset-bottom, 0px)) + 12px);
 }
 
 /* ── FAB ── */
 .expense-fab {
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px);
+  bottom: calc(max(var(--tabbar-h), env(safe-area-inset-bottom, 0px)) + 12px);
   right: 16px;
   padding-bottom: 0;
 }

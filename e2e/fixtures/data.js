@@ -63,7 +63,7 @@ export function buildKvRows(seed = KV_SEED) {
 
 // Fixture JSON for the app's own /api/* endpoints.
 export const API_FIXTURES = {
-  cf: { user: { handle: 'e2e_handle', rating: 1200 }, solved: [], recent: [] },
+  cf: { user: { handle: 'e2e_handle', rating: 1200 }, solved: [], recent: [], tagCounts: {} },
   puzzle: { id: 'e2e', title: 'E2E puzzle', prompt: 'Fixture puzzle', answer: 'x' },
   quote: { quoteResponse: { result: [], error: null } },
   agent: { reply: 'Fixture agent reply' },
