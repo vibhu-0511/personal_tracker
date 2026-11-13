@@ -4,6 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Mastery Map · DSA v2 · Candidate Master Protocol v2.1</title>
+<script>
+/* ?embed=1 — set before first paint so embed CSS applies with no flash (R3-04) */
+(function () { try { if (new URLSearchParams(location.search).get('embed') === '1') document.documentElement.classList.add('embed'); } catch (e) {} })();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -69,6 +73,7 @@
     color: var(--text);
     font-family: 'Space Grotesk', sans-serif;
     min-height: 100vh;
+    min-height: 100dvh;
     background-image:
       radial-gradient(circle at 20% 0%, rgba(167, 139, 250, 0.08) 0%, transparent 40%),
       radial-gradient(circle at 80% 100%, rgba(94, 234, 212, 0.05) 0%, transparent 40%);
@@ -79,6 +84,7 @@
     display: grid;
     grid-template-columns: 240px 1fr;
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   /* Sidebar */
@@ -89,6 +95,7 @@
     position: sticky;
     top: 0;
     height: 100vh;
+    height: 100dvh;
     overflow-y: auto;
   }
   .sidebar::-webkit-scrollbar { width: 6px; }
@@ -184,6 +191,7 @@
 
   .stats {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     font-family: 'JetBrains Mono', monospace;
   }
@@ -294,7 +302,7 @@
 
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
     gap: 12px;
   }
 
@@ -484,6 +492,22 @@
     .main { padding: 20px; }
   }
 
+  /* ========== EMBED MODE (?embed=1, R3-04) ========== */
+  html.embed .forge-link { display: none; }
+  html.embed body { background-image: none; }
+  html.embed .app { grid-template-columns: 200px minmax(0, 1fr); }
+  html.embed .main { padding: 20px 20px 32px; }
+  @media (max-width: 900px) {
+    html.embed .app { grid-template-columns: minmax(0, 1fr); }
+    html.embed .sidebar { padding: 6px 0; overflow-x: auto; overflow-y: hidden; }
+    html.embed .brand { display: none; }
+    html.embed #nav { display: flex; width: max-content; }
+    html.embed .nav-group { display: flex; padding: 0; }
+    html.embed .nav-group-label { display: none; }
+    html.embed .nav-item { white-space: nowrap; gap: 8px; padding: 8px 12px; border-left: 0; border-bottom: 2px solid transparent; }
+    html.embed .nav-item.active { border-bottom-color: var(--theme); }
+  }
+
   /* ========== ARSENAL TAB STYLES ========== */
   .ars-category {
     margin-bottom: 40px;
@@ -520,7 +544,7 @@
 
   .ars-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
     gap: 12px;
   }
 
@@ -1284,7 +1308,7 @@
   }
 
   /* ========== CHEAT SHEET ========== */
-  .cs-section { margin-bottom: 32px; }
+  .cs-section { margin-bottom: 32px; overflow-x: auto; }
   .cs-title {
     font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
@@ -1619,6 +1643,11 @@
   // for this standalone tool. Upgrade path: inline a copy of decideSync's comparison
   // if this file ever needs real conflict safety.
   var DATA_KEY = 'dsa_mastery_v1';
+  var OWNER_KEY = 'dsa_owner';                 // user id that owns the local mastery_*/roadmap_* data
+  var BACKUP_KEY = 'dsa_pre_pull_backup';      // snapshot taken just before a pull overwrites local data
+  // dsa_owner / dsa_pre_pull_backup / dsa_summary deliberately do NOT match ours(), so they are never pushed.
+  // They are written through the prototype to bypass the patched setItem below (it schedules a push).
+  var rawSet = function (k, v) { Storage.prototype.setItem.call(localStorage, k, v); };
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var nativeSet = localStorage.setItem.bind(localStorage);
   var nativeRemove = localStorage.removeItem.bind(localStorage);
@@ -1649,6 +1678,8 @@
     return sb.auth.getUser().then(function (r) {
       var uid = r.data && r.data.user && r.data.user.id;
       if (!uid) return;
+      var owner = localStorage.getItem(OWNER_KEY);
+      if (owner && owner !== uid) return; // local data belongs to another account; never push it under this one
       return sb.from('kv_store').upsert({
         user_id: uid, key: DATA_KEY, value: snapshot(), updated_at: new Date().toISOString(),
       }).then(function (res) { flash(!res.error); });
@@ -1675,12 +1706,30 @@
       }
       return;
     }
+    // Account-owner guard: local data left by a different user must not be pushed under (or merged
+    // into) this account. Clear it and reload before pulling. First-ever claim (no owner) keeps data.
+    var uid = session.user && session.user.id;
+    var prevOwner = localStorage.getItem(OWNER_KEY);
+    if (uid && prevOwner && prevOwner !== uid) {
+      if (timer) { clearTimeout(timer); timer = null; }
+      var stale = [];
+      for (var i = 0; i < localStorage.length; i++) { if (ours(localStorage.key(i))) stale.push(localStorage.key(i)); }
+      stale.forEach(function (k) { nativeRemove(k); });
+      rawSet(OWNER_KEY, uid);
+      location.reload(); // in-memory page state is stale; reload so nothing old is saved back
+      return;
+    }
+    if (uid && !prevOwner) rawSet(OWNER_KEY, uid);
     sb.from('kv_store').select('value').eq('key', DATA_KEY).maybeSingle().then(function (res) {
       var cloud = res.data && res.data.value;
       if (cloud && Object.keys(cloud).length) {
         var changed = false;
         for (var k in cloud) {
           if (Object.prototype.hasOwnProperty.call(cloud, k) && ours(k) && localStorage.getItem(k) !== cloud[k]) {
+            if (!changed) {
+              // first differing key: save what local looked like before the pull overwrites it
+              try { rawSet(BACKUP_KEY, JSON.stringify({ at: Date.now(), owner: uid || null, data: snapshot() })); } catch (e) {}
+            }
             nativeSet(k, cloud[k]);
             changed = true;
           }
@@ -1702,6 +1751,10 @@
   localStorage.removeItem = function (key) { nativeRemove(key); schedulePush(); };
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (document.documentElement.classList.contains('embed')) {
+      var back = document.querySelector('.forge-link');
+      if (back) back.remove();
+    }
     pill = document.createElement('div');
     pill.style.cssText = 'position:fixed;bottom:12px;right:14px;z-index:99999;font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:6px 10px;border-radius:8px;background:#121214;border:1px solid #2a2a2e;opacity:0;transition:opacity .3s;pointer-events:none';
     document.body.appendChild(pill);
@@ -1715,7 +1768,7 @@
 <div class="app">
 
   <aside class="sidebar">
-    <a href="/" style="display:block;font-size:12px;color:var(--text-dim);text-decoration:none;padding:8px 10px;margin-bottom:10px;border-radius:8px;background:var(--bg-card)">← Forge</a>
+    <a href="/" class="forge-link" style="display:block;font-size:12px;color:var(--text-dim);text-decoration:none;padding:8px 10px;margin-bottom:10px;border-radius:8px;background:var(--bg-card)">← Forge</a>
     <div class="brand">
       <h1>Mastery<span class="accent">.</span>Map</h1>
       <div class="subtitle">CM Protocol v2.1 · DSA v2</div>
@@ -6496,8 +6549,30 @@ const GROUPS = [
 const STORAGE_KEY = 'mastery_map_v2';  // preserve graph/DP progress
 let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 let currentTab = localStorage.getItem('mastery_tab') || 'dp';
+// optional deep link ?tab=<id>, only honoured when it names a real tab
+try {
+  const wantedTab = new URLSearchParams(location.search).get('tab');
+  if (wantedTab && TABS.some(t => t.id === wantedTab)) currentTab = wantedTab;
+} catch (e) {}
 
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+// Small progress summary for the Forge shell: localStorage.dsa_summary = {done,total,tabs,at}.
+// Written via the prototype to bypass the sync patch; the key does not match ours(), so it is never pushed.
+function writeSummary() {
+  try {
+    const tabs = {};
+    let done = 0, total = 0;
+    TABS.forEach(t => {
+      if (!Array.isArray(t.data)) return;
+      const d = t.data.filter(c => getCardState(t.id, cardKey(c)).done).length;
+      tabs[t.id] = { done: d, total: t.data.length };
+      done += d;
+      total += t.data.length;
+    });
+    Storage.prototype.setItem.call(localStorage, 'dsa_summary', JSON.stringify({ done, total, tabs, at: Date.now() }));
+  } catch (e) {}
+}
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); writeSummary(); }
 
 function getCardState(tab, title) {
   const key = `${tab}::${title}`;
@@ -8314,6 +8389,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+writeSummary();
 switchTab(currentTab);
 </script>
 </body>
