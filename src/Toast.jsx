@@ -12,8 +12,8 @@ export default function ToastHost() {
         <div
           key={t.id}
           className="toast"
-          onMouseEnter={() => pauseToast(t.id)}
-          onMouseLeave={() => resumeToast(t.id)}
+          onPointerEnter={(e) => { if (e.pointerType !== 'touch') pauseToast(t.id) }}
+          onPointerLeave={(e) => { if (e.pointerType !== 'touch') resumeToast(t.id) }}
           onFocus={() => pauseToast(t.id)}
           onBlur={() => resumeToast(t.id)}
         >
