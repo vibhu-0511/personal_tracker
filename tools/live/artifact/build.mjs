@@ -34,7 +34,7 @@ const swap = (marker, text) => {
   js = js.replace(re, () => text)
 }
 swap('IMPORT', graph)
-swap('PLAN', `plan = JSON.parse(${JSON.stringify(JSON.stringify(plan)).replace(/</g, '\\u003c')}); dirtyBuild = true; schedule()`)
+swap('PLAN', `plan = JSON.parse(${JSON.stringify(JSON.stringify(plan)).replace(/</g, '\\u003c')}); dirtyBuild = true`)
 swap('DEMO', '')
 swap('START', 'renderGraph(); renderTop();\n' + adapter + '\nstartCcr()')
 
