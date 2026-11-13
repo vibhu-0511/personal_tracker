@@ -10,6 +10,21 @@ export function placeItem(list, id, overId, { patch = {}, after = false } = {}) 
   return rest
 }
 
+// Move every id in `ids` next to `overId` (end of list when overId is null), merging `patch`
+// into each. The moved items keep their current relative list order; unknown ids are ignored.
+// If `overId` is itself one of the moved ids there is no stable anchor, so the list is unchanged.
+export function moveMany(list, ids, overId, { patch = {}, after = false } = {}) {
+  const set = new Set(ids)
+  if (overId != null && set.has(overId)) return list
+  const moved = list.filter((x) => set.has(x.id)).map((x) => ({ ...x, ...patch }))
+  if (!moved.length) return list
+  const rest = list.filter((x) => !set.has(x.id))
+  const i = overId == null ? -1 : rest.findIndex((x) => x.id === overId)
+  if (i < 0) return [...rest, ...moved]
+  rest.splice(after ? i + 1 : i, 0, ...moved)
+  return rest
+}
+
 // Due-date change implied by dropping a task into a section. `today`/`tomorrow` are date keys.
 export function taskDropPatch(section, task, today, tomorrow) {
   if (section === 'today') return { due: today, dueAt: task.due === today ? task.dueAt : null }

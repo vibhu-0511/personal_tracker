@@ -1,11 +1,13 @@
 import { createContext, useContext, useState } from 'react'
 import {
-  DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, useDroppable, closestCorners, pointerWithin,
+  DndContext, DragOverlay, PointerSensor, MouseSensor, TouchSensor, KeyboardSensor, useSensor, useSensors,
+  useDroppable, closestCorners, pointerWithin,
 } from '@dnd-kit/core'
 import {
   SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import './dnd.css'
 
 const DragCtx = createContext(null)
 export const useDragging = () => useContext(DragCtx)
@@ -30,10 +32,23 @@ function sameType(args) {
 
 // Calls onMove({ type, id, from, to, overId, after }) after a drop. `overId` is null when
 // dropped on an (empty) container itself; `after` says which side of overId to insert on.
-export function DndArea({ onMove, children }) {
+// Optional props (defaults keep the original behaviour):
+//   renderOverlay({ id, type }) -> node  rendered in a <DragOverlay> (portalled, so it is never
+//                                        clipped by a scroll pane / overflow:hidden ancestor).
+//   touchLongPress  number | true        enables touch drags after a long press (true = 250ms);
+//                                        mouse/pen keep the 4px distance rule. Off by default.
+export const TOUCH_LONG_PRESS_MS = 250
+
+export function DndArea({ onMove, children, renderOverlay, touchLongPress }) {
   const [dragging, setDragging] = useState(null)
+  const touchDelay = touchLongPress === true ? TOUCH_LONG_PRESS_MS : touchLongPress > 0 ? touchLongPress : 0
+  const distance = { activationConstraint: { distance: 4 } }
+  const pointer = useSensor(PointerSensor, distance)
+  const mouse = useSensor(MouseSensor, distance)
+  const touch = useSensor(TouchSensor, { activationConstraint: { delay: touchDelay, tolerance: 5 } })
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    touchDelay ? mouse : pointer,
+    touchDelay ? touch : undefined,
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
@@ -65,6 +80,7 @@ export function DndArea({ onMove, children }) {
       onDragCancel={() => setDragging(null)}
     >
       <DragCtx.Provider value={dragging}>{children}</DragCtx.Provider>
+      {renderOverlay && <DragOverlay>{dragging ? renderOverlay(dragging) : null}</DragOverlay>}
     </DndContext>
   )
 }
