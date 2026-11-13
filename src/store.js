@@ -2,6 +2,7 @@ import localforage from 'localforage'
 import { supabase } from './supabaseClient.js'
 import { showToast } from './toast.js'
 import { createSyncEngine } from './sync/engine.js'
+import { createCloudKv } from './sync/cloudKv.js'
 
 const db = localforage.createInstance({ name: 'forge' })
 
@@ -15,27 +16,7 @@ export async function storageAvailable() {
   }
 }
 
-const cloud = {
-  getSession: () => supabase.auth.getSession(),
-  async read(key, userId) {
-    const { data, error } = await supabase
-      .from('kv_store')
-      .select('value, updated_at')
-      .eq('key', key)
-      .eq('user_id', userId)
-      .maybeSingle()
-    if (error) throw error
-    return data
-  },
-  async write(key, userId, wrapped) {
-    await supabase.from('kv_store').upsert({
-      user_id: userId,
-      key,
-      value: wrapped.data,
-      updated_at: new Date(wrapped.updatedAt).toISOString(),
-    })
-  },
-}
+const cloud = createCloudKv(supabase)
 
 const engine = createSyncEngine({
   db,
