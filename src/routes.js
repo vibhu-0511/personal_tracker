@@ -21,10 +21,10 @@ export const ROUTES = {
     id: 'logic', label: 'Logic', legacyId: 'LogicBuilding',
     views: ['code', 'puzzles', 'exams'],
   },
-  // Money uses the merged 4-view layout (budget + goals folded into one view).
+  // Money: 4 merged views per R4 (Overview+Txns merged into 'overview' = Spend).
   money: {
     id: 'money', label: 'Money', legacyId: 'Expenses',
-    views: ['overview', 'txns', 'budget', 'loans'],
+    views: ['overview', 'budget', 'goals', 'loans'],
   },
   invest: {
     id: 'invest', label: 'Invest', legacyId: 'Invest',

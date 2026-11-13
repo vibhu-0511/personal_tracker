@@ -48,7 +48,7 @@ test('sub-view ids not in the table are rejected', () => {
   assert.equal(isView('nope', 'tasks'), false)
   assert.deepEqual(parseHash('#/life/bogus'), { tab: 'life', view: null })
   assert.deepEqual(parseHash('#/today/tasks'), { tab: 'today', view: null })
-  assert.deepEqual(parseHash('#/money/goals'), { tab: 'money', view: null })
+  assert.deepEqual(parseHash('#/money/txns'), { tab: 'money', view: null })
   assert.equal(formatHash({ tab: 'life', view: 'bogus' }), '#/life')
   assert.equal(formatHash({ tab: 'agents', view: 'tasks' }), '#/agents')
 })
