@@ -6,31 +6,42 @@ import TasksView from '../life/screens/Tasks.jsx'
 import RemindersView from '../life/screens/Reminders.jsx'
 import HabitsView from '../life/screens/Habits.jsx'
 import GrowthView from '../life/screens/Growth.jsx'
+import { LIFE_VIEWS, LIFE_GROUPS, DEFAULT_LIFE_VIEW, isLifeView } from '../life/views.js'
 
-const VIEWS = [
-  { id: 'planning', icon: '🗂️', label: 'Planning', children: [
-    { id: 'tasks', icon: '✅', label: 'Tasks' },
-    { id: 'reminders', icon: '⏰', label: 'Reminders' },
-    { id: 'notes', icon: '📝', label: 'Notes' },
-  ] },
-  { id: 'wellbeing', icon: '🌱', label: 'Wellbeing', children: [
-    { id: 'habits', icon: '🐾', label: 'Habits' },
-    { id: 'growth', icon: '🌟', label: 'Growth' },
-  ] },
-]
-
-const activeGroup = (view) => VIEWS.find((g) => g.children.some((c) => c.id === view))
+const activeGroup = (view) => LIFE_GROUPS.find((g) => g.id === LIFE_VIEWS.find((v) => v.id === view)?.group)
 
 // Uses the app-level LifeDataProvider when the shell mounts one; until then it
 // wraps itself, so there is always exactly one writer.
-export default function Life({ syncTick = 0 }) {
+//
+// Props (all optional):
+//   syncTick                 bumps when a remote sync lands
+//   view, onViewChange       the active sub-view id, owned by the router. When
+//                            onViewChange is supplied the internal pill bar is
+//                            hidden (the shell's SubNav replaces it); without it
+//                            Life keeps its own state and pill bar.
+//   selectedId, onSelect     selected row id for Tasks / Reminders / Notes,
+//                            owned by the router (route param). Left undefined,
+//                            each screen keeps its own selection.
+export default function Life({ syncTick = 0, view, onViewChange, selectedId, onSelect }) {
   const shared = useLifeOptional()
-  const body = <LifeBody syncTick={syncTick} />
+  const body = (
+    <LifeBody
+      syncTick={syncTick} view={view} onViewChange={onViewChange}
+      selectedId={selectedId} onSelect={onSelect}
+    />
+  )
   return shared ? body : <LifeDataProvider syncTick={syncTick}>{body}</LifeDataProvider>
 }
 
-function LifeBody({ syncTick }) {
-  const [view, setView] = useState('tasks')
+function LifeBody({ syncTick, view: viewProp, onViewChange, selectedId, onSelect }) {
+  const [localView, setLocalView] = useState(DEFAULT_LIFE_VIEW)
+  const requested = viewProp !== undefined ? viewProp : localView
+  const view = isLifeView(requested) ? requested : DEFAULT_LIFE_VIEW
+  const setView = (id) => {
+    if (viewProp === undefined) setLocalView(id)
+    onViewChange?.(id)
+  }
+  const showPills = !onViewChange
   const {
     tasks, reminders, habits, moodLog, now, ready, error,
     updateTasks, updateReminders, updateHabits, updateMoodLog,
@@ -69,38 +80,42 @@ function LifeBody({ syncTick }) {
           </div>
         </div>
 
-        <div className="agent-bar">
-          {VIEWS.map((g) => (
-            <button
-              key={g.id}
-              className={`agent-pill${group === g ? ' active' : ''}`}
-              onClick={() => group !== g && setView(g.children[0].id)}
-            >
-              <span className="agent-pill-icon">{g.icon}</span>
-              {g.label}
-            </button>
-          ))}
-        </div>
-        <div className="agent-bar">
-          {group.children.map((v) => (
-            <button
-              key={v.id}
-              className={`agent-pill${view === v.id ? ' active' : ''}`}
-              onClick={() => setView(v.id)}
-            >
-              <span className="agent-pill-icon">{v.icon}</span>
-              {v.label}
-            </button>
-          ))}
-        </div>
+        {showPills && (
+          <>
+            <div className="agent-bar">
+              {LIFE_GROUPS.map((g) => (
+                <button
+                  key={g.id}
+                  className={`agent-pill${group === g ? ' active' : ''}`}
+                  onClick={() => group !== g && setView(LIFE_VIEWS.find((v) => v.group === g.id).id)}
+                >
+                  <span className="agent-pill-icon">{g.icon}</span>
+                  {g.label}
+                </button>
+              ))}
+            </div>
+            <div className="agent-bar">
+              {LIFE_VIEWS.filter((v) => v.group === group.id).map((v) => (
+                <button
+                  key={v.id}
+                  className={`agent-pill${view === v.id ? ' active' : ''}`}
+                  onClick={() => setView(v.id)}
+                >
+                  <span className="agent-pill-icon">{v.icon}</span>
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
-        {view === 'tasks' && <TasksView tasks={tasks} onUpdate={updateTasks} now={now} />}
-        {view === 'reminders' && <RemindersView reminders={reminders} onUpdate={updateReminders} now={now} />}
+        {view === 'tasks' && <TasksView tasks={tasks} onUpdate={updateTasks} now={now} selectedId={selectedId} onSelect={onSelect} />}
+        {view === 'reminders' && <RemindersView reminders={reminders} onUpdate={updateReminders} now={now} selectedId={selectedId} onSelect={onSelect} />}
         {view === 'habits' && <HabitsView habits={habits} onUpdate={updateHabits} now={now} />}
         {view === 'growth' && (
           <GrowthView habits={habits} moodLog={moodLog} onMoodLog={updateMoodLog} now={now} />
         )}
-        {view === 'notes' && <Notes syncTick={syncTick} />}
+        {view === 'notes' && <Notes syncTick={syncTick} selectedId={selectedId} onSelect={onSelect} />}
       </div>
     </MotionConfig>
   )
