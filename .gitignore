@@ -4,3 +4,6 @@ dist
 .vercel
 .superpowers
 .live
+dist-e2e
+test-results
+playwright-report
