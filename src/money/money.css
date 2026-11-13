@@ -1,0 +1,35 @@
+/* MoneyApp shell (R4-09): FAB only. Screen styles live next to the screens. */
+.money-fab {
+  position: fixed;
+  bottom: calc(max(var(--tabbar-h, 0px), env(safe-area-inset-bottom, 0px)) + 12px);
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-solid);
+  color: #fff;
+  font: inherit;
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--accent-solid) 40%, transparent);
+  z-index: 50;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .money-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px color-mix(in srgb, var(--accent-solid) 50%, transparent); }
+}
+.money-fab:active { transform: scale(0.95); }
+@media (min-width: 600px) {
+  .money-fab { right: 24px; }
+}
+/* Sidebar layouts add transactions from the Spend summary buttons. */
+@media (min-width: 1024px) {
+  .money-fab { display: none; }
+}
