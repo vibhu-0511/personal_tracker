@@ -133,3 +133,81 @@ test('flush pushes pending writes immediately without waiting for the debounce',
   await engine.flush()
   assert.equal((await cloud.read('notes', 'u1')).value, 'A')
 })
+
+function makeFlakyCloud() {
+  const cloud = makeFakeCloud()
+  const realWrite = cloud.write.bind(cloud)
+  const ctl = { fail: true, attempts: 0 }
+  cloud.write = async (...args) => {
+    ctl.attempts++
+    if (ctl.fail) throw new Error('kv_store write failed')
+    return realWrite(...args)
+  }
+  return { cloud, ctl }
+}
+
+test('a rejecting cloud write keeps the key pending, sets failed, and a timer retry later pushes it', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const { cloud, ctl } = makeFlakyCloud()
+  const engine = createSyncEngine({ db: makeFakeDb(), cloud })
+  let failed
+  engine.onStatusChange((f) => { failed = f })
+  await engine.save('notes', 'A')
+  t.mock.timers.tick(700)
+  await flushMicrotasks()
+  assert.equal(failed, true)
+  assert.equal(await cloud.read('notes', 'u1'), null)
+
+  ctl.fail = false
+  t.mock.timers.tick(999)
+  await flushMicrotasks()
+  assert.equal(await cloud.read('notes', 'u1'), null, 'retry must not fire before 1s')
+  t.mock.timers.tick(1)
+  await flushMicrotasks()
+  assert.equal((await cloud.read('notes', 'u1')).value, 'A')
+  assert.equal(failed, false)
+})
+
+test('retry backoff doubles (1s, 2s, 4s) and is capped', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const { cloud, ctl } = makeFlakyCloud()
+  const engine = createSyncEngine({ db: makeFakeDb(), cloud, retryBaseMs: 1000, retryMaxMs: 4000 })
+  await engine.save('notes', 'A')
+  t.mock.timers.tick(700)
+  await flushMicrotasks()
+  assert.equal(ctl.attempts, 1)
+  for (const [delay, expected] of [[1000, 2], [2000, 3], [4000, 4], [4000, 5]]) {
+    t.mock.timers.tick(delay - 1)
+    await flushMicrotasks()
+    assert.equal(ctl.attempts, expected - 1, `no retry before ${delay}ms`)
+    t.mock.timers.tick(1)
+    await flushMicrotasks()
+    assert.equal(ctl.attempts, expected)
+  }
+})
+
+test('a new save during backoff supersedes the scheduled retry', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const { cloud, ctl } = makeFlakyCloud()
+  const engine = createSyncEngine({ db: makeFakeDb(), cloud })
+  await engine.save('notes', 'A')
+  t.mock.timers.tick(700)
+  await flushMicrotasks()
+  ctl.fail = false
+  await engine.save('notes', 'B')
+  t.mock.timers.tick(700)
+  await flushMicrotasks()
+  assert.equal((await cloud.read('notes', 'u1')).value, 'B')
+})
+
+test('a failed push during reconcile is retried with backoff', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const db = makeFakeDb({ notes: { data: 'local', updatedAt: 5 } })
+  const { cloud, ctl } = makeFlakyCloud()
+  const engine = createSyncEngine({ db, cloud })
+  assert.equal(await engine.reconcileKey('notes'), 'noop')
+  ctl.fail = false
+  t.mock.timers.tick(1000)
+  await flushMicrotasks()
+  assert.equal((await cloud.read('notes', 'u1')).value, 'local')
+})

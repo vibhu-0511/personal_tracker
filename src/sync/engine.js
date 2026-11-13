@@ -3,8 +3,22 @@
 // See sync/logic.js for the pure decision rules this drives.
 import { readLocalShape, wrapForSave, decideSync } from './logic.js'
 
-export function createSyncEngine({ db, cloud, now = Date.now, onLocalWriteError }) {
+export const RETRY_BASE_MS = 1000
+export const RETRY_MAX_MS = 5 * 60 * 1000
+
+export function createSyncEngine({
+  db,
+  cloud,
+  now = Date.now,
+  onLocalWriteError,
+  retryBaseMs = RETRY_BASE_MS,
+  retryMaxMs = RETRY_MAX_MS,
+}) {
+  // Push and retry share one timer per key, so a fresh save() debounces over
+  // a scheduled retry instead of racing it.
   const pushTimers = {}
+  // key -> consecutive failed pushes; drives exponential backoff.
+  const retryAttempts = new Map()
   // key -> last wrapped value not yet confirmed pushed. Read by reconcileKey
   // so an incoming pull can't clobber an edit that's still in flight.
   const pending = new Map()
@@ -49,12 +63,24 @@ export function createSyncEngine({ db, cloud, now = Date.now, onLocalWriteError 
     return true
   }
 
+  // Retry delays: base, 2x, 4x ... capped at retryMaxMs.
+  function scheduleRetry(key) {
+    if (!pending.has(key)) return
+    const attempt = retryAttempts.get(key) || 0
+    retryAttempts.set(key, attempt + 1)
+    schedulePush(key, Math.min(retryBaseMs * 2 ** attempt, retryMaxMs))
+  }
+
   async function doPush(key) {
     try {
       const pushed = await pushPendingIfAny(key)
-      if (pushed) setKeyFailed(key, false)
+      if (pushed) {
+        retryAttempts.delete(key)
+        setKeyFailed(key, false)
+      }
     } catch {
       setKeyFailed(key, true)
+      scheduleRetry(key)
     }
   }
 
@@ -107,6 +133,7 @@ export function createSyncEngine({ db, cloud, now = Date.now, onLocalWriteError 
         if (pending.has(key)) {
           // an edit is still in flight — don't let the pull erase it, push instead
           await pushPendingIfAny(key)
+          retryAttempts.delete(key)
           setKeyFailed(key, false)
           return 'push'
         }
@@ -115,12 +142,21 @@ export function createSyncEngine({ db, cloud, now = Date.now, onLocalWriteError 
         }
         await db.setItem(key, decision.value)
       } else if (decision.action === 'push') {
-        await pushToCloud(key, decision.value)
+        // track as pending so a failed push is retried with backoff
+        if (pending.has(key)) {
+          await pushPendingIfAny(key)
+        } else {
+          pending.set(key, decision.value)
+          await pushToCloud(key, decision.value)
+          if (pending.get(key) === decision.value) pending.delete(key)
+        }
       }
+      retryAttempts.delete(key)
       setKeyFailed(key, false)
       return decision.action
     } catch {
       setKeyFailed(key, true)
+      scheduleRetry(key)
       return 'noop'
     }
   }
