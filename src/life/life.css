@@ -57,5 +57,6 @@
 
 @container app (min-width: 1280px) {
   .md-root { grid-template-columns: 360px minmax(0, 1fr) 300px; }
+  .md-root--solo { grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); }  /* screens that edit in the inspector: no empty middle column */
   .md-detail { display: block; }
 }

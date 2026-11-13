@@ -48,9 +48,9 @@ export default function MasterDetail({ list, detail = null, inspector = null, ha
   const hasInspector = inspector != null && inspector !== false
 
   return (
-    <div className="md-root" data-selected={hasSelection ? 'true' : 'false'}>
+    <div className={`md-root${detail == null ? ' md-root--solo' : ''}`} data-selected={hasSelection ? 'true' : 'false'}>
       <section className="md-list" aria-label="List">{list}</section>
-      {inline && (
+      {inline && detail != null && (
         <section className="md-detail" aria-label="Detail">
           {showDetail ? detail : null}
         </section>
