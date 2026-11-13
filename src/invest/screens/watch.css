@@ -1,0 +1,30 @@
+/* Watchlist screen (R4-18). Colocated; uses the global tokens and .up/.down. */
+.watch-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.watch-filter { width: 100%; margin-bottom: 10px; }
+.watch-empty { padding: 24px 16px; }
+
+.watch-form { margin-bottom: 10px; }
+.watch-form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.watch-form-row > input { flex: 1; min-width: 0; }
+.watch-form input.watch-full { width: 100%; margin-bottom: 8px; }
+.watch-form-actions { display: flex; gap: 8px; margin-top: 10px; }
+.watch-form-error { color: var(--danger); margin-top: 6px; }
+.watch-form-hint { margin-top: 6px; }
+.watch-result { margin-top: 6px; }
+.watch-result-name { flex: 1; text-align: left; font-size: 13px; }
+
+.watch-row { margin-bottom: 8px; }
+.watch-row-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.watch-row-title { font-size: 15px; }
+.watch-row-price { text-align: right; flex-shrink: 0; }
+.watch-row-price-main { font-weight: 700; }
+.watch-row-sub { font-size: 12px; }
+.watch-row-fine { font-size: 11px; }
+.watch-spark { display: block; margin: 4px 0 0 auto; color: var(--text-secondary); }
+.watch-spark[data-tone="up"] { color: var(--success); }
+.watch-spark[data-tone="down"] { color: var(--danger); }
+.watch-note { margin-top: 8px; cursor: pointer; }
+.watch-note-add { margin-top: 8px; }
+.watch-note-edit { display: flex; gap: 8px; margin-top: 10px; }
+.watch-note-edit > input { flex: 1; min-width: 0; }
+.watch-row-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
