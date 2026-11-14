@@ -13,18 +13,70 @@
 .watch-result { margin-top: 6px; }
 .watch-result-name { flex: 1; text-align: left; font-size: 13px; }
 
-.watch-row { margin-bottom: 8px; }
+.watch-panes { display: block; min-width: 0; }
+.watch-list { min-width: 0; }
+.watch-inspector { display: none; }
+
+.card.watch-row { margin-bottom: 8px; padding: 0; }
+.card.watch-row.selected { border-color: var(--accent); background: var(--accent-dim); }
+.watch-row-main {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.watch-row-main:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: -2px; }
 .watch-row-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-.watch-row-title { font-size: 15px; }
+.watch-row-id { min-width: 0; }
+.watch-row-title { font-size: 15px; overflow-wrap: anywhere; }
 .watch-row-price { text-align: right; flex-shrink: 0; }
 .watch-row-price-main { font-weight: 700; }
 .watch-row-sub { font-size: 12px; }
 .watch-row-fine { font-size: 11px; }
-.watch-spark { display: block; margin: 4px 0 0 auto; color: var(--text-secondary); }
-.watch-spark[data-tone="up"] { color: var(--success); }
-.watch-spark[data-tone="down"] { color: var(--danger); }
-.watch-note { margin-top: 8px; cursor: pointer; }
-.watch-note-add { margin-top: 8px; }
-.watch-note-edit { display: flex; gap: 8px; margin-top: 10px; }
+.watch-spark { display: block; margin: 4px 0 0 auto; }
+.watch-note { margin-top: 8px; overflow-wrap: anywhere; }
+@media (pointer: coarse) {
+  .watch-row-main { min-height: 44px; }
+}
+
+/* Detail body (inspector pane or Sheet) */
+.watch-detail { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 4px 2px; }
+.watch-detail-title { font-size: 17px; overflow-wrap: anywhere; }
+.watch-detail-label { margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; font-size: 11px; }
+.watch-facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
+.watch-facts dt { color: var(--text-secondary); font-size: 13px; }
+.watch-facts dd { margin: 0; text-align: right; font-weight: 600; font-size: 13px; }
+.watch-note-text { cursor: pointer; overflow-wrap: anywhere; }
+.watch-note-add { margin: 0; }
+.watch-note-edit { display: flex; gap: 8px; }
 .watch-note-edit > input { flex: 1; min-width: 0; }
-.watch-row-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.watch-detail-actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+
+/* Wide containers: list left, inspector pane right. Same 1024px as --inspector-min. */
+@container app (min-width: 1024px) {
+  .watch-panes {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    gap: 20px;
+    align-items: start;
+  }
+  .watch-inspector {
+    display: block;
+    position: sticky;
+    top: 0;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 12px);
+    background: var(--surface);
+  }
+  .watch-inspector-empty { padding: 8px 2px; }
+}

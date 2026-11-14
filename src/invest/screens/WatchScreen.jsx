@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { newId } from '../../id.js'
 import { deleteWithUndo } from '../../undo.js'
 import { useLatest } from '../../useLatest.js'
+import { useInspector, InspectorPane } from '../../shell/Inspector.jsx'
 import { useInvest } from '../InvestContext.jsx'
 import { market as defaultMarket, useQuotes } from '../useQuotes.js'
 import { filterWatchlist, sortWatchlist } from '../watchlist.js'
-import WatchRow from './WatchRow.jsx'
+import WatchRow, { WatchDetail } from './WatchRow.jsx'
 import { AddStockForm, AddMfForm, AddIpoForm } from './AddForms.jsx'
 import './watch.css'
 
@@ -60,10 +61,51 @@ export function WatchView({
   }
 
   const sorted = useMemo(() => sortWatchlist(filterWatchlist(items, search)), [items, search])
+
+  // Selection lives here; the inspector (inline pane from 1024px, Sheet below)
+  // is re-fed on every change so a note edit or a fresh quote shows at once.
+  const { open: openInspector, close: closeInspector, node: inspectorNode, wide } = useInspector()
+  const [selectedId, setSelectedId] = useState(null)
+  const openedRef = useRef(false)
+  const selected = selectedId ? items.find((i) => i.id === selectedId) || null : null
+  const selQuote = selected?.type === 'stock' ? quotes[selected.symbol] : null
+  const selNav = selected?.type === 'mf' ? navs[selected.schemeCode] : null
+
+  useEffect(() => {
+    if (!selected) {
+      if (openedRef.current) { openedRef.current = false; closeInspector() }
+      if (selectedId) setSelectedId(null) // the selected item was deleted
+      return
+    }
+    openedRef.current = true
+    openInspector(
+      <WatchDetail
+        item={selected}
+        quote={selQuote}
+        nav={selNav}
+        onNote={(note) => updateNote(selected.id, note)}
+        onDelete={() => removeItem(selected.id)}
+      />,
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, selQuote, selNav])
+
+  // The inspector closed itself (x, Escape, Sheet dismissed): drop the selection.
+  useEffect(() => {
+    if (inspectorNode == null && openedRef.current) {
+      openedRef.current = false
+      setSelectedId(null)
+    }
+  }, [inspectorNode])
+
+  // Leaving the screen empties the inspector.
+  useEffect(() => () => closeInspector(), [closeInspector])
+
   const toggle = (type) => setAddType((cur) => (cur === type ? null : type))
 
   return (
-    <div>
+    <div className="watch-panes">
+      <div className="watch-list">
       <div className="agent-bar">
         {ADD_PILLS.map((p) => (
           <button key={p.type} className={`agent-pill${addType === p.type ? ' active' : ''}`} onClick={() => toggle(p.type)}>
@@ -110,10 +152,19 @@ export function WatchView({
           item={item}
           quote={item.type === 'stock' ? quotes[item.symbol] : null}
           nav={item.type === 'mf' ? navs[item.schemeCode] : null}
-          onDelete={() => removeItem(item.id)}
-          onNote={(note) => updateNote(item.id, note)}
+          selected={item.id === selectedId}
+          onSelect={() => setSelectedId((cur) => (cur === item.id ? null : item.id))}
         />
       ))}
+      </div>
+
+      {wide && (
+        <aside className="watch-inspector" aria-label="Watch details">
+          {inspectorNode != null
+            ? <InspectorPane label="Watch details" />
+            : <div className="meta watch-inspector-empty">Select an item to see its note and details.</div>}
+        </aside>
+      )}
     </div>
   )
 }
