@@ -121,7 +121,8 @@ async function check(ids) {
     const t = T[id], dir = path.join(WT, id)
     const base = fs.readFileSync(`${dir}.base`, 'utf8').trim()
     const files = git('diff', '--name-only', base, branchOf(t)).split('\n').filter(Boolean)
-    const outside = files.filter(f => !t.writes.includes(f))
+    const allowed = f => t.writes.some(w => w === f || (w.includes('*') && new RegExp('^' + w.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*') + '$').test(f)))
+    const outside = files.filter(f => !allowed(f))
     const dirty = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: dir, encoding: 'utf8' }).trim()
     const commits = +git('rev-list', '--count', `${base}..${branchOf(t)}`)
     const ok = commits > 0 && !outside.length && !dirty
