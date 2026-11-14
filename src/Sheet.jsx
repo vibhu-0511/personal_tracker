@@ -8,19 +8,20 @@ import { useEffect, useRef } from 'react'
 // (bottom sheet on phones); styled in styles/inspector.css.
 export default function Sheet({ open, onClose, variant, className = '', children }) {
   const ref = useRef(null)
+  const closedByProp = useRef(false)   // a close we caused is not a user dismissal
 
   useEffect(() => {
     const dialog = ref.current
     if (!dialog) return
     if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) dialog.close()
+    if (!open && dialog.open) { closedByProp.current = true; dialog.close() }
   }, [open])
 
   return (
     <dialog
       ref={ref}
       className={`sheet-dialog${variant === 'side' ? ' sheet-dialog--side' : ''} ${className}`.trim()}
-      onClose={onClose}
+      onClose={() => { if (closedByProp.current) { closedByProp.current = false; return } if (onClose) onClose() }}
       onClick={(e) => { if (e.target === ref.current) onClose() }}
     >
       {children}

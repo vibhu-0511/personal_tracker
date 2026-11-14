@@ -64,14 +64,7 @@ test.describe('iPad landscape sidebar and inspector', () => {
     await expectNoHorizontalScroll(page)
   })
 
-  // Known defect, tracked here so it cannot regress silently. Going back to landscape
-  // with the sheet open unmounts the sheet content; Sheet.jsx's programmatic
-  // dialog.close() fires 'close', and MasterDetail's onClose (life/ui/MasterDetail.jsx)
-  // treats that as a user dismissal and calls onBack, which clears the selection.
-  // Fix: ignore close events the component caused itself (Sheet.jsx or MasterDetail.jsx).
-  // When fixed this test passes and test.fail flags it.
   test('rotating portrait and back keeps the selected item', async ({ page }) => {
-    test.fail(true, 'selection is cleared when the side sheet closes on rotation to landscape (Sheet onClose -> MasterDetail onBack)')
     await openApp(page, '#/life/tasks')
     const row = page.locator('.life-row', { hasText: 'Seeded task' }).first()
     await row.tap()

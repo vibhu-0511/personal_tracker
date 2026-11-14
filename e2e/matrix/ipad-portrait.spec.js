@@ -56,11 +56,7 @@ test.describe('iPad portrait rail', () => {
     expect((await boxOf(row)).height).toBeGreaterThanOrEqual(MIN_TARGET)
   })
 
-  // Known defect, tracked here so it cannot regress silently: .gear-btn is 36px wide
-  // (src/styles.css:286); the coarse-pointer rule only sets min-height. Fix by adding
-  // min-width: 44px there; this test then starts passing and test.fail flags it.
   test('top bar targets are at least 44px', async ({ page }) => {
-    test.fail(true, 'gear button is 36x44: needs min-width 44px under (pointer: coarse) in src/styles.css')
     await openApp(page, '#/life/tasks')
     expect(await undersizedTargets(page.locator('.topbar'), MIN_TARGET)).toEqual([])
   })

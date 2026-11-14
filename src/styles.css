@@ -1091,4 +1091,5 @@ select { cursor: pointer; }
   .life-row, .exam-topic-row, .exam-section-header {
     min-height: 44px;
   }
+  .gear-btn { min-width: 44px; }
 }
