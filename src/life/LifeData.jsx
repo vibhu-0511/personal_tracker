@@ -5,6 +5,7 @@ import {
 } from '../store.js'
 import { dateKey, ensureTodayEntry } from './logic.js'
 import { dueCounts, walletTotal as sumWallet } from './selectors.js'
+import { stampUpdated } from './records.js'
 
 // Single writer for the Life arrays (tasks, reminders, habits, moodLog).
 //
@@ -18,6 +19,22 @@ import { dueCounts, walletTotal as sumWallet } from './selectors.js'
 const LifeDataContext = createContext(null)
 
 const KEYS = ['tasks', 'reminders', 'habits', 'moodLog']
+
+// Wrap an updater so every array it produces carries per-record `updatedAt`
+// (R2-18). Only new or field-changed records are stamped; untouched records keep
+// their reference and old value, and records without a stamp stay valid. `now` is
+// fixed per write so the optimistic state and the stored state agree. If nothing
+// changed, the previous array is returned as-is (no needless new reference).
+export function withUpdatedAt(change, now) {
+  const apply = typeof change === 'function' ? change : () => change
+  return (prev) => {
+    const next = apply(prev)
+    if (next === prev || !Array.isArray(next)) return next
+    const stamped = stampUpdated(prev, next, now)
+    if (Array.isArray(prev) && stamped.length === prev.length && stamped.every((r, i) => r === prev[i])) return prev
+    return stamped
+  }
+}
 
 async function loadAll() {
   const [tasks, reminders, habits, moodLog] = await Promise.all([
@@ -63,7 +80,7 @@ export function LifeDataProvider({ syncTick = 0, children }) {
   }, [syncTick])
 
   const write = useCallback((key, mutate, change) => {
-    const apply = typeof change === 'function' ? change : () => change
+    const apply = withUpdatedAt(change, Date.now())
     pending.current[key]++
     setData((cur) => ({ ...cur, [key]: apply(cur[key]) }))
     return mutate(apply)
