@@ -3,6 +3,7 @@ import {
   getHabits, getTasks, getMoodLog, getExpenses, getBudgets, getWatchlist, getProgress, getSettings,
   mutateHabits, mutateTasks, mutateMoodLog,
 } from '../store.js'
+import { apiFetch } from '../api/client.js'
 import { emitStoreKey } from '../storeEvents.js'
 import { showToast } from '../toast.js'
 import { useStoreKey } from '../useStoreKey.js'
@@ -144,7 +145,7 @@ export function useTodayData({ syncTick = 0 } = {}) {
     if (!watchSymbol) return undefined
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 8000)
-    fetch(`/api/quote?symbols=${encodeURIComponent(watchSymbol)}`, { signal: ctrl.signal })
+    apiFetch(`/api/quote?symbols=${encodeURIComponent(watchSymbol)}`, { signal: ctrl.signal })
       .then((r) => r.json())
       .then((res) => {
         const q = (res.quotes || []).find((x) => x.symbol === watchSymbol)
