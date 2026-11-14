@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import agents from '../agents.json'
-import { supabase } from '../supabaseClient.js'
+import { apiFetch } from '../api/client.js'
 import SubNav from '../ui/SubNav.jsx'
 
 const AGENT_ICONS = {
@@ -116,11 +116,9 @@ export default function Agents() {
     setBusy(true)
     setError('')
     try {
-      const { data } = await supabase.auth.getSession()
-      const token = data.session?.access_token
-      const r = await fetch('/api/agent', {
+      const r = await apiFetch('/api/agent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ systemPrompt: agent.systemPrompt, messages: next }),
       })
       const j = await r.json()
