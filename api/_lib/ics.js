@@ -1,5 +1,15 @@
+// Control characters (CR, LF, NUL ...) and Unicode line breaks would let a title
+// end its own content line and start a new property (CRLF injection), so they
+// become a single space before escaping.
+// eslint-disable-next-line no-control-regex
+const LINE_BREAKS_AND_CONTROLS = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g
+
+export function sanitizeText(text) {
+  return String(text).replace(LINE_BREAKS_AND_CONTROLS, ' ').trim()
+}
+
 function icsEscape(text) {
-  return String(text).replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;')
+  return sanitizeText(text).replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;')
 }
 
 function icsDate(date) {
@@ -28,7 +38,7 @@ export function toICS({ title, start }) {
 }
 
 export function validateICSInput({ title, start }) {
-  const t = String(title || '').trim()
+  const t = sanitizeText(title || '')
   if (!t) return { error: 'title is required' }
   if (t.length > 200) return { error: 'title is too long' }
 

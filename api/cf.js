@@ -1,4 +1,5 @@
 import { pickProblems } from './_lib/pickProblems.js'
+import { applyCors, handlePreflight, setCache } from './_lib/http.js'
 
 // Codeforces' own comment (e.g. "handles: User with handle X not found") is a
 // short, user-facing string worth showing as-is — unlike a raw fetch/parse
@@ -25,14 +26,29 @@ function toNonNegativeInt(v, fallback) {
   return Number.isInteger(n) && n >= 0 ? n : fallback
 }
 
+// Codeforces handles are at most 24 characters; 50 leaves slack without letting
+// an arbitrarily long string be forwarded upstream.
+export const MAX_HANDLE_LENGTH = 50
+
+const qstr = (v) => (typeof v === 'string' ? v : '')
+
 export default async function handler(req, res) {
-  const handle = (req.query.handle || '').trim()
+  if (handlePreflight(req, res)) return
+  applyCors(req, res)
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.setHeader('Allow', 'GET, HEAD, OPTIONS')
+    setCache(res)
+    return res.status(405).json({ error: 'GET only' })
+  }
+  setCache(res) // errors are never cached; success overrides below
+  const handle = qstr(req.query.handle).trim()
   if (!handle) return res.status(400).json({ error: 'handle required' })
+  if (handle.length > MAX_HANDLE_LENGTH) return res.status(400).json({ error: 'handle is too long' })
 
   const ratingMin = toFiniteOrUndefined(req.query.ratingMin)
   const ratingMax = toFiniteOrUndefined(req.query.ratingMax)
-  const tags = req.query.tags ? req.query.tags.split(',').map((t) => t.trim()).filter(Boolean) : undefined
-  const page = req.query.page ? toNonNegativeInt(req.query.page, 0) : 0
+  const tags = qstr(req.query.tags) ? qstr(req.query.tags).split(',').map((t) => t.trim()).filter(Boolean) : undefined
+  const page = qstr(req.query.page) ? toNonNegativeInt(req.query.page, 0) : 0
 
   const h = encodeURIComponent(handle)
   try {
@@ -67,6 +83,8 @@ export default async function handler(req, res) {
       url: `https://codeforces.com/problemset/problem/${p.contestId}/${p.index}`,
     }))
 
+    // Per-handle results; a short CDN cache spares Codeforces on repeat hits.
+    setCache(res, { sMaxAge: 120, staleWhileRevalidate: 300 })
     res.status(200).json({
       rating: info.rating ?? null,
       problems,
