@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import agents from '../agents.json'
 import { apiFetch } from '../api/client.js'
+import { streamAgentReply } from '../agents/stream.js'
 import SubNav from '../ui/SubNav.jsx'
 
 const AGENT_ICONS = {
@@ -40,6 +41,27 @@ function readPrefill() {
   }
 }
 
+// Streaming is opt-in: the client sends `stream: true` only when the build sets
+// VITE_AGENT_STREAM=1. Off (the default) keeps the whole-response JSON path.
+const streamEnabled = () => {
+  try {
+    return import.meta.env?.VITE_AGENT_STREAM === '1'
+  } catch {
+    return false
+  }
+}
+
+const GENERIC_ERROR = "Couldn't reach the agent. Check your connection and try again."
+
+// Server-supplied messages (HTTP status errors) are shown; anything else
+// (network failure, parse error, runtime text) gets a fixed friendly line
+// rather than a raw e.message.
+const errorText = (e) => (e && e.status && typeof e.message === 'string' && e.message ? e.message : GENERIC_ERROR)
+
+// Statuses where the non-streaming path would fail the same way, so a fallback
+// would only double the request.
+const NO_FALLBACK_STATUS = new Set([401, 403, 429])
+
 // The wide layout (chat + agent list pane) is chosen by the container's own
 // width, so it holds in tab, rail and sidebar shell modes alike.
 const CSS = `
@@ -57,6 +79,8 @@ const CSS = `
   .agents-chat { order: 1; }
   .agents-chat .chat-messages { overflow-y: auto; max-height: calc(100dvh - 240px); min-height: 240px; }
 }
+.agents-stop-btn { height: 42px; min-width: 44px; padding: 0 14px; border-radius: 21px; border: 1px solid var(--border-light, var(--border)); background: var(--surface); color: var(--text-primary, inherit); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+.agents-stop-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .agents-list-heading { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); margin: 0 0 6px 4px; }
 .agents-list-group { margin: 0 0 12px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
 .agents-list-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 12px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; text-align: left; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); }
@@ -71,6 +95,10 @@ export default function Agents() {
   const [input, setInput] = useState(readPrefill)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [streamText, setStreamText] = useState('')
+  const [streaming, setStreaming] = useState(false) // a streamed request is in flight
+  const abortRef = useRef(null)
+  const runRef = useRef(0)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -97,38 +125,121 @@ export default function Agents() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [messages, busy])
+  }, [messages, busy, streamText])
 
   useEffect(() => {
     savedAgentId = agent.id
     savedMessages = messages
   }, [agent, messages])
 
+  // Leaving the screen stops an in-flight stream; the partial reply is kept in
+  // the module-scope conversation.
+  useEffect(() => () => abortRef.current?.abort(), [])
+
   function switchAgent(id) {
     const next = agentById(id)
     if (!next) return
+    runRef.current += 1 // discard any in-flight reply for the old agent
+    abortRef.current?.abort()
+    setBusy(false)
+    setStreaming(false)
+    setStreamText('')
     setAgent(next)
     setMessages([])
     setError('')
   }
 
+  async function sendPlain(next) {
+    const r = await apiFetch('/api/agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ systemPrompt: agent.systemPrompt, messages: next }),
+    })
+    return r.json()
+  }
+
   async function sendMessages(next) {
+    const run = ++runRef.current
+    const live = () => runRef.current === run
     setBusy(true)
     setError('')
+    setStreamText('')
     try {
-      const r = await apiFetch('/api/agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ systemPrompt: agent.systemPrompt, messages: next }),
-      })
-      const j = await r.json()
-      if (j.error) setError(j.error)
-      else setMessages([...next, { role: 'assistant', content: j.reply }])
+      if (!streamEnabled()) {
+        const j = await sendPlain(next)
+        if (!live()) return
+        if (j.error) setError(j.error)
+        else setMessages([...next, { role: 'assistant', content: j.reply }])
+        return
+      }
+
+      const ctrl = new AbortController()
+      abortRef.current = ctrl
+      setStreaming(true)
+      let result
+      let failure = null
+      let partial = ''
+      try {
+        result = await streamAgentReply({
+          fetchFn: apiFetch,
+          body: { systemPrompt: agent.systemPrompt, messages: next },
+          signal: ctrl.signal,
+          onDelta: (_d, full) => {
+            partial = full
+            if (live()) setStreamText(full)
+          },
+        })
+      } catch (e) {
+        failure = e
+      }
+
+      if (failure) {
+        if (partial) {
+          // Failed mid-reply: keep what arrived, surface the error.
+          if (live()) {
+            commit([...next, { role: 'assistant', content: partial }])
+            setError(errorText(failure))
+          }
+          return
+        }
+        if (ctrl.signal.aborted || NO_FALLBACK_STATUS.has(failure.status)) {
+          if (live()) setError(errorText(failure))
+          return
+        }
+        // Failed before any text: retry once on the non-streaming path.
+        setStreaming(false)
+        const j = await sendPlain(next)
+        if (!live()) return
+        if (j.error) setError(j.error)
+        else setMessages([...next, { role: 'assistant', content: j.reply }])
+        return
+      }
+
+      // Plain JSON served for a stream request, or a finished/stopped stream.
+      const text = result.reply
+      if (text) commit([...next, { role: 'assistant', content: text }])
+      else if (!result.aborted && live()) setError(GENERIC_ERROR)
     } catch (e) {
-      setError(e.message)
+      if (live()) setError(errorText(e))
     } finally {
-      setBusy(false)
+      if (live()) {
+        setBusy(false)
+        setStreaming(false)
+        setStreamText('')
+        abortRef.current = null
+      }
     }
+  }
+
+  // Writes the finished conversation. After unmount (tab switch mid-stream) the
+  // component state is gone, so the module-scope copy is updated directly.
+  function commit(nextMessages) {
+    savedMessages = nextMessages
+    setMessages(nextMessages)
+  }
+
+  function stop() {
+    abortRef.current?.abort()
   }
 
   async function send() {
@@ -142,7 +253,12 @@ export default function Agents() {
 
   function retry() {
     if (busy) return
-    sendMessages(messages)
+    // A reply cut short by an error stays visible; resend from the last user turn.
+    let end = messages.length
+    while (end > 0 && messages[end - 1].role !== 'user') end -= 1
+    const base = messages.slice(0, end)
+    if (base.length !== messages.length) setMessages(base)
+    sendMessages(base)
   }
 
   function handleKeyDown(e) {
@@ -223,7 +339,12 @@ export default function Agents() {
                 {m.content}
               </div>
             ))}
-            {busy && (
+            {streaming && streamText && (
+              <div className="chat-bubble assistant" aria-live="polite">
+                {streamText}
+              </div>
+            )}
+            {busy && !streamText && (
               <div className="chat-bubble assistant">
                 <div className="loading" style={{ padding: 0 }}>
                   <span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" />
@@ -249,9 +370,15 @@ export default function Agents() {
               onKeyDown={handleKeyDown}
               placeholder={`Ask ${agent.name}...`}
             />
-            <button className="send-btn" onClick={send} disabled={busy || !input.trim()} aria-label="Send">
-              ↑
-            </button>
+            {streaming ? (
+              <button type="button" className="agents-stop-btn" onClick={stop} aria-label="Stop generating">
+                Stop
+              </button>
+            ) : (
+              <button className="send-btn" onClick={send} disabled={busy || !input.trim()} aria-label="Send">
+                ↑
+              </button>
+            )}
           </div>
         </div>
       </div>
