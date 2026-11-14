@@ -17,6 +17,8 @@ const pwa = VitePWA({
     navigateFallback: '/index.html',
     navigateFallbackDenylist: [/^\/api\//, /^\/dsa\//],
     cleanupOutdatedCaches: true,
+    // push and notificationclick handlers live in public/push-sw.js (generateSW has no src/sw.js).
+    importScripts: ['push-sw.js'],
     runtimeCaching: [
       { urlPattern: ({ url }) => url.pathname.startsWith('/api/'), handler: 'NetworkOnly' },
       { urlPattern: ({ url }) => url.hostname.endsWith('.supabase.co'), handler: 'NetworkOnly' },
