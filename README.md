@@ -17,10 +17,26 @@ Get a free Groq API key at https://console.groq.com (no credit card).
 
 | Variable | Required | Default |
 |---|---|---|
-| `GROQ_API_KEY` | yes | — |
-| `GROQ_MODEL` | no | `llama-3.3-70b-versatile` |
+| `GROQ_API_KEY` | yes (server) | — |
+| `GROQ_MODEL` | no | `openai/gpt-oss-120b` |
+| `OWNER_USER_ID` | yes (server) | — |
+| `ALLOWED_ORIGINS` | no | — |
+| `AGENT_RATE_PER_MIN` | no | — |
+| `AGENT_RATE_PER_DAY` | no | — |
 | `VITE_SUPABASE_URL` | yes | — |
 | `VITE_SUPABASE_ANON_KEY` | yes | — |
+| `VITE_API_BASE` | no | empty (same-origin `/api/*`) |
+
+- `OWNER_USER_ID` is the Supabase user id of the one account allowed to call `/api/agent`.
+  If it is unset, the endpoint rejects every request (fail-closed).
+- `ALLOWED_ORIGINS` is a comma-separated list of extra browser origins for CORS on `/api/*`.
+  It is added to the built-in defaults `capacitor://localhost`, `https://localhost` and
+  `http://localhost:5173`.
+- `AGENT_RATE_PER_MIN` and `AGENT_RATE_PER_DAY` are the per-user call limits for
+  `/api/agent` (positive integers). The limiter in `api/_lib/rateLimit.js` takes them as
+  inputs; the handler wiring is a separate task, so no default is set here.
+- `VITE_API_BASE` is the absolute API origin for builds that cannot use relative `/api/*`,
+  such as the Capacitor iOS app.
 
 Cloud sync uses a Supabase project. See
 `docs/superpowers/specs/2026-09-15-cloud-sync-design.md` for the schema and
@@ -169,9 +185,17 @@ media queries (600px, 1024px, `max-width: 599px`), and the inspector column is 3
 npx vercel --prod
 ```
 
-Set `GROQ_API_KEY`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY` in the
-Vercel project's environment variables. Then open the deployed URL on your
-iPhone and use Share → Add to Home Screen.
+Set `GROQ_API_KEY`, `OWNER_USER_ID`, `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in
+the Vercel project's environment variables, plus the optional `GROQ_MODEL`,
+`ALLOWED_ORIGINS`, `AGENT_RATE_PER_MIN`, `AGENT_RATE_PER_DAY` and `VITE_API_BASE` from the
+table above. Then:
+
+1. Turn the Supabase sign-up toggle off (Dashboard, Authentication, sign-ups), so only the
+   existing owner account can sign in. The app has no client-side sign-up.
+2. Copy the owner's user id from the Supabase Auth users list into `OWNER_USER_ID`.
+3. Run `docs/sql/agent_usage.sql` once in the Supabase SQL Editor (the per-user usage table
+   behind the rate limit).
+4. Open the deployed URL on your iPhone and use Share → Add to Home Screen.
 
 > The DSA mastery map (`public/dsa/mastery-map.html`) can't read Vite env vars — its
 > Supabase URL/anon key are hardcoded as literals near the top of its persistence
