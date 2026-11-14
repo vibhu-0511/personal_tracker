@@ -147,6 +147,8 @@ export default function App() {
       userId,
       claimOwner,
       reconcileAll,
+      reconcileV1: () => syncBackend.reconcileV1(),
+      reconcileV2: () => syncBackend.reconcileV2(),
       getSettings,
       // a local pull cursor means this device has data: render now, pull in the background
       hasLocalCursor: () => syncBackend.syncStatus().lastSyncedAt != null,

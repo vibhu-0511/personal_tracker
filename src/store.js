@@ -6,7 +6,7 @@ import { createCloudKv } from './sync/cloudKv.js'
 import { emitStoreKey } from './storeEvents.js'
 import { createEngine2 } from './sync/engine2.js'
 import { createCloudV2 } from './sync/cloudV2.js'
-import { createFlags, createBlobMirror } from './sync/migrate.js'
+import { createFlags, createV2Rollout } from './sync/migrate.js'
 import { createSyncRouter, createV1Db } from './sync/router.js'
 
 const db = localforage.createInstance({ name: 'forge' })
@@ -27,7 +27,7 @@ const cloud = createCloudKv(supabase)
 // Every key is OFF by default, so each call below goes to the v1 engine exactly as before.
 const flags = createFlags()
 
-let mirror // dual-write of v2 keys back to the v1 blob; built with engine2
+let rollout // blob mirror (v2 keys written back to the v1 blob) and local seeding; built with engine2
 
 const v1Engine = createSyncEngine({
   // Same db; its clear() keeps engine2's r2:* records once engine2 is in use.
@@ -50,7 +50,11 @@ function createV2() {
     onLocalWriteError: () => showToast('Could not save — storage full'),
     refreshSession: () => supabase.auth.refreshSession(),
   })
-  mirror = createBlobMirror({ engine: engine2, db, cloudKv: cloud, getUserId: currentUserId })
+  // The mirror only writes while the key's flag is on and after engine2 completed a pull;
+  // prepareKey seeds engine2 from the v1 blob before the key's first v2 read.
+  rollout = createV2Rollout({
+    engine: engine2, db, cloudKv: cloud, getUserId: currentUserId, isV2: (key) => flags.isV2(key),
+  })
   return engine2
 }
 
@@ -59,14 +63,17 @@ const engine = createSyncRouter({
   v1: v1Engine,
   createV2,
   flags,
+  prepareV2Key: (key) => rollout.prepareKey(key),
+  onV2Synced: () => rollout.release(),
   // announce changes made by pulls and other tabs, and start mirroring the key
   onV2Key: (key, engine2) => {
     markLocalWrites(engine2)
     engine2.subscribe(key, (blob) => {
+      if (!flags.isV2(key)) return // flag flipped off at runtime: v1 owns the key again
       emitStoreKey(key)
       notifyRemote(key, blob, { local: isWriting(key) })
     })
-    mirror.watch(key)
+    rollout.mirror.watch(key)
   },
 })
 
@@ -159,6 +166,10 @@ const syncBackend = {
     return { pending: s.pending, lastSyncedAt: s.lastSyncedAt }
   },
   isV2: (key) => engine.isV2(key),
+  // reconcileAll split in two for bootSync: the v1 half is always awaited, the v2 half
+  // may run in the background when a pull cursor exists.
+  reconcileV1: () => engine.reconcileV1(SYNCED_KEYS),
+  reconcileV2: () => engine.reconcileV2(SYNCED_KEYS),
   // A v1 pull changed `key` locally: hand the new blob to subscribers. Reads nothing
   // when nobody subscribed, so with useSynced unused this does no work.
   async announceRemote(key) {
