@@ -437,9 +437,9 @@ test('store.js keeps every v1 export and signature, SYNCED_KEYS and the untouche
   assert.match(src, /const engine = createSyncRouter\(/)
   assert.equal(/\bv1Engine\.(get|save|mutate)\(/.test(src), false)
   // the emit-after-write code is unchanged (test/storeEvents.test.js reads these bodies too)
-  assert.match(src, /async function saveSynced\(key, data\) \{\n  await engine\.save\(key, data\)\n  emitStoreKey\(key\)\n\}/)
-  assert.match(src, /async function mutateEmit\(key, fn, fallback\) \{\n  const result = await engine\.mutate\(key, fn, fallback\)\n  emitStoreKey\(key\)\n  return result\n\}/)
-  assert.match(src, /export async function reconcileAll\(\) \{\n  await engine\.reconcileAll\(SYNCED_KEYS\)\n\}/)
+  assert.match(src, /async function saveSynced\(key, data\) \{\n {2}await engine\.save\(key, data\)\n {2}emitStoreKey\(key\)\n\}/)
+  assert.match(src, /async function mutateEmit\(key, fn, fallback\) \{\n {2}const result = await engine\.mutate\(key, fn, fallback\)\n {2}emitStoreKey\(key\)\n {2}return result\n\}/)
+  assert.match(src, /export async function reconcileAll\(\) \{\n {2}await engine\.reconcileAll\(SYNCED_KEYS\)\n\}/)
 })
 
 test('store.js wiring: flags default to env + override only, nothing turns a key on', () => {
