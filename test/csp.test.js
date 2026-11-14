@@ -85,7 +85,7 @@ test('dsa policy: inline scripts, jsDelivr and Google Fonts allowed', () => {
 
 test('dsa page really uses what its policy allows', () => {
   const html = read('../public/dsa/mastery-map.html')
-  assert.match(html, /https:\/\/cdn\.jsdelivr\.net\//)
+  assert.doesNotMatch(html, /<script[^>]*src=["'][^"']*cdn\.jsdelivr\.net/)
   assert.match(html, /https:\/\/fonts\.googleapis\.com\//)
   assert.match(html, new RegExp(SUPABASE_HOST.replace(/\./g, '\\.')))
 })

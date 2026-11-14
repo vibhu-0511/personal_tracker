@@ -4,6 +4,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import vm from 'node:vm'
 import { fileURLToPath } from 'node:url'
 
 const HTML = readFileSync(
@@ -82,4 +83,60 @@ test('a pull that changes local data saves dsa_pre_pull_backup first', () => {
 test('?tab deep link is validated against TABS', () => {
   assert.match(HTML, /get\('tab'\)/)
   assert.match(HTML, /TABS\.some\(t => t\.id === wantedTab\)/)
+})
+
+test('supabase-js is vendored: no cdn.jsdelivr.net script, local bundle is loaded', () => {
+  const srcs = [...HTML.matchAll(/<script\s[^>]*src=["']([^"']+)["']/g)].map((m) => m[1])
+  assert.ok(srcs.length > 0, 'at least one external script tag')
+  for (const src of srcs) assert.ok(!/cdn\.jsdelivr\.net/.test(src), `script src ${src} must not use cdn.jsdelivr.net`)
+  assert.ok(srcs.includes('/dsa/vendor/supabase-2.116.0.js'), 'page loads the vendored bundle')
+  assert.ok(!HTML.includes('cdn.jsdelivr.net'), 'no jsdelivr reference anywhere in the page')
+  const vendored = readFileSync(
+    fileURLToPath(new URL('../public/dsa/vendor/supabase-2.116.0.js', import.meta.url)),
+    'utf8',
+  )
+  assert.ok(vendored.length > 200000, 'vendored bundle is present and non-trivial')
+  assert.match(vendored, /createClient/)
+})
+
+test('window.supabase is guarded before createClient', () => {
+  const guard = SYNC.indexOf('window.supabase && typeof window.supabase.createClient')
+  const create = SYNC.indexOf('window.supabase.createClient(SUPABASE_URL')
+  assert.ok(guard > 0 && create > guard, 'guard precedes createClient')
+  assert.match(SYNC, /if \(sb\) sb\.auth\.onAuthStateChange/)
+  assert.match(SYNC, /if \(sb\) \{\s*localStorage\.setItem = /)
+})
+
+test('with the supabase script blocked the sync script does not throw and localStorage still saves', () => {
+  const store = new Map()
+  const proto = {
+    setItem(k, v) { store.set(String(k), String(v)) },
+    getItem(k) { return store.has(k) ? store.get(k) : null },
+    removeItem(k) { store.delete(k) },
+    key(i) { return [...store.keys()][i] ?? null },
+  }
+  const localStorage = Object.create(proto)
+  Object.defineProperty(localStorage, 'length', { get: () => store.size })
+  const listeners = []
+  const pill = { style: {} }
+  const document = {
+    documentElement: { classList: { contains: () => false } },
+    querySelector: () => null,
+    createElement: () => pill,
+    body: { appendChild() {} },
+    addEventListener: (ev, fn) => listeners.push([ev, fn]),
+  }
+  const window = {} // window.supabase deliberately undefined (script blocked)
+  const sandbox = {
+    window, document, localStorage, Storage: { prototype: proto },
+    location: { reload() {} }, setTimeout, clearTimeout, Date, Object, JSON,
+  }
+  assert.doesNotThrow(() => vm.runInNewContext(SYNC, sandbox))
+  assert.ok(window.__masterySync, 'sync API still exposed')
+  for (const [ev, fn] of listeners) if (ev === 'DOMContentLoaded') assert.doesNotThrow(fn)
+  localStorage.setItem('mastery_map_v2', '{"a":1}')
+  assert.equal(localStorage.getItem('mastery_map_v2'), '{"a":1}')
+  assert.equal(JSON.stringify(window.__masterySync.snapshot()), JSON.stringify({ mastery_map_v2: '{"a":1}' }))
+  assert.doesNotThrow(() => window.__masterySync.saveNow())
+  assert.match(pill.textContent, /sync unavailable/)
 })

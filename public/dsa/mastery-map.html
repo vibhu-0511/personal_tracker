@@ -1629,7 +1629,7 @@
   }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/dsa/vendor/supabase-2.116.0.js"></script>
 <script>
 /* ===== Mastery Map cloud sync (Supabase) ===== */
 (function () {
@@ -1648,7 +1648,14 @@
   // dsa_owner / dsa_pre_pull_backup / dsa_summary deliberately do NOT match ours(), so they are never pushed.
   // They are written through the prototype to bypass the patched setItem below (it schedules a push).
   var rawSet = function (k, v) { Storage.prototype.setItem.call(localStorage, k, v); };
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Guard: if the vendored supabase-js failed to load (blocked / missing file), skip cloud sync
+  // entirely. The page still renders and saves to localStorage; setItem is left unpatched.
+  var sb = null;
+  try {
+    if (window.supabase && typeof window.supabase.createClient === 'function') {
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch (e) { sb = null; }
   var nativeSet = localStorage.setItem.bind(localStorage);
   var nativeRemove = localStorage.removeItem.bind(localStorage);
   var pill;
@@ -1697,7 +1704,7 @@
   // same origin — no separate login here), pull the cloud snapshot once.
   // Note: onAuthStateChange fires INITIAL_SESSION on every page load (not just
   // sign-in), so this must only reload when a pull actually changed something.
-  sb.auth.onAuthStateChange(function (event, session) {
+  if (sb) sb.auth.onAuthStateChange(function (event, session) {
     if (!session) {
       if (pill) {
         pill.textContent = '⚠ not signed in — not syncing';
@@ -1747,8 +1754,10 @@
     }).catch(function () { flash(false); });
   });
 
-  localStorage.setItem = function (key, val) { nativeSet(key, val); schedulePush(); };
-  localStorage.removeItem = function (key) { nativeRemove(key); schedulePush(); };
+  if (sb) {
+    localStorage.setItem = function (key, val) { nativeSet(key, val); schedulePush(); };
+    localStorage.removeItem = function (key) { nativeRemove(key); schedulePush(); };
+  }
 
   document.addEventListener('DOMContentLoaded', function () {
     if (document.documentElement.classList.contains('embed')) {
@@ -1758,9 +1767,14 @@
     pill = document.createElement('div');
     pill.style.cssText = 'position:fixed;bottom:12px;right:14px;z-index:99999;font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:6px 10px;border-radius:8px;background:#121214;border:1px solid #2a2a2e;opacity:0;transition:opacity .3s;pointer-events:none';
     document.body.appendChild(pill);
+    if (!sb) {
+      pill.textContent = '⚠ sync unavailable — saved locally';
+      pill.style.color = '#ff6b6b';
+      pill.style.opacity = '1';
+    }
   });
 
-  window.__masterySync = { snapshot: snapshot, saveNow: function () { schedulePush(0); } };
+  window.__masterySync = { snapshot: snapshot, saveNow: function () { if (sb) schedulePush(0); } };
 })();
 </script>
 </head>
