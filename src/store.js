@@ -4,6 +4,10 @@ import { showToast } from './toast.js'
 import { createSyncEngine } from './sync/engine.js'
 import { createCloudKv } from './sync/cloudKv.js'
 import { emitStoreKey } from './storeEvents.js'
+import { createEngine2 } from './sync/engine2.js'
+import { createCloudV2 } from './sync/cloudV2.js'
+import { createFlags, createBlobMirror } from './sync/migrate.js'
+import { createSyncRouter, createV1Db } from './sync/router.js'
 
 const db = localforage.createInstance({ name: 'forge' })
 
@@ -19,10 +23,47 @@ export async function storageAvailable() {
 
 const cloud = createCloudKv(supabase)
 
-const engine = createSyncEngine({
-  db,
+// Per-key sync v2 flags (VITE_SYNC_V2_KEYS + this device's localStorage override).
+// Every key is OFF by default, so each call below goes to the v1 engine exactly as before.
+const flags = createFlags()
+
+let mirror // dual-write of v2 keys back to the v1 blob; built with engine2
+
+const v1Engine = createSyncEngine({
+  // Same db; its clear() keeps engine2's r2:* records once engine2 is in use.
+  db: createV1Db(db, { keepV2: () => engine.v2 != null || flags.keys().length > 0 }),
   cloud,
   onLocalWriteError: () => showToast('Could not save — storage full'),
+})
+
+async function currentUserId() {
+  const { data } = await supabase.auth.getSession()
+  return data?.session?.user?.id ?? null
+}
+
+// Built only when a key is on. A v2 key is dual-written back to the v1 blob (local shape
+// and kv_store, debounced) so flipping its flag off resumes v1 with current data.
+function createV2() {
+  const engine2 = createEngine2({
+    db,
+    cloud: createCloudV2(supabase),
+    onLocalWriteError: () => showToast('Could not save — storage full'),
+    refreshSession: () => supabase.auth.refreshSession(),
+  })
+  mirror = createBlobMirror({ engine: engine2, db, cloudKv: cloud, getUserId: currentUserId })
+  return engine2
+}
+
+// Routes each synced key to v1Engine (default) or engine2 (flag on); same surface as v1.
+const engine = createSyncRouter({
+  v1: v1Engine,
+  createV2,
+  flags,
+  // announce changes made by pulls and other tabs, and start mirroring the key
+  onV2Key: (key, engine2) => {
+    engine2.subscribe(key, () => emitStoreKey(key))
+    mirror.watch(key)
+  },
 })
 
 // engine.mutate saves directly, so announce the key change here (useStoreKey listeners).
