@@ -1,8 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import {
   getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey, SYNCED_KEYS,
-  onSyncStatusChange, claimOwner, flush,
+  claimOwner, flush, syncBackend,
 } from './store.js'
+import { configureSynced, useSyncStatus } from './useSynced.js'
+import { createRemoteSync, bootSync, bumpTicks, allTabs, syncBannerText } from './sync/appSubscriptions.js'
+import BackupPanel from './backup/BackupPanel.jsx'
 import { supabase } from './supabaseClient.js'
 import ToastHost from './Toast.jsx'
 import Shell from './shell/Shell.jsx'
@@ -19,7 +22,7 @@ const Life = lazy(() => import('./tabs/Life.jsx'))
 
 // Top-level tabs in nav order. `id` is the component-state / syncTicks id,
 // `route` the URL slug in routes.js. The Home id is not `Today` because Today
-// is already the Codeforces progress key (KEY_TO_TAB.progress, LogicBuilding).
+// is already the Codeforces progress key (KEY_TO_TABS.progress, LogicBuilding).
 export const TABS = [
   { id: 'Home', route: 'today', icon: '☀️', label: 'Today' },
   { id: 'Life', route: 'life', icon: '🌱', label: 'Life' },
@@ -54,21 +57,18 @@ export function applyTheme(themeId) {
   meta.content = chrome
 }
 
-// Which tab(s) own each synced data key, so a remote change only remounts
-// (and re-fetches) the tabs that actually show that data. A value may be one
-// tab id or an array of them. `settings` is handled directly below instead,
-// since App.jsx already owns that state.
-export const KEY_TO_TAB = {
-  progress: 'Today',
-  expenses: 'Expenses', budgets: 'Expenses', goals: 'Expenses', loans: 'Expenses',
-  examProgress: 'Exams', examNotes: 'Exams',
-  investProgress: 'Invest', watchlist: 'Invest',
-  tasks: ['Life', 'Home'], reminders: ['Life', 'Home'], habits: ['Life', 'Home'],
-  moodLog: 'Life', notes: 'Life', checklists: 'Life',
-  puzzleProgress: 'Puzzles',
+// The tab-to-key mapping moved to src/sync/appSubscriptions.js (KEY_TO_TABS); App only
+// reacts to subscriptions now. The Home id is not `Today` because Today is the Codeforces
+// progress tick (LogicBuilding).
+let syncedConfigured = false
+function ensureSyncedConfigured() {
+  if (syncedConfigured) return
+  syncedConfigured = true
+  configureSynced(syncBackend)
 }
 
 export default function App() {
+  ensureSyncedConfigured()
   const [session, setSession] = useState(undefined) // undefined = checking, null = signed out
   const [authEmail, setAuthEmail] = useState('')
   const [authPassword, setAuthPassword] = useState('')
@@ -83,11 +83,9 @@ export default function App() {
   const [storageOk, setStorageOk] = useState(true)
   const [syncTicks, setSyncTicks] = useState({})
   const [synced, setSynced] = useState(false)
-  const [syncFailed, setSyncFailed] = useState(false)
+  const syncStatus = useSyncStatus() // {failed, pending, lastSyncedAt}
   const [initError, setInitError] = useState(null)
   const userId = session?.user?.id
-
-  useEffect(() => onSyncStatusChange(setSyncFailed), [])
 
   // Opening `/` (or any unknown hash) lands on the canonical route, e.g. #/today.
   useEffect(() => {
@@ -125,51 +123,61 @@ export default function App() {
     if (!userId) { setSynced(false); return }
     let cancelled = false
 
-    claimOwner(userId)
-      .then(() => reconcileAll())
-      .then(() => getSettings())
-      .then((s) => {
+    const applySettings = (s, { first = false } = {}) => {
+      setSettings(s)
+      setDraftHandle(s.cfHandle)
+      applyTheme(s.theme)
+      if (first && !s.cfHandle) setShowSettings(true)
+    }
+    const reloadSettings = () => getSettings().then((s) => { if (!cancelled) applySettings(s) })
+    const bump = (targets) => setSyncTicks((prev) => bumpTicks(prev, targets))
+
+    const remote = createRemoteSync({
+      keys: SYNCED_KEYS,
+      isV2: (key) => syncBackend.isV2(key),
+      reconcileKey,
+      subscribe: (key, fn) => syncBackend.subscribe(key, fn),
+      announce: (key) => { syncBackend.announceRemote(key) },
+      onSettings: reloadSettings,
+      onTabs: bump,
+    })
+    const stopV2 = remote.start() // engine subscriptions; none while every v2 flag is off
+
+    bootSync({
+      userId,
+      claimOwner,
+      reconcileAll,
+      getSettings,
+      // a local pull cursor means this device has data: render now, pull in the background
+      hasLocalCursor: () => syncBackend.syncStatus().lastSyncedAt != null,
+      onBackgroundDone: () => {
         if (cancelled) return
-        setSettings(s)
-        setDraftHandle(s.cfHandle)
-        applyTheme(s.theme)
-        if (!s.cfHandle) setShowSettings(true)
+        reloadSettings()
+        bump(allTabs())
+      },
+      onBackgroundError: () => { /* local data is showing; the sync banner reports failures */ },
+    })
+      .then(({ settings: s }) => {
+        if (cancelled) return
+        applySettings(s, { first: true })
         setSynced(true)
       })
       .catch((err) => { if (!cancelled) setInitError(err.message || 'Failed to sync') })
 
+    // v1 channel: runs for every key that is not on v2 (reconcileKey answers 'noop' for a
+    // v2 key), so with every flag off this is the same kv_store subscription as before.
     const channel = supabase
       .channel('kv_store_changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'kv_store', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const key = payload.new?.key || payload.old?.key
-          if (!key || !SYNCED_KEYS.includes(key)) return
-          reconcileKey(key).then((action) => {
-            if (action !== 'pull') return
-            if (key === 'settings') {
-              getSettings().then((s) => {
-                setSettings(s)
-                setDraftHandle(s.cfHandle)
-                applyTheme(s.theme)
-              })
-              return
-            }
-            const targets = [].concat(KEY_TO_TAB[key] || [])
-            if (targets.length === 0) return
-            setSyncTicks((prev) => {
-              const next = { ...prev }
-              for (const t of targets) next[t] = (next[t] || 0) + 1
-              return next
-            })
-          })
-        }
+        (payload) => { remote.handleKvChange(payload) }
       )
       .subscribe()
 
     return () => {
       cancelled = true
+      stopV2()
       supabase.removeChannel(channel)
     }
   }, [userId])
@@ -278,10 +286,8 @@ export default function App() {
           </div>
         )}
 
-        {syncFailed && (
-          <div className="banner-warn">
-            Cloud sync failed — changes are saved on this device and will retry.
-          </div>
+        {syncBannerText(syncStatus) && (
+          <div className="banner-warn">{syncBannerText(syncStatus)}</div>
         )}
 
         {showSettings && (
@@ -314,6 +320,9 @@ export default function App() {
                 />
               ))}
             </div>
+
+            <div className="meta" style={{ marginTop: 14, marginBottom: 6 }}>Backup</div>
+            <BackupPanel />
           </div>
         )}
 
