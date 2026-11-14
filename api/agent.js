@@ -2,6 +2,7 @@ import { applyCors, handlePreflight, readJsonBody, HttpError } from './_lib/http
 import { isOwner } from './_lib/auth.js'
 import { validateAgentInput } from './_lib/agentInput.js'
 import { checkRateLimit, supabaseUsageStorage } from './_lib/rateLimit.js'
+import { createSseParser, formatSseEvent } from './_lib/sse.js'
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const DEFAULT_MODEL = 'openai/gpt-oss-120b'
@@ -20,6 +21,68 @@ export const DEFAULT_RATE_PER_DAY = 300
 
 function send(res, status, payload) {
   return res.status(status).json(payload)
+}
+
+const STREAM_ERROR_MESSAGE = 'Could not reach the agent service'
+
+// Streaming mode (opt-in per request with `stream: true` in the JSON body; any
+// other value, or no field, keeps the whole-response JSON behaviour). Only called
+// after the upstream answered 2xx, so every failure before the first byte still
+// goes through the normal 502 JSON path in the handler.
+//
+// Wire format, one SSE data frame each (api/_lib/sse.js formatSseEvent):
+//   { type: 'delta', text }   an incremental piece of the reply
+//   { type: 'done', reply }   final event, carries the full reply text
+//   { type: 'error', error }  the stream failed after it had started
+// Aborts the upstream request (via `controller`) when the client disconnects or the
+// upstream goes idle for UPSTREAM_TIMEOUT_MS.
+async function streamReply(r, res, controller, clientGone) {
+  if (!r.body) throw new Error('Groq returned no stream body')
+  res.statusCode = 200
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-cache, no-transform')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no')
+  if (typeof res.flushHeaders === 'function') res.flushHeaders()
+
+  const parser = createSseParser()
+  const decoder = new TextDecoder()
+  let reply = ''
+  let finished = false
+  let idle = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+
+  const handle = (items) => {
+    for (const item of items) {
+      if (item.type === 'content') {
+        reply += item.text
+        res.write(formatSseEvent({ type: 'delta', text: item.text }))
+      } else if (item.type === 'done') {
+        finished = true
+      }
+    }
+  }
+
+  try {
+    for await (const chunk of r.body) {
+      if (clientGone()) return
+      clearTimeout(idle)
+      idle = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
+      handle(parser.push(typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true })))
+      if (finished) break
+    }
+    if (clientGone()) return
+    if (!finished) handle(parser.flush())
+    // Same guard as the JSON path: never finish with an empty reply.
+    if (reply.trim() === '') throw new Error('Groq returned no reply content')
+    res.write(formatSseEvent({ type: 'done', reply }))
+  } catch (err) {
+    if (clientGone()) return
+    console.error('agent stream error', err)
+    res.write(formatSseEvent({ type: 'error', error: STREAM_ERROR_MESSAGE }))
+  } finally {
+    clearTimeout(idle)
+    if (!clientGone()) res.end()
+  }
 }
 
 export function parseLimit(raw, fallback) {
@@ -103,6 +166,18 @@ export function createAgentHandler({ fetchImpl, verifier, env, usageStorage } = 
     if (!parsed.ok) return send(res, 400, { error: parsed.error })
     const { systemPrompt, messages } = parsed.value
 
+    const wantStream = body.stream === true
+    // Streaming only: abort the upstream request if the client goes away.
+    const controller = wantStream ? new AbortController() : null
+    let gone = false
+    if (wantStream && typeof res.on === 'function') {
+      res.on('close', () => {
+        if (res.writableEnded) return
+        gone = true
+        controller.abort()
+      })
+    }
+
     try {
       const r = await doFetch(GROQ_URL, {
         method: 'POST',
@@ -111,10 +186,14 @@ export function createAgentHandler({ fetchImpl, verifier, env, usageStorage } = 
           model: e.GROQ_MODEL || DEFAULT_MODEL,
           max_tokens: MAX_TOKENS,
           messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          ...(wantStream ? { stream: true } : {}),
         }),
-        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+        signal: wantStream
+          ? AbortSignal.any([controller.signal, AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)])
+          : AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
       })
       if (!r.ok) throw new Error(`Groq responded ${r.status}`)
+      if (wantStream) return await streamReply(r, res, controller, () => gone)
       const j = await r.json()
       // Reasoning models can return content: null when truncated; never pass that on
       // (the client would store it in history and every later turn would fail).
