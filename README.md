@@ -21,8 +21,8 @@ Get a free Groq API key at https://console.groq.com (no credit card).
 | `GROQ_MODEL` | no | `openai/gpt-oss-120b` |
 | `OWNER_USER_ID` | yes (server) | — |
 | `ALLOWED_ORIGINS` | no | — |
-| `AGENT_RATE_PER_MIN` | no | — |
-| `AGENT_RATE_PER_DAY` | no | — |
+| `AGENT_RATE_PER_MIN` | no | 20 |
+| `AGENT_RATE_PER_DAY` | no | 300 |
 | `VITE_SUPABASE_URL` | yes | — |
 | `VITE_SUPABASE_ANON_KEY` | yes | — |
 | `VITE_API_BASE` | no | empty (same-origin `/api/*`) |
@@ -33,8 +33,9 @@ Get a free Groq API key at https://console.groq.com (no credit card).
   It is added to the built-in defaults `capacitor://localhost`, `https://localhost` and
   `http://localhost:5173`.
 - `AGENT_RATE_PER_MIN` and `AGENT_RATE_PER_DAY` are the per-user call limits for
-  `/api/agent` (positive integers). The limiter in `api/_lib/rateLimit.js` takes them as
-  inputs; the handler wiring is a separate task, so no default is set here.
+  `/api/agent` (positive integers), enforced in `api/agent.js` with a 429 and `Retry-After`.
+  Defaults are 20 per minute and 300 per day. If the usage table cannot be read the call is
+  allowed through and the error is logged (fail open).
 - `VITE_API_BASE` is the absolute API origin for builds that cannot use relative `/api/*`,
   such as the Capacitor iOS app.
 
