@@ -4,7 +4,7 @@ import { parseQuick } from '../logic.js'
 import { useLatest } from '../../useLatest.js'
 import { deleteWithUndo } from '../../undo.js'
 import { newId } from '../../id.js'
-import { apiUrl } from '../../api/client.js'
+import { reminderICSDataUrl, downloadReminderICS } from '../icsClient.js'
 import MasterDetail from '../ui/MasterDetail.jsx'
 import ReminderInspector from './ReminderInspector.jsx'
 // MasterDetail's layout rules (shared with Tasks.jsx).
@@ -94,8 +94,13 @@ export default function RemindersView({ reminders, onUpdate, now, selectedId, on
     })
   }
 
+  // Add-to-calendar is generated on the device (no API call, no navigation away from the app).
+  function addToCalendar(r, e) {
+    if (e) e.preventDefault()
+    downloadReminderICS(r)
+  }
   function icsHref(r) {
-    return apiUrl(`/api/ics?title=${encodeURIComponent(r.title)}&start=${encodeURIComponent(new Date(r.at).toISOString())}`)
+    return reminderICSDataUrl(r)
   }
 
   const nowMs = now.getTime()
@@ -178,7 +183,13 @@ export default function RemindersView({ reminders, onUpdate, now, selectedId, on
                 minute: '2-digit',
               })}
             </div>
-            <a className="life-icon-btn" href={icsHref(r)} title="Add to Calendar" aria-label="Add to Calendar">
+            <a
+              className="life-icon-btn"
+              href={icsHref(r)}
+              title="Add to Calendar"
+              aria-label="Add to Calendar"
+              onClick={(e) => addToCalendar(r, e)}
+            >
               📅
             </a>
             <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => remove(r.id)}>
@@ -216,15 +227,24 @@ export default function RemindersView({ reminders, onUpdate, now, selectedId, on
     </div>
   )
 
+  // ReminderInspector renders Add to Calendar as a plain link (icsHref), which would navigate
+  // the WebView; the capture handler turns that click into the on-device download instead.
   const editor = selected && (
-    <ReminderInspector
-      reminder={selected}
-      onChange={patchReminder}
-      onToggle={toggle}
-      onDelete={remove}
-      icsHref={icsHref}
-      onClose={wide ? () => select(null) : undefined}
-    />
+    <div
+      style={{ display: 'contents' }}
+      onClickCapture={(e) => {
+        if (e.target.closest('a[aria-label="Add to Calendar"]')) addToCalendar(selected, e)
+      }}
+    >
+      <ReminderInspector
+        reminder={selected}
+        onChange={patchReminder}
+        onToggle={toggle}
+        onDelete={remove}
+        icsHref={icsHref}
+        onClose={wide ? () => select(null) : undefined}
+      />
+    </div>
   )
 
   // The editor is mounted in exactly one place: the inspector pane from 1024px, otherwise the
