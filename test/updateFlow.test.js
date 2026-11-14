@@ -96,3 +96,15 @@ test('scheduleUpdateChecks tolerates a missing registration', () => {
   assert.equal(typeof stop, 'function')
   stop()
 })
+
+test('a flush that never settles does not block the update (times out)', async () => {
+  const calls = []
+  const confirm = createUpdateFlow({
+    flush: () => new Promise(() => {}),
+    updateServiceWorker: async (reload) => { calls.push(reload) },
+    onFlushError: (e) => calls.push(String(e.message)),
+    flushTimeoutMs: 20,
+  })
+  await confirm()
+  assert.deepEqual(calls, ['flush timed out', true])
+})

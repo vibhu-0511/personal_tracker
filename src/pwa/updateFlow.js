@@ -2,18 +2,24 @@
 // unit-tested without a browser: nothing here imports the store or the SW virtual module.
 
 export const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000
+// A stalled network call inside flush() must not trap the user on the old build.
+export const FLUSH_TIMEOUT_MS = 3000
 
 // Returns the handler behind the "Reload" button. It is the ONLY path that calls
 // updateServiceWorker, so no update is applied unless the user confirmed.
 // flush() is awaited first so debounced writes reach storage before the page reloads.
 // A failing flush must not strand the user on a stale build: the update still applies.
-export function createUpdateFlow({ flush, updateServiceWorker, onFlushError } = {}) {
+export function createUpdateFlow({ flush, updateServiceWorker, onFlushError, flushTimeoutMs = FLUSH_TIMEOUT_MS } = {}) {
   let running = null
   return function confirmUpdate() {
     if (running) return running
     running = (async () => {
       try {
-        if (typeof flush === 'function') await flush()
+        if (typeof flush === 'function') {
+          let timer
+          const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('flush timed out')), flushTimeoutMs) })
+          try { await Promise.race([Promise.resolve(flush()), timeout]) } finally { clearTimeout(timer) }
+        }
       } catch (err) {
         if (typeof onFlushError === 'function') onFlushError(err)
       }
