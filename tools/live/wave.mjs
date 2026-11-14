@@ -49,10 +49,19 @@ async function next() {
     if (overlaps(t)) continue
     picked.push(t); t.writes.forEach(w => writes.add(w))
   }
+  // pull forward: later tasks with no unmet dependency and no overlapping files can run now
+  const pulled = []
+  for (const t of runnable) {
+    if (picked.length >= 6) break
+    if (picked.includes(t) || key(t) === key(first)) continue
+    if (overlaps(t)) continue
+    picked.push(t); pulled.push(t.id); t.writes.forEach(w => writes.add(w))
+  }
   const sameWave = pending.filter(t => key(t) === key(first))
   console.log(JSON.stringify({
     wave: key(first),
     run: picked.map(t => ({ id: t.id, title: t.title, size: t.size, writes: t.writes.length })),
+    pulledForward: pulled,
     deferredInWave: wavePool.filter(t => !picked.includes(t)).map(t => t.id),
     blockedInWave: sameWave.filter(t => blockedBy(t).length).map(t => ({ id: t.id, waiting: blockedBy(t).map(d => `${d}:${s(d)}`) })),
     userInWave: plan.tasks.filter(t => key(t) === key(first) && t.owner === 'user').map(t => t.id),
