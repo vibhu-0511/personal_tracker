@@ -111,8 +111,8 @@ const { default: handler, isAllowedSymbol, RANGES } = await import('../api/quote
 
 function call(query) {
   let status, body
-  const res = { status(s) { status = s; return this }, json(b) { body = b; return this } }
-  return Promise.resolve(handler({ query }, res)).then(() => ({ status, body }))
+  const res = { setHeader() {}, status(s) { status = s; return this }, json(b) { body = b; return this } }
+  return Promise.resolve(handler({ method: 'GET', headers: {}, query }, res)).then(() => ({ status, body }))
 }
 
 test('range outside 1d|5d|1mo|3mo returns 400', async () => {

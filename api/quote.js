@@ -1,4 +1,5 @@
 import { parseYahooChart } from './_lib/parseYahooChart.js'
+import { applyCors, handlePreflight, setCache } from './_lib/http.js'
 
 const SYMBOL_RE = /^[A-Z0-9&-]{1,20}\.(NS|BO)$/
 // Exact-match index symbols allowed besides SYMBOL_RE. Empty by default: whether
@@ -33,7 +34,15 @@ async function fetchQuote(symbol, range) {
 
 // ponytail: Yahoo is unofficial/ToS-grey; swap for Upstox Analytics Token if it breaks
 export default async function handler(req, res) {
-  const raw = (req.query.symbols || '').trim()
+  if (handlePreflight(req, res)) return
+  applyCors(req, res)
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.setHeader('Allow', 'GET, HEAD, OPTIONS')
+    setCache(res)
+    return res.status(405).json({ error: 'GET only' })
+  }
+  setCache(res) // errors are never cached; success overrides below
+  const raw = typeof req.query.symbols === 'string' ? req.query.symbols.trim() : ''
   if (!raw) return res.status(400).json({ error: 'symbols required' })
 
   const range = req.query.range === undefined || req.query.range === '' ? DEFAULT_RANGE : req.query.range
@@ -61,5 +70,7 @@ export default async function handler(req, res) {
     }
   })
 
+  // Matches the 60 s in-memory quote cache above.
+  if (errors.length === 0) setCache(res, { sMaxAge: 60, staleWhileRevalidate: 120 })
   res.status(200).json({ quotes, errors })
 }
