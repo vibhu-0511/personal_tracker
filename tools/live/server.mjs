@@ -39,14 +39,14 @@ const clients = new Set()
 const evFile = path.join(STORE, 'events.jsonl')
 try {
   const lines = fs.readFileSync(evFile, 'utf8').split('\n').filter(Boolean).slice(-RING)
-  for (const l of lines) { try { const e = JSON.parse(l); ring.push(e); nextId = Math.max(nextId, e.id + 1) } catch {} }
-} catch {}
+  for (const l of lines) { try { const e = JSON.parse(l); ring.push(e); nextId = Math.max(nextId, e.id + 1) } catch { /* ignored: best effort */ } }
+} catch { /* ignored: best effort */ }
 const evStream = fs.createWriteStream(evFile, { flags: 'a' })
 
 function send(res, event, data, id) {
   res.write(`${id ? `id: ${id}\n` : ''}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
 }
-function broadcast(event, data, id) { for (const c of clients) { try { send(c, event, data, id) } catch {} } }
+function broadcast(event, data, id) { for (const c of clients) { try { send(c, event, data, id) } catch { /* ignored: best effort */ } } }
 
 function emit(ev) {
   ev.id = nextId++
@@ -61,7 +61,7 @@ function emit(ev) {
 const tails = new Map()
 function watchTranscript(file, session) {
   if (tails.has(file)) return
-  let pos = 0
+  let pos
   try { pos = fs.statSync(file).size } catch { return }
   tails.set(file, { pos, rest: '', session, seen: new Set() })
 }
@@ -92,7 +92,7 @@ setInterval(() => {
 /* ---------- build state from git ---------- */
 const ovFile = path.join(STORE, 'overrides.json')
 let overrides = {}
-try { overrides = JSON.parse(fs.readFileSync(ovFile, 'utf8')) } catch {}
+try { overrides = JSON.parse(fs.readFileSync(ovFile, 'utf8')) } catch { /* ignored: best effort */ }
 let build = { tasks: {}, repo: {}, ts: 0 }
 let buildSig = ''
 async function pollBuild() {
@@ -102,7 +102,7 @@ async function pollBuild() {
     const next = { tasks, repo: { head: repo.head, dirty: repo.dirty, worktrees: repo.worktrees, baseRef: repo.baseRef }, ts: Date.now() }
     const sig = JSON.stringify([next.tasks, next.repo])
     if (sig !== buildSig) { buildSig = sig; build = next; broadcast('build', build) }
-  } catch {}
+  } catch { /* ignored: best effort */ }
 }
 pollBuild(); setInterval(pollBuild, 2000).unref()
 

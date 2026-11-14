@@ -26,6 +26,8 @@ export function modeForWidth(width) {
 // Skip every test in the file unless the running project is one of `names`.
 // Call at the top level of a spec. Skipped tests are reported as skipped.
 export function onlyProjects(test, names) {
+  // Playwright requires a destructured first argument, even when no fixture is used.
+  // eslint-disable-next-line no-empty-pattern
   test.beforeEach(({}, testInfo) => {
     test.skip(!names.includes(testInfo.project.name), `matrix spec for ${names.join(', ')}`)
   })

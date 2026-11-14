@@ -18,7 +18,7 @@ const WT = process.env.FORGE_WT || '/home/user/wt'
 const plan = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/plan/plan.json'), 'utf8'))
 const T = Object.fromEntries(plan.tasks.map(t => [t.id, t]))
 let overrides = {}
-try { overrides = JSON.parse(fs.readFileSync(path.join(ROOT, '.live/overrides.json'), 'utf8')) } catch {}
+try { overrides = JSON.parse(fs.readFileSync(path.join(ROOT, '.live/overrides.json'), 'utf8')) } catch { /* ignored: best effort */ }
 const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8' }).trim()
 const run = (cmd, args, cwd = ROOT) => spawnSync(cmd, args, { cwd, encoding: 'utf8', maxBuffer: 1e8 })
 const phaseNo = id => +id.slice(1)
@@ -121,7 +121,7 @@ async function check(ids) {
     const t = T[id], dir = path.join(WT, id)
     const base = fs.readFileSync(`${dir}.base`, 'utf8').trim()
     const files = git('diff', '--name-only', base, branchOf(t)).split('\n').filter(Boolean)
-    const allowed = f => t.writes.some(w => w === f || (w.includes('*') && new RegExp('^' + w.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*') + '$').test(f)))
+    const allowed = f => t.writes.some(w => w === f || (w.includes('*') && new RegExp('^' + w.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\uE000').replace(/\*/g, '[^/]*').replace(/\uE000/g, '.*') + '$').test(f)))
     const outside = files.filter(f => !allowed(f))
     const dirty = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: dir, encoding: 'utf8' }).trim()
     const commits = +git('rev-list', '--count', `${base}..${branchOf(t)}`)

@@ -25,7 +25,7 @@ export function readSessionEvents(dir, session) {
     for (const f of fs.readdirSync(subDir).filter(x => /^agent-.*\.jsonl$/.test(x))) {
       const id = f.replace(/^agent-|\.jsonl$/g, '')
       let meta = {}
-      try { meta = JSON.parse(fs.readFileSync(path.join(subDir, f.replace(/\.jsonl$/, '.meta.json')), 'utf8')) } catch {}
+      try { meta = JSON.parse(fs.readFileSync(path.join(subDir, f.replace(/\.jsonl$/, '.meta.json')), 'utf8')) } catch { /* ignored: best effort */ }
       add(path.join(subDir, f), { agentId: id, agentLabel: meta.description || meta.agentType || null, parentUse: meta.toolUseId || null })
     }
   }
