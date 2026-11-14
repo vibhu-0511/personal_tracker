@@ -1,8 +1,8 @@
 // Sync v2 engine, local half: a record store over the localforage-style db,
 // get/save/update with materialisation back to the v1 blob shape, subscribe,
-// and a cross-tab write guard. NOT wired into src/store.js or the running app:
-// v1 (engine.js) stays the only active engine. The network half (drain, delta
-// pull, realtime) is R6-08 and builds on what this returns (outbox, clock).
+// and a cross-tab write guard, plus (R6-08) the network half: outbox drain,
+// delta pull, realtime apply and the long-offline resync. NOT wired into
+// src/store.js or the running app: v1 (engine.js) stays the only active engine.
 //
 // Local layout (docs/plan/research/R6-report.md):
 //   r2:<collection>  { recs: { [id]: { b: body, h: hlc, d: deletedAt, p: pos } } }
@@ -38,20 +38,49 @@
 //  - update(fn) holds the lock while fn runs; fn must not call back into the
 //    engine for the same key (it would wait on its own queue).
 //
+// Network half (cloud = createCloudV2(supabase), injected; never constructed here):
+//  - ONE DRAIN OWNER. Only the tab that holds the injected lock DRAIN_LOCK_NAME
+//    (startSync() queues for it and holds it until stopSync()/close()) talks to the
+//    network: drain, delta pull, realtime, retry timers. Other tabs only write
+//    records and dirty marks locally and announce them on the bus; the owner merges
+//    the shared outbox from the db (dirty AND quarantined entries, so a quarantine
+//    made by the owner survives another tab's write) and drains. When the owner
+//    goes away the next queued tab takes over and drains what it finds in the db.
+//  - drain: 700 ms trailing debounce after a local write, then one batch of <= 200
+//    records read fresh from the db at send time (outbox.js keeps no payloads).
+//    Retry with backoff (outbox.js); `online`, `visibilitychange`, auth change,
+//    realtime reconnect and flush() reset the backoff and drain at once.
+//  - pull: `rev > cursor - 50` (the overlap window), looping pages until a short
+//    page (cloudV2.pull), de-duped by hlc through the same merge rule as realtime.
+//    The cursor and lastPullAt only advance after the records are persisted.
+//  - realtime: the payload is applied directly, no refetch. It never moves the
+//    cursor (events can arrive out of rev order); the next delta pull covers it.
+//    An own echo has an equal hlc, so it is a no-op.
+//  - after more than 60 days since the last pull the pull is a FULL pull and local
+//    records that are absent from the cloud, older than the pull start and neither
+//    dirty nor quarantined are dropped (the server GC'd their tombstone at 90 days).
+//  - claimOwner(userId): a different user wipes records, outbox and cursor together
+//    (the deviceId is kept, it is the hlc node of this device).
+//
 // Write failures (db.setItem rejects) mirror v1: save/update still resolve, the
 // key is marked failed, onLocalWriteError(key, err) is called, and the edit stays
 // in memory. The affected collections are re-persisted whole on the next write.
 
-import { createOutbox } from './outbox.js'
-import { createClock } from './hlc.js'
+import { createOutbox, backoffDelay, classifyError } from './outbox.js'
+import { createClock, isValid as isValidHlc } from './hlc.js'
 import { diffList } from './diff.js'
-import { isLive, isHlcFormat } from './records.js'
+import { isLive, isHlcFormat, isDrifted, shouldApply, hlcPhysicalMs } from './records.js'
 import { adapterFor, COLLECTION_TO_KEY } from './adapters.js'
 
 export const LOCK_NAME = 'forge-r2-write'
 export const BUS_TYPE = 'r2:write'
 export const META_KEY = 'r2:meta'
 export const OUTBOX_KEY = 'r2:outbox'
+export const DRAIN_LOCK_NAME = 'forge-r2-drain' // held for life by the one tab that talks to the network
+export const BUS_OWNER_TYPE = 'r2:owner' // another user took over this device: reload everything
+export const DEBOUNCE_MS = 700
+export const PULL_OVERLAP = 50
+export const LONG_OFFLINE_MS = 60 * 24 * 60 * 60 * 1000
 export const collectionKey = (collection) => `r2:${collection}`
 
 // hlc = '<15 digits>-<4 hex>-<node>'; the node starts at index 21.
@@ -99,14 +128,18 @@ function defaultId() {
 
 export function createEngine2({
   db,
-  cloud = null, // used by the network half (R6-08); unused here
-  now = Date.now,
+  cloud = null, // createCloudV2(supabase); needed by the network half only
+  now = () => Date.now(),
   lock = defaultLock(),
   bus = defaultBus(),
   onLocalWriteError,
   random = Math.random,
   newId = defaultId,
   outboxOptions = {},
+  refreshSession, // () => Promise, called once per drain on a 401
+  onSyncError, // ({ op: 'push' | 'pull', kind, error }) on every failed network attempt
+  win = globalThis.window, // 'online' source
+  doc = globalThis.document, // 'visibilitychange' source
 } = {}) {
   if (!db) throw new TypeError('engine2: db required')
 
@@ -124,6 +157,35 @@ export function createEngine2({
   const failed = new Set()
   const statusListeners = new Set()
   const inflight = new Set()
+
+  // network half state
+  let syncOwner = false // this engine holds DRAIN_LOCK_NAME and talks to the network
+  let syncP = null
+  let releaseOwner = null
+  let resolveSync = null
+  let epoch = 0 // bumped when local state is wiped or reloaded under a running pull
+  let pushTimer = null
+  let retryTimer = null
+  let pullRetryTimer = null
+  let pullAttempts = 0
+  let drainP = null
+  let drainAgain = false
+  let resetNext = false
+  let pullP = null
+  let pullAgain = false
+  let fullSeen = null // keys applied by realtime while a full pull is in flight
+  let rt = null // { userId, sub }
+  let rtQueue = Promise.resolve()
+  let lastError = null
+  const sentLog = new Map() // pair -> hlc of every entry handed to send() since the last persist
+  const setT = (fn, ms) => globalThis.setTimeout(fn, ms)
+  const clearT = (h) => globalThis.clearTimeout(h)
+
+  function track(p) {
+    const q = p.catch(() => undefined).finally(() => inflight.delete(q))
+    inflight.add(q)
+    return p
+  }
 
   // ---- status ----------------------------------------------------------------
 
@@ -213,10 +275,23 @@ export function createEngine2({
     return map
   }
 
+  // Fold what other tabs persisted into the in-memory outbox: dirty entries that
+  // are absent or older here, and quarantined entries (only the drain owner makes
+  // them, but any tab persists the snapshot, so they must not be lost).
+  // Entries this tab pushed and acked (or quarantined) are still in the db snapshot
+  // until persistOutbox() rewrites it; sentLog keeps them from coming back.
   async function mergeOutboxFromDb() {
     const raw = await readOutboxSnapshot()
     for (const [collection, id, hlc] of raw?.dirty ?? []) {
+      if ((sentLog.get(`${collection}\u0000${id}`) ?? '') >= hlc && !outbox.has(collection, id)) continue
       if (!outbox.has(collection, id) || outbox.hlcOf(collection, id) < hlc) outbox.mark(collection, id, hlc)
+    }
+    const inQuarantine = new Map(outbox.quarantinedEntries().map((q) => [`${q.collection}\u0000${q.id}`, q.hlc]))
+    for (const [collection, id, hlc, reason] of raw?.quarantined ?? []) {
+      if ((inQuarantine.get(`${collection}\u0000${id}`) ?? '') >= hlc) continue
+      if (outbox.has(collection, id) && outbox.hlcOf(collection, id) > hlc) continue // a newer edit supersedes it
+      outbox.mark(collection, id, hlc)
+      outbox.quarantine({ collection, id: String(id), hlc }, reason)
     }
   }
 
@@ -319,6 +394,7 @@ export function createEngine2({
       setKeyFailed(key, true)
       onLocalWriteError?.(key, err)
       emit(key)
+      schedulePush()
       return true
     }
 
@@ -326,6 +402,7 @@ export function createEngine2({
     try {
       bus?.postMessage({ type: BUS_TYPE, from: tabId, collections: [...touched] })
     } catch { /* other tabs reload on their next write or start */ }
+    schedulePush()
     return true
   }
 
@@ -372,10 +449,528 @@ export function createEngine2({
     })
   }
 
+  // ---- network half: owner, meta, claimOwner -------------------------------------
+
+  const pairKey = (collection, id) => `${collection}\u0000${id}`
+
+  // Must be called with the write lock held. Re-reads meta first so a patch from
+  // another tab (userId, cursor) is not overwritten; the deviceId stays ours.
+  async function writeMetaLocked(patch) {
+    const stored = await db.getItem(META_KEY)
+    const next = {
+      cursor: null, userId: null, lastPullAt: null,
+      ...(isObj(stored) ? stored : {}),
+      ...patch,
+      deviceId: meta.deviceId,
+    }
+    await db.setItem(META_KEY, next)
+    meta = next
+  }
+
+  // Must be called with the write lock held: drop every in-memory copy and read
+  // meta and the outbox back from the db (after a wipe, or another tab's wipe).
+  async function reloadStateLocked() {
+    const stored = await db.getItem(META_KEY)
+    meta = { cursor: null, userId: null, lastPullAt: null, ...(isObj(stored) ? stored : {}), deviceId: meta.deviceId }
+    outbox = createOutbox({ now, random, ...outboxOptions, initial: await readOutboxSnapshot() })
+    cache.clear()
+    unpersisted.clear()
+    served.clear()
+    for (const k of [...failed]) setKeyFailed(k, false)
+    epoch += 1
+  }
+
+  async function wipeLocked() {
+    const known = [...Object.keys(COLLECTION_TO_KEY).map(collectionKey), OUTBOX_KEY]
+    const present = typeof db.keys === 'function' ? await db.keys() : []
+    const targets = new Set([...known, ...present.filter((k) => typeof k === 'string' && k.startsWith('r2:'))])
+    targets.delete(META_KEY)
+    for (const k of targets) await db.removeItem(k)
+  }
+
+  // v1 `claimOwner`, for engine2: a different user on this device wipes the records,
+  // the outbox and the cursor together (the unsynced outbox of the previous user is
+  // lost, same as v1). The same user, or the first one, keeps everything. Resolves
+  // true when it wiped. The meta is written last, so a crash half way leaves the old
+  // userId and the next call wipes again.
+  async function claimOwner(userId) {
+    if (!userId) return false
+    await init()
+    const wiped = await lock(LOCK_NAME, async () => {
+      const stored = await db.getItem(META_KEY)
+      const prev = isObj(stored) ? stored.userId ?? null : null
+      if (prev !== null && prev !== userId) {
+        await wipeLocked()
+        await db.setItem(META_KEY, { cursor: null, lastPullAt: null, userId, deviceId: meta.deviceId })
+        await reloadStateLocked()
+        return true
+      }
+      if (prev === null) await writeMetaLocked({ userId })
+      else meta = { ...meta, ...stored, deviceId: meta.deviceId }
+      return false
+    })
+    if (wiped) {
+      for (const key of [...subs.keys()]) emit(key)
+      try {
+        bus?.postMessage({ type: BUS_OWNER_TYPE, from: tabId })
+      } catch { /* other tabs reload on their next start */ }
+      afterOwnerChange()
+    }
+    return wiped
+  }
+
+  // Another tab claimed a different user: nothing in memory is valid any more.
+  async function reloadAfterOwnerChange() {
+    await lock(LOCK_NAME, () => reloadStateLocked())
+    for (const key of [...subs.keys()]) emit(key)
+    afterOwnerChange()
+  }
+
+  // Timers and the realtime channel belong to the previous user.
+  function afterOwnerChange() {
+    if (!syncOwner) return
+    clearT(pushTimer); clearT(retryTimer); clearT(pullRetryTimer)
+    pushTimer = retryTimer = pullRetryTimer = null
+    disconnectRealtime()
+    track(onAuthChange())
+  }
+
+  async function sessionUserId() {
+    try {
+      const { data } = await cloud.getSession()
+      return data?.session?.user?.id ?? null
+    } catch {
+      return null
+    }
+  }
+
+  // A push or pull for `userId` may only run if the local data belongs to that user.
+  // A device with no owner yet adopts the session user; a different owner needs
+  // claimOwner(userId) (which wipes) first.
+  async function ensureOwner(userId) {
+    if (meta.userId === userId) return true
+    if (meta.userId !== null) return false
+    await lock(LOCK_NAME, async () => {
+      const stored = await db.getItem(META_KEY)
+      if (isObj(stored) && stored.userId != null) meta = { ...meta, ...stored, deviceId: meta.deviceId }
+      else await writeMetaLocked({ userId })
+    })
+    return meta.userId === userId
+  }
+
+  // ---- drain -----------------------------------------------------------------------
+
+  function schedulePush() {
+    if (!syncOwner) return
+    clearT(pushTimer)
+    pushTimer = setT(() => {
+      pushTimer = null
+      requestDrain()
+    }, DEBOUNCE_MS)
+  }
+
+  // The outbox has no public backoff reset; a fresh one built from its own snapshot
+  // starts with no backoff window. Only when no drain holds the old one.
+  function resetBackoff() {
+    outbox = createOutbox({ now, random, ...outboxOptions, initial: outbox.snapshot() })
+  }
+
+  // Reads the current record of every entry from the db at send time, then pushes.
+  // Resolves the entries it was given: an entry is acked by its own hlc, and one
+  // re-marked meanwhile (a newer edit) stays dirty. An entry whose record is gone
+  // has nothing to send and is dropped.
+  async function sendBatch(entries) {
+    const recs = await lock(LOCK_NAME, async () => {
+      const out = []
+      for (const e of entries) {
+        const rec = (await loadCollection(e.collection, { fresh: true })).get(e.id)
+        if (rec) out.push(rec)
+      }
+      return out
+    })
+    for (const e of entries) sentLog.set(pairKey(e.collection, e.id), e.hlc)
+    if (recs.length > 0) await cloud.push(recs)
+    return entries
+  }
+
+  async function persistOutbox() {
+    try {
+      await lock(LOCK_NAME, async () => {
+        await mergeOutboxFromDb()
+        await db.setItem(OUTBOX_KEY, outbox.snapshot())
+      })
+      sentLog.clear() // the db no longer lists what was acked
+      setKeyFailed(OUTBOX_KEY, false)
+    } catch (err) {
+      setKeyFailed(OUTBOX_KEY, true)
+      onLocalWriteError?.(OUTBOX_KEY, err)
+    }
+  }
+
+  function reportError(op, kind, error) {
+    lastError = { op, kind, message: error?.message ?? String(error) }
+    try {
+      onSyncError?.({ op, kind, error })
+    } catch { /* a throwing listener must not break the engine */ }
+  }
+
+  async function doDrain() {
+    if (!cloud) return { status: 'no-cloud' }
+    if (outbox.size() === 0) return { status: 'idle', sent: 0, quarantined: [], remaining: 0 }
+    const userId = await sessionUserId()
+    if (!userId) return { status: 'no-session' }
+    if (!(await ensureOwner(userId))) return { status: 'owner-mismatch' }
+    let sent = 0
+    const bad = []
+    for (;;) {
+      const r = await outbox.drainOnce({ send: sendBatch, refreshSession })
+      sent += r.sent
+      bad.push(...r.quarantined)
+      if (r.sent > 0 || r.quarantined.length > 0) await persistOutbox()
+      if (r.status === 'sent' && outbox.size() > 0 && (r.sent > 0 || r.quarantined.length > 0)) continue
+      return { ...r, status: r.status === 'sent' ? 'idle' : r.status, sent, quarantined: bad }
+    }
+  }
+
+  // One drain at a time; a request made while one runs makes it run once more.
+  function requestDrain({ reset = false } = {}) {
+    if (!syncOwner) return Promise.resolve({ status: 'not-owner' })
+    if (reset) resetNext = true
+    if (drainP) {
+      drainAgain = true
+      return drainP
+    }
+    drainP = (async () => {
+      try {
+        let r
+        do {
+          drainAgain = false
+          if (resetNext) {
+            resetNext = false
+            resetBackoff()
+          }
+          clearT(retryTimer)
+          retryTimer = null
+          r = await doDrain()
+          if (r.status === 'retry' || r.status === 'blocked') reportError('push', r.kind, r.error)
+          if (syncOwner && (r.status === 'retry' || r.status === 'blocked' || r.status === 'waiting')) {
+            retryTimer = setT(() => {
+              retryTimer = null
+              requestDrain()
+            }, Math.max(r.delayMs ?? 0, 0))
+          }
+        } while (drainAgain && syncOwner)
+        return r
+      } finally {
+        drainP = null
+      }
+    })()
+    return track(drainP)
+  }
+
+  // Push now: cancels the debounce and ignores the backoff window. Only the drain
+  // owner can push; in another tab the write is already persisted and announced,
+  // and the owner drains it.
+  function flush() {
+    clearT(pushTimer)
+    pushTimer = null
+    return requestDrain({ reset: true })
+  }
+
+  // ---- pull + realtime apply -----------------------------------------------------------
+
+  // Is `incoming` a row this device should store over `local`?
+  function accepts(adapter, local, incoming, wall) {
+    if (!incoming || !isHlcFormat(incoming.hlc) || !isValidHlc(incoming.hlc)) return false
+    if ((incoming.deletedAt == null) === (incoming.body == null)) return false // tombstone rule
+    if (adapter.resolve) {
+      if (isDrifted(incoming.hlc, wall)) return false
+      return adapter.resolve(local, incoming) === incoming
+    }
+    return shouldApply(local, incoming, { wallMs: wall })
+  }
+
+  // Applies cloud rows (pull page set or one realtime row) under the write lock:
+  // per-record merge by hlc, persist, then (pull only) advance the cursor, drop
+  // GC'd records on a full pull, notify subscribers and other tabs.
+  async function applyRemote(rows, { cursor = null, pullStart = null, full = false, epoch: ep = epoch, userId = null } = {}) {
+    return lock(LOCK_NAME, async () => {
+      if (ep !== epoch || (userId !== null && meta.userId !== userId)) return { applied: 0, dropped: 0, stale: true }
+      await mergeOutboxFromDb()
+      const wall = now()
+      const byCollection = new Map()
+      for (const row of rows) {
+        if (!row || typeof row.collection !== 'string' || !Object.hasOwn(COLLECTION_TO_KEY, row.collection) || row.id == null) continue
+        if (!byCollection.has(row.collection)) byCollection.set(row.collection, [])
+        byCollection.get(row.collection).push(row)
+        if (!full && fullSeen) fullSeen.add(pairKey(row.collection, String(row.id)))
+      }
+      const touched = new Set()
+      let applied = 0
+      let dropped = 0
+      for (const [c, list] of byCollection) {
+        const adapter = adapterFor(COLLECTION_TO_KEY[c])
+        const map = await loadCollection(c, { fresh: true })
+        for (const row of list) {
+          const id = String(row.id)
+          const local = map.get(id)
+          if (!accepts(adapter, local, row, wall)) continue
+          map.set(id, {
+            collection: c, id, body: row.body ?? null, pos: row.pos ?? null,
+            hlc: row.hlc, deviceId: nodeOf(row.hlc), deletedAt: row.deletedAt ?? null,
+          })
+          // A newer remote version supersedes a pending local edit of that record.
+          const pending = outbox.hlcOf(c, id)
+          if (pending !== undefined && pending < row.hlc) outbox.ack([{ collection: c, id, hlc: pending }])
+          touched.add(c)
+          applied += 1
+        }
+        observe(map)
+      }
+
+      if (full) {
+        // Offline for more than 60 days: the server may have GC'd tombstones, so a
+        // record the cloud no longer has, that predates this pull and was never
+        // queued for push, is a deleted record. Drop it instead of resurrecting it.
+        const inCloud = new Set(rows.map((r) => pairKey(r.collection, String(r.id))))
+        const quarantined = new Set(outbox.quarantinedEntries().map((q) => pairKey(q.collection, q.id)))
+        for (const c of Object.keys(COLLECTION_TO_KEY)) {
+          const map = await loadCollection(c, { fresh: true })
+          for (const [id, rec] of [...map]) {
+            const k = pairKey(c, id)
+            if (inCloud.has(k) || fullSeen?.has(k) || outbox.has(c, id) || quarantined.has(k)) continue
+            if (hlcPhysicalMs(rec.hlc) >= pullStart) continue
+            map.delete(id)
+            touched.add(c)
+            dropped += 1
+          }
+        }
+      }
+
+      const toWrite = new Set([...touched, ...unpersisted])
+      try {
+        for (const c of toWrite) {
+          const recs = {}
+          for (const [id, rec] of cache.get(c)) recs[id] = toStored(rec)
+          await db.setItem(collectionKey(c), { recs })
+        }
+        if (touched.size > 0) await db.setItem(OUTBOX_KEY, outbox.snapshot())
+        unpersisted.clear()
+        if (cursor !== null) {
+          await writeMetaLocked({ cursor: full ? cursor : Math.max(meta.cursor ?? 0, cursor), lastPullAt: pullStart })
+        }
+        setKeyFailed('r2:pull', false)
+      } catch (err) {
+        for (const c of touched) unpersisted.add(c)
+        setKeyFailed('r2:pull', true)
+        onLocalWriteError?.('r2:pull', err)
+      }
+
+      const keys = new Set([...touched].map((c) => COLLECTION_TO_KEY[c]))
+      for (const key of keys) emit(key)
+      if (touched.size > 0) {
+        try {
+          bus?.postMessage({ type: BUS_TYPE, from: tabId, collections: [...touched] })
+        } catch { /* other tabs reload on their next write or start */ }
+      }
+      return { applied, dropped, stale: false }
+    })
+  }
+
+  async function doPull({ full = false } = {}) {
+    if (!cloud) return { status: 'no-cloud' }
+    const userId = await sessionUserId()
+    if (!userId) return { status: 'no-session' }
+    if (!(await ensureOwner(userId))) return { status: 'owner-mismatch' }
+    const ep = epoch
+    const pullStart = now()
+    const isFull = full || (meta.lastPullAt != null && pullStart - meta.lastPullAt > LONG_OFFLINE_MS)
+    const sinceRev = isFull || meta.cursor == null ? 0 : Math.max(0, meta.cursor - PULL_OVERLAP)
+    fullSeen = isFull ? new Set() : null
+    try {
+      const res = await cloud.pull({ sinceRev })
+      const out = await applyRemote(res.rows, { cursor: res.cursor, pullStart, full: isFull, epoch: ep, userId })
+      pullAttempts = 0
+      return { status: 'ok', full: isFull, rows: res.rows.length, applied: out.applied, dropped: out.dropped }
+    } catch (err) {
+      const kind = classifyError(err)
+      reportError('pull', kind, err)
+      return { status: 'retry', kind, error: err, delayMs: backoffDelay(pullAttempts++, { random }) }
+    } finally {
+      fullSeen = null
+    }
+  }
+
+  function requestPull() {
+    if (!syncOwner) return Promise.resolve({ status: 'not-owner' })
+    if (pullP) {
+      pullAgain = true
+      return pullP
+    }
+    pullP = (async () => {
+      try {
+        let r
+        do {
+          pullAgain = false
+          clearT(pullRetryTimer)
+          pullRetryTimer = null
+          r = await doPull()
+          if (r.status === 'retry' && syncOwner) {
+            pullRetryTimer = setT(() => {
+              pullRetryTimer = null
+              requestPull()
+            }, r.delayMs)
+          }
+        } while (pullAgain && syncOwner)
+        return r
+      } finally {
+        pullP = null
+      }
+    })()
+    return track(pullP)
+  }
+
+  // ---- realtime ----------------------------------------------------------------------------
+
+  function onRealtime(evt) {
+    const rec = evt?.record
+    if (!rec || !syncOwner || (rec.userId != null && rec.userId !== rt?.userId)) return
+    const ep = epoch
+    rtQueue = rtQueue.then(() => applyRemote([rec], { epoch: ep, userId: rt?.userId ?? null })).catch(() => undefined)
+    track(rtQueue)
+  }
+
+  function disconnectRealtime() {
+    const cur = rt
+    rt = null
+    try {
+      cur?.sub?.unsubscribe?.()
+    } catch { /* already closed */ }
+  }
+
+  // Joins the channel for the session user (once). The first SUBSCRIBED is covered
+  // by the explicit pull; every later one (a reconnect) means events were missed.
+  async function connect() {
+    const userId = await sessionUserId()
+    if (!userId || !(await ensureOwner(userId))) {
+      disconnectRealtime()
+      return null
+    }
+    if (rt?.userId !== userId) {
+      disconnectRealtime()
+      let joining = true
+      try {
+        const sub = cloud.subscribe(userId, onRealtime, {
+          onStatus: (status) => {
+            if (status === 'SUBSCRIBED' && !joining) {
+              requestPull()
+              requestDrain({ reset: true })
+            }
+          },
+        })
+        rt = { userId, sub }
+      } catch (err) {
+        reportError('pull', classifyError(err), err)
+      }
+      joining = false
+    }
+    return userId
+  }
+
+  // ---- start / stop -------------------------------------------------------------------------
+
+  function onOnline() {
+    requestPull()
+    requestDrain({ reset: true })
+  }
+
+  function onVisibility() {
+    if (doc?.visibilityState === 'hidden') return
+    onOnline()
+  }
+
+  // The session changed (sign in, sign out, token refresh by a different user).
+  async function onAuthChange() {
+    if (!syncOwner || !cloud) return
+    await connect()
+    await requestPull()
+    await requestDrain({ reset: true })
+  }
+
+  async function setupOwner() {
+    syncOwner = true
+    win?.addEventListener?.('online', onOnline)
+    doc?.addEventListener?.('visibilitychange', onVisibility)
+    // The outbox loaded at init may predate other tabs' writes.
+    await lock(LOCK_NAME, () => mergeOutboxFromDb())
+    if (!cloud) return
+    await connect()
+    await requestPull() // merge first, then push
+    await requestDrain({ reset: true })
+  }
+
+  // Queue for the one drain-owner lock. Resolves true once this engine became the
+  // owner and its first pull and drain finished, false if stopSync() came first.
+  // A tab that is not the owner stays pending (and drains nothing) until the owner
+  // goes away.
+  function startSync() {
+    if (syncP) return syncP
+    const mine = (async () => {
+      await init()
+      return new Promise((resolve) => {
+        resolveSync = resolve
+        Promise.resolve(lock(DRAIN_LOCK_NAME, () => new Promise((release) => {
+          if (syncP !== mine) {
+            release()
+            resolve(false)
+            return
+          }
+          releaseOwner = release
+          setupOwner().then(() => resolve(true), (err) => {
+            reportError('pull', classifyError(err), err)
+            resolve(true)
+          })
+        }))).catch(() => resolve(false))
+      })
+    })()
+    syncP = mine
+    return mine
+  }
+
+  function stopSync() {
+    syncOwner = false
+    syncP = null
+    clearT(pushTimer); clearT(retryTimer); clearT(pullRetryTimer)
+    pushTimer = retryTimer = pullRetryTimer = null
+    disconnectRealtime()
+    win?.removeEventListener?.('online', onOnline)
+    doc?.removeEventListener?.('visibilitychange', onVisibility)
+    const release = releaseOwner
+    const resolve = resolveSync
+    releaseOwner = null
+    resolveSync = null
+    release?.()
+    resolve?.(false)
+  }
+
+  function syncStatus() {
+    return {
+      owner: syncOwner,
+      pending: outbox ? outbox.size() : 0,
+      quarantined: outbox ? outbox.quarantinedEntries().length : 0,
+      lastSyncedAt: meta?.lastPullAt ?? null,
+      lastError,
+    }
+  }
+
   // ---- other tabs ----------------------------------------------------------------
 
   function onBusMessage(event) {
     const msg = event?.data
+    if (msg?.type === BUS_OWNER_TYPE && msg.from !== tabId) {
+      track(reloadAfterOwnerChange())
+      return
+    }
     if (!msg || msg.type !== BUS_TYPE || msg.from === tabId || !Array.isArray(msg.collections)) return
     const keys = new Set()
     for (const c of msg.collections) {
@@ -392,6 +987,10 @@ export function createEngine2({
       }).catch(() => undefined).finally(() => inflight.delete(p))
       inflight.add(p)
     }
+    // Another tab wrote records and dirty marks: the drain owner picks them up.
+    if (syncOwner) {
+      track(lock(LOCK_NAME, () => mergeOutboxFromDb()).then(() => schedulePush()))
+    }
   }
 
   // Resolves when bus-triggered reloads have finished (tests, shutdown).
@@ -401,6 +1000,7 @@ export function createEngine2({
   }
 
   function close() {
+    stopSync()
     bus?.removeEventListener?.('message', onBusMessage)
     bus?.close?.()
     subs.clear()
@@ -415,7 +1015,16 @@ export function createEngine2({
     onStatusChange,
     whenIdle,
     close,
-    // for the network half (R6-08) and tests
+    // network half (R6-08): startSync() queues for the one drain-owner lock
+    startSync,
+    stopSync,
+    claimOwner,
+    onAuthChange,
+    flush,
+    pull: requestPull,
+    drain: requestDrain,
+    syncStatus,
+    // for tests
     ready: init,
     get outbox() { return outbox },
     get clock() { return clock },
