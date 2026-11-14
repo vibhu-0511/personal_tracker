@@ -10,6 +10,7 @@ import './styles/palette.css'
 import './styles/overlays.css'
 import './styles/screens.css'
 import './styles/tiles.css'
+import './pwa/registerSW.js'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
