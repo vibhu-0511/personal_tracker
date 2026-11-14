@@ -1,14 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Row from '../../ui/Row.jsx'
 import EmptyState from '../../ui/EmptyState.jsx'
 import { groupByDate, isIncome } from '../logic.js'
 import { categoryInfo, CAT_MAP } from '../categories.js'
 import { formatDate, formatRupees } from '../format.js'
 import { formatTime } from '../../time.js'
+import { useMoney } from '../MoneyContext.jsx'
+import { useInspector } from '../../shell/inspectorContext.js'
+import { deleteWithUndo } from '../../undo.js'
 
 // Searchable, type-filtered transaction list grouped by day. Ports Expenses.jsx Txns (:615-723).
-// Tapping a row calls onEdit(expense) (MoneyContext.openEdit) and, when given, onSelect(expense):
-// the hook the inspector uses to show a TxnDetail (wired in R4-22). `selectedId` highlights a row.
+// Tapping a row calls onSelect(expense) when given (SpendScreen opens TxnDetail in the inspector
+// pane, or the Sheet below 1024px); without onSelect it falls back to onEdit(expense).
+// `selectedId` highlights a row. TxnDetail (exported below) is the inspector body.
 
 export const TYPE_FILTERS = [
   ['all', 'All'],
@@ -55,8 +59,8 @@ export default function TxnList({ expenses, onEdit, onDelete, onSelect, selected
   const groups = useMemo(() => groupByDate(filtered), [filtered])
 
   function handleTap(e) {
-    onEdit?.(e)
-    onSelect?.(e)
+    if (onSelect) onSelect(e)
+    else onEdit?.(e)
   }
 
   return (
@@ -141,5 +145,54 @@ export default function TxnList({ expenses, onEdit, onDelete, onSelect, selected
         )
       })}
     </section>
+  )
+}
+
+// Inspector body for one transaction. Reads the live record by id, so edits and sync
+// refreshes show up while it is open; closes itself when the record is gone (deleted).
+export function TxnDetail({ id }) {
+  const { expenses, expensesRef, persistExpenses, openEdit } = useMoney()
+  const { close, wide } = useInspector()
+  const e = expenses.find((x) => x.id === id)
+
+  useEffect(() => {
+    if (!e) close()
+  }, [e, close])
+
+  if (!e) return null
+  const income = isIncome(e)
+
+  function handleEdit() {
+    if (!wide) close() // the edit sheet replaces the detail Sheet; the pane can stay open
+    openEdit(e)
+  }
+
+  function handleDelete() {
+    deleteWithUndo({
+      list: expenses, id: e.id, persist: persistExpenses, ref: expensesRef, label: () => 'Entry deleted',
+    })
+    close()
+  }
+
+  return (
+    <div className="money-detail">
+      <div className="money-detail-head">
+        <span className="money-detail-icon" aria-hidden="true">{income ? '💵' : categoryInfo(e.category).emoji}</span>
+        <h3 className="money-detail-title">{income ? 'Income' : categoryInfo(e.category).label}</h3>
+      </div>
+      <div className={`money-detail-amount ${income ? 'spend-income-text' : 'spend-expense-text'}`}>
+        {income ? '+' : '-'}{formatRupees(e.amount)}
+      </div>
+      <dl className="money-detail-fields">
+        <dt>Date</dt>
+        <dd>{formatDate(e.date)}, {formatTime(e.date)}</dd>
+        {e.note && (<><dt>Note</dt><dd>{e.note}</dd></>)}
+        {!income && e.person && (<><dt>With</dt><dd>{e.person}</dd></>)}
+      </dl>
+      <div className="money-detail-actions">
+        <button type="button" className="btn btn-primary btn-sm" onClick={handleEdit}>Edit</button>
+        <button type="button" className="btn btn-danger-ghost btn-sm" onClick={handleDelete}>Delete</button>
+      </div>
+    </div>
   )
 }

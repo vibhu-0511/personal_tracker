@@ -1,6 +1,7 @@
-/* Money > Spend screen (R4-05). Layout switches on the `app` container
-   (shell.css), never on viewport width. Phones: one column, 2-column stats.
-   From 1024px: summary and transaction list side by side. */
+/* Money > Spend screen (R4-05, R4-22). Columns switch on container width, never on the
+   viewport: the `money` container (money.css) is the main area without the inspector
+   column, and `spendsum` is the summary column itself. Narrow: one column, 2-column
+   stats. Wide: summary and transaction list side by side. */
 
 .spend-screen { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 
@@ -32,6 +33,8 @@
 
 /* Stats: 2 columns on phones. */
 .spend-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* Stats follow the width of the summary column, not the page. */
+.spend-summary { container: spendsum / inline-size; }
 .spend-stat-cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .spend-delta { font-size: 11px; text-align: center; }
 
@@ -130,13 +133,19 @@
   cursor: pointer;
 }
 
-/* Tablet: stats fit four across while the summary is still full width. */
-@container app (min-width: 600px) {
+/* Summary wide enough for four stats across. */
+@container spendsum (min-width: 440px) {
   .spend-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-/* Desktop: summary and list side by side; the narrower summary keeps 2 stat columns. */
-@container app (min-width: 1024px) {
-  .spend-layout { grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); }
-  .spend-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Main area wide enough: summary and list side by side. */
+@container money (min-width: 720px) {
+  .spend-layout { grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr); }
 }
+
+/* A tap must not leave a row hovered. ui.css guards with (hover: hover) only, which hybrid
+   devices still match, so coarse pointers get the resting background back. */
+@media (hover: hover) and (pointer: coarse) {
+  .spend-day-list .ui-row:has(button.ui-row-main):hover:not([data-selected]) { background: var(--tile-inner, var(--surface)); }
+}
+.spend-day-list .ui-row-main { -webkit-tap-highlight-color: transparent; }

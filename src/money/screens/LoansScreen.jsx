@@ -2,21 +2,22 @@ import { useMemo, useState } from 'react'
 import { useMoney } from '../MoneyContext.jsx'
 import { computeLoanBalances } from '../logic.js'
 import { formatRupees } from '../format.js'
-import { deleteWithUndo } from '../../undo.js'
-import LoanPersonCard from './LoanPersonCard.jsx'
+import { useInspector } from '../../shell/inspectorContext.js'
+import LoanPersonCard, { LoanPersonDetail } from './LoanPersonCard.jsx'
 import LoanFormSheet from './LoanFormSheet.jsx'
 
-// Loans view: who owes you, who you owe, per-person ledgers.
+// Loans view: who owes you, who you owe; a person's ledger opens in the inspector pane / Sheet.
 // Ports Expenses.jsx loans view. Balances come only from computeLoanBalances;
 // balances inside +-0.5 are treated as settled and hidden (as before).
 
 const SETTLED = 0.5
 
 export default function LoansScreen() {
-  const { loans, loansRef, persistLoans } = useMoney()
+  const { loans } = useMoney()
+  const { node, open } = useInspector()
   const [showForm, setShowForm] = useState(false)
   const [search, setSearch] = useState('')
-  const [expandedPerson, setExpandedPerson] = useState(null)
+  const openPerson = node?.type === LoanPersonDetail ? node.props.person : null
 
   const { owedToYou, youOwe, totalOwedToYou, totalYouOwe } = useMemo(() => {
     const entries = Object.entries(computeLoanBalances(loans))
@@ -34,27 +35,22 @@ export default function LoansScreen() {
   const shownOwed = q ? owedToYou.filter(([who]) => who.toLowerCase().includes(q)) : owedToYou
   const shownOwe = q ? youOwe.filter(([who]) => who.toLowerCase().includes(q)) : youOwe
 
-  function deleteLoanEntry(id) {
-    deleteWithUndo({ list: loans, id, persist: persistLoans, ref: loansRef, label: () => 'Loan entry deleted' })
-  }
-
   function renderCards(list) {
     return list.map(([who, balance]) => (
       <LoanPersonCard
         key={who}
         person={who}
         balance={balance}
-        loans={loans.filter((l) => l.person.trim().toLowerCase() === who.trim().toLowerCase())}
-        expanded={expandedPerson === who}
-        onToggle={() => setExpandedPerson(expandedPerson === who ? null : who)}
-        onDelete={deleteLoanEntry}
+        count={loans.filter((l) => l.person.trim().toLowerCase() === who.trim().toLowerCase()).length}
+        selected={openPerson === who}
+        onSelect={() => open(<LoanPersonDetail key={who} person={who} />)}
       />
     ))
   }
 
   return (
     <>
-      <div className="stat-row" style={{ marginBottom: 14 }}>
+      <div className="money-stats-row">
         <div className="stat-card">
           <div className="stat-value" style={{ fontSize: 20, color: 'var(--success)' }}>
             {totalOwedToYou > 0 ? formatRupees(totalOwedToYou) : '—'}
@@ -102,7 +98,7 @@ export default function LoansScreen() {
           <div className="section-header">
             <span className="section-title">Owes you</span>
           </div>
-          {renderCards(shownOwed)}
+          <div className="money-people">{renderCards(shownOwed)}</div>
         </>
       )}
 
@@ -111,7 +107,7 @@ export default function LoansScreen() {
           <div className="section-header" style={{ marginTop: 6 }}>
             <span className="section-title">You owe</span>
           </div>
-          {renderCards(shownOwe)}
+          <div className="money-people">{renderCards(shownOwe)}</div>
         </>
       )}
 
