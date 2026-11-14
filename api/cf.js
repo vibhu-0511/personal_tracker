@@ -4,16 +4,61 @@ import { applyCors, handlePreflight, setCache } from './_lib/http.js'
 // Codeforces' own comment (e.g. "handles: User with handle X not found") is a
 // short, user-facing string worth showing as-is — unlike a raw fetch/parse
 // exception, which shouldn't reach the client.
-class CFApiError extends Error {}
+class CFApiError extends Error {
+  constructor(message, status = 502) {
+    super(message)
+    this.name = 'CFApiError'
+    this.status = status
+  }
+}
+
+// Upstream calls must not hang the function until the platform kills it.
+export const CF_TIMEOUT_MS = 8000
+// The full problemset is large and changes slowly; refresh it hourly.
+export const PROBLEMS_CACHE_TTL_MS = 60 * 60 * 1000
+export const RATE_LIMIT_MESSAGE = 'Codeforces is rate-limiting requests right now. Please try again in a minute.'
 
 async function cfGet(path) {
-  const r = await fetch(`https://codeforces.com/api/${path}`)
-  const j = await r.json()
-  if (j.status !== 'OK') throw new CFApiError(j.comment || `Codeforces error on ${path}`)
+  const r = await fetch(`https://codeforces.com/api/${path}`, {
+    signal: AbortSignal.timeout(CF_TIMEOUT_MS),
+  })
+  // Codeforces answers FAILED calls (unknown handle, call limit) with a non-2xx
+  // status *and* a JSON body, so parse first and only fall back to the HTTP
+  // status when the body carries no usable verdict.
+  let j
+  try {
+    j = await r.json()
+  } catch {
+    if (r.status === 429) throw new CFApiError(RATE_LIMIT_MESSAGE, 429)
+    throw new Error(`Codeforces returned a non-JSON response (${r.status}) on ${path}`)
+  }
+  if (!j || typeof j !== 'object') throw new Error(`Unexpected Codeforces payload on ${path}`)
+  if (j.status !== 'OK') {
+    const comment = typeof j.comment === 'string' ? j.comment : ''
+    if (r.status === 429 || /call limit exceeded/i.test(comment)) {
+      throw new CFApiError(RATE_LIMIT_MESSAGE, 429)
+    }
+    throw new CFApiError(comment || `Codeforces error on ${path}`)
+  }
+  if (!r.ok) throw new Error(`Codeforces responded ${r.status} on ${path}`)
   return j.result
 }
 
-let problemsCache = null
+let problemsCache = null // { problems, at }
+
+// Test hook: drop the module-level cache.
+export function resetProblemsCache() {
+  problemsCache = null
+}
+
+async function getProblems() {
+  const now = Date.now()
+  if (problemsCache && now - problemsCache.at < PROBLEMS_CACHE_TTL_MS) return problemsCache.problems
+  const result = await cfGet('problemset.problems')
+  if (!result || !Array.isArray(result.problems)) throw new Error('Unexpected problemset payload')
+  problemsCache = { problems: result.problems, at: now }
+  return problemsCache.problems
+}
 
 function toFiniteOrUndefined(v) {
   if (v === undefined || v === '') return undefined
@@ -52,9 +97,7 @@ export default async function handler(req, res) {
 
   const h = encodeURIComponent(handle)
   try {
-    if (!problemsCache) {
-      problemsCache = (await cfGet('problemset.problems')).problems
-    }
+    const pool = await getProblems()
     const [info] = await cfGet(`user.info?handles=${h}`)
     const subs = await cfGet(`user.status?handle=${h}&from=1&count=10000`)
 
@@ -68,7 +111,7 @@ export default async function handler(req, res) {
       for (const t of s.problem.tags || []) tagCounts[t] = (tagCounts[t] || 0) + 1
     }
 
-    const result = pickProblems(problemsCache, info.rating, solvedIds, {
+    const result = pickProblems(pool, info.rating, solvedIds, {
       ratingMin,
       ratingMax,
       tags,
@@ -94,7 +137,10 @@ export default async function handler(req, res) {
       page,
     })
   } catch (e) {
-    if (e instanceof CFApiError) return res.status(502).json({ error: e.message })
+    if (e instanceof CFApiError) {
+      if (e.status === 429) res.setHeader('Retry-After', '60')
+      return res.status(e.status).json({ error: e.message })
+    }
     console.error('cf handler error', e)
     res.status(502).json({ error: 'Could not reach Codeforces' })
   }
