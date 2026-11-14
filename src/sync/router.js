@@ -14,7 +14,8 @@
 //   save      -> v1.save(key, data)
 //   mutate    -> v1.mutate(key, fn, fallback)
 // The v2 engine is created lazily (createV2) the first time a v2 key, or the sync
-// lifecycle with a v2 key on, needs it. With no flag on it is never constructed, so
+// lifecycle with a v2 key on, needs it. createV2 may return the engine or a Promise of it
+// (store.js loads the v2 modules with dynamic import() there), so every use awaits it. With no flag on it is never constructed, so
 // it adds no listeners, channels, locks or timers.
 //
 // A key that is on goes to engine2 (get / save / update). A v2 key is never reconciled through the v1 kv_store path
@@ -24,7 +25,7 @@
 // next call retries. A flagged key never silently falls back to v1: that would show
 // stale data and write a second, diverging copy.
 
-import { ADAPTER_KEYS } from './adapters.js'
+import { V2_KEYS } from './flags.js' // not adapters.js: keeps the v2 stack out of the entry chunk
 
 const V2_LOCAL_PREFIX = 'r2:' // engine2's local keys: r2:<collection>, r2:outbox, r2:meta
 
@@ -53,7 +54,7 @@ export function createV1Db(db, { keepV2 = () => false } = {}) {
 
 export function createSyncRouter({
   v1, // createSyncEngine(...)
-  createV2, // () => createEngine2(...); called at most once successfully
+  createV2, // () => engine2 | Promise<engine2>; called at most once successfully
   flags, // createFlags(...) from migrate.js
   onV2Key, // (key, v2) => void, once per key the first time it is routed to v2
   prepareV2Key, // async (key, v2) => void, awaited before the key's first v2 read/write (seeds engine2 from the v1 blob)
@@ -79,16 +80,26 @@ export function createSyncRouter({
 
   const anyV2 = (keys) => keys.some(isV2)
 
-  function engineV2() {
-    if (!v2) {
-      v2 = createV2()
-      for (const attach of statusAttachers) attach()
+  // One shared in-flight creation; a failed one (sync throw or rejection) is dropped so the
+  // next call retries. createV2 is invoked synchronously by the first caller.
+  let v2Pending = null
+  async function engineV2() {
+    if (v2) return v2
+    if (!v2Pending) {
+      const p = (async () => {
+        const created = await createV2()
+        v2 = created
+        for (const attach of statusAttachers) attach()
+        return created
+      })()
+      v2Pending = p
+      p.catch(() => { if (v2Pending === p) v2Pending = null })
     }
-    return v2
+    return v2Pending
   }
 
-  function v2For(key) {
-    const engine = engineV2()
+  async function v2For(key) {
+    const engine = await engineV2()
     if (!seen.has(key)) {
       seen.add(key)
       onV2Key?.(key, engine)
@@ -99,7 +110,7 @@ export function createSyncRouter({
   // engine2 for a v2 key, after its local seed ran once (a failed seed is retried on the
   // next call and propagates: a flagged key never reads a partial engine2).
   async function v2Ready(key) {
-    const engine = v2For(key)
+    const engine = await v2For(key)
     if (typeof prepareV2Key === 'function') {
       let p = prepared.get(key)
       if (!p) {
@@ -155,7 +166,7 @@ export function createSyncRouter({
     if (v2Keys.length === 0) return
     // a failed seed is retried by the key's next read; the mirror stays gated until a pull
     for (const key of v2Keys) await v2Ready(key).catch(() => undefined)
-    const engine = engineV2()
+    const engine = await engineV2()
     const synced = Promise.resolve(engine.startSync()).then(
       () => { try { onV2Synced?.(engine) } catch { /* releasing is best effort */ } },
       () => undefined,
@@ -179,7 +190,7 @@ export function createSyncRouter({
     await reconcileV1(keys)
     const v2Keys = keys.filter(isV2)
     if (v2Keys.length === 0) return
-    const engine = engineV2()
+    const engine = await engineV2()
     await engine.ready?.()
     const cursor = engine.syncStatus?.().lastSyncedAt != null
     await reconcileV2(keys, { wait: cursor ? 'none' : 'first-pull' })
@@ -195,7 +206,7 @@ export function createSyncRouter({
   // engine2 first: on an owner change it wipes its own records, then v1's clear() (see
   // createV1Db) leaves r2:* alone. Only touches engine2 when it exists or a flag is on.
   async function claimOwner(userId) {
-    if (userId && (v2 || anyV2(ADAPTER_KEYS))) await engineV2().claimOwner(userId)
+    if (userId && (v2 || anyV2(V2_KEYS))) await (await engineV2()).claimOwner(userId)
     return v1.claimOwner(userId)
   }
 

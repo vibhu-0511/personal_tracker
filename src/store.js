@@ -4,9 +4,7 @@ import { showToast } from './toast.js'
 import { createSyncEngine } from './sync/engine.js'
 import { createCloudKv } from './sync/cloudKv.js'
 import { emitStoreKey } from './storeEvents.js'
-import { createEngine2 } from './sync/engine2.js'
-import { createCloudV2 } from './sync/cloudV2.js'
-import { createFlags, createV2Rollout } from './sync/migrate.js'
+import { createFlags } from './sync/flags.js'
 import { createSyncRouter, createV1Db } from './sync/router.js'
 
 const db = localforage.createInstance({ name: 'forge' })
@@ -41,9 +39,16 @@ async function currentUserId() {
   return data?.session?.user?.id ?? null
 }
 
-// Built only when a key is on. A v2 key is dual-written back to the v1 blob (local shape
-// and kv_store, debounced) so flipping its flag off resumes v1 with current data.
-function createV2() {
+// Built only when a key is on, and the v2 modules (engine2, cloudV2, migrate and what they
+// import) are fetched here with dynamic import() so a flag-off user never downloads them.
+// A v2 key is dual-written back to the v1 blob (local shape and kv_store, debounced) so
+// flipping its flag off resumes v1 with current data.
+async function createV2() {
+  const [{ createEngine2 }, { createCloudV2 }, { createV2Rollout }] = await Promise.all([
+    import('./sync/engine2.js'),
+    import('./sync/cloudV2.js'),
+    import('./sync/migrate.js'),
+  ])
   const engine2 = createEngine2({
     db,
     cloud: createCloudV2(supabase),

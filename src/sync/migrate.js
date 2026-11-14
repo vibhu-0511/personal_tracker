@@ -31,8 +31,6 @@ import { exportBackupJson } from '../backup/backup.js'
 import { collectionKey, META_KEY } from './engine2.js'
 import { hlcPhysicalMs, isHlcFormat } from './records.js'
 
-export const FLAGS_ENV_NAME = 'VITE_SYNC_V2_KEYS'
-export const FLAGS_OVERRIDE_KEY = 'forge_sync_v2_keys' // localStorage: JSON { <key>: true | false }
 export const MIRROR_DEBOUNCE_MS = 5000
 export const MIRROR_RETRY_MAX_MS = 5 * 60 * 1000
 export const SEED_NODE = 'backfill'
@@ -51,84 +49,8 @@ function deepEqual(a, b) {
   return ka.every((k) => Object.hasOwn(b, k) && deepEqual(a[k], b[k]))
 }
 
-// ---- flags -------------------------------------------------------------------
-
-// 'puzzleProgress, notes,bogus' -> ['puzzleProgress', 'notes']. Unknown names are ignored,
-// so a typo in the env var can never turn on a key that has no adapter.
-export function parseKeyList(text) {
-  if (typeof text !== 'string') return []
-  const out = []
-  for (const part of text.split(',')) {
-    const name = part.trim()
-    if (ADAPTER_KEYS.includes(name) && !out.includes(name)) out.push(name)
-  }
-  return out
-}
-
-function defaultEnv() {
-  try {
-    return import.meta.env?.VITE_SYNC_V2_KEYS ?? ''
-  } catch {
-    return ''
-  }
-}
-
-function defaultStorage() {
-  try {
-    return globalThis.localStorage ?? null
-  } catch {
-    return null
-  }
-}
-
-// The override is read on every call so a change made on this device takes effect
-// without a reload. A missing, unreadable or malformed override is ignored.
-export function createFlags({ env = defaultEnv(), storage = defaultStorage() } = {}) {
-  const envKeys = parseKeyList(env)
-
-  function readOverrides() {
-    try {
-      const raw = storage?.getItem(FLAGS_OVERRIDE_KEY)
-      const parsed = raw ? JSON.parse(raw) : null
-      return isObj(parsed) ? parsed : {}
-    } catch {
-      return {}
-    }
-  }
-
-  function isV2(key) {
-    if (!ADAPTER_KEYS.includes(key)) return false
-    const override = readOverrides()[key]
-    if (override === true || override === false) return override
-    return envKeys.includes(key)
-  }
-
-  return {
-    isV2,
-    keys: () => ADAPTER_KEYS.filter(isV2),
-    envKeys: () => [...envKeys],
-    override: (key) => {
-      const v = readOverrides()[key]
-      return v === true || v === false ? v : null
-    },
-    // true / false forces the key on / off on this device; null removes the override.
-    // Only ever called by a person or a caller that was told to; nothing here calls it.
-    setOverride(key, value) {
-      if (!ADAPTER_KEYS.includes(key)) throw new TypeError(`migrate: unknown synced key ${JSON.stringify(key)}`)
-      if (value !== true && value !== false && value !== null) throw new TypeError('migrate: override must be true, false or null')
-      if (!storage) return false
-      const next = readOverrides()
-      if (value === null) delete next[key]
-      else next[key] = value
-      try {
-        storage.setItem(FLAGS_OVERRIDE_KEY, JSON.stringify(next))
-        return true
-      } catch {
-        return false
-      }
-    },
-  }
-}
+// ---- flags (moved to ./flags.js so the entry chunk can use them without this module) ----
+export { FLAGS_ENV_NAME, FLAGS_OVERRIDE_KEY, parseKeyList, createFlags } from './flags.js'
 
 // ---- v1 blob mirror ----------------------------------------------------------
 
