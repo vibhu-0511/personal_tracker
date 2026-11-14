@@ -43,20 +43,97 @@ Cloud sync uses a Supabase project. See
 `docs/superpowers/specs/2026-09-15-cloud-sync-design.md` for the schema and
 the SQL to run once in the Supabase SQL Editor.
 
-## Tests
+## Scripts, tests and CI
+
+Every command below is a script in `package.json` (except where noted).
+
+### `npm run lint`
+
+`eslint .` with `eslint.config.js`: `@eslint/js` recommended plus the two classic React
+hooks rules, correctness only (no style rules). `dist/`, `dist-e2e/`, `test-results/`,
+`playwright-report/` and `public/` are ignored.
+
+### `npm test`
+
+`node --test "test/*.test.js"`: pure logic, the route table and router, the shortcut
+matcher and command registry, the update flow, the bundle-budget maths, the CSP and
+`vercel.json` guards and static CSS guards (`test/shellCss.test.js`). No browser and no
+network.
+
+### `npm run test:e2e`
+
+Playwright with Chromium only (`playwright.config.js`, specs in `e2e/`). The config starts
+its own server: `npm run build:e2e && npm run preview:e2e`, which builds with
+`vite build --mode e2e --outDir dist-e2e` (dummy, non-secret Supabase values from
+`.env.e2e`) and serves it on `http://localhost:4173`. Locally an already-running server on
+that port is reused; in CI it is not.
+
+- Fixtures in `e2e/fixtures/` are hermetic: the app boots signed in against a stubbed
+  Supabase, and any request that leaves localhost fails the test. No real credentials or
+  database are used.
+- Six projects. Five run the matrix specs (`e2e/smoke.spec.js`, `e2e/matrix/`) with the
+  service worker blocked: iPhone 14 (390x844), iPad portrait (834x1194), iPad landscape
+  (1194x834), iPad split view third (375x1024) and desktop Chrome (1440x900). The sixth,
+  `pwa`, is the only one that lets the service worker register and runs only
+  `e2e/pwa.spec.js` (SW takes control, offline shell reload, `/api/ics` not answered with
+  the app shell).
+- These are Chromium emulations of the iOS devices, not WebKit. Real iPhone and iPad
+  behaviour (install, offline, update, safe areas) is a manual check and has not been
+  verified by any automated job here.
+- First run on a machine needs the browser: `npx playwright install chromium` (CI uses
+  `--with-deps`). In CI the suite retries once and writes `playwright-report/`, which is
+  uploaded as an artifact only when the job fails (kept 14 days).
+
+### `npm run build`, `npm run size`
+
+`npm run build` is the production build (`vite build`) into `dist/`, including the service
+worker (`dist/sw.js`) and Workbox runtime.
+
+`npm run size` (`node scripts/ci/bundle-budget.mjs`) gzips every JS and CSS file in
+`dist/assets/` and fails when a budget in `scripts/ci/budgets.json` is exceeded. It reads
+`dist/`, so run `npm run build` first. Current budgets (1 kB = 1000 bytes, gzip): entry JS
+135, Life chunk 62, total JS 280, entry CSS 12. The budgets file notes they are to be
+re-baselined at the P0 gate; change numbers there, not in the script.
+
+### `npm run icons`
+
+`pwa-assets-generator` with `pwa-assets.config.js`. It regenerates the PWA icon set in
+`public/icons/` from `assets/icon-source.svg` (192 and 512 PNG, the 512 maskable, the 180
+Apple touch icon, `favicon.ico`, and a copy of the source as `favicon.svg`). The generated
+files are committed, so you only need this when the source SVG changes. Output is
+deterministic, so a second run leaves no diff.
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `master`; a newer
+run on the same ref cancels the older one. It has read-only repository permissions and
+uses Node 22. Two jobs run in parallel:
+
+| Job | Steps |
+|---|---|
+| `check` | `npm ci`, `npm run lint`, `npm test`, `npm run build`, `node scripts/ci/check-sw.mjs`, `npm run size`, then `npm audit --audit-level=high` |
+| `e2e` | `npm ci`, restore or install the Playwright Chromium (cache keyed on the `@playwright/test` version), `npm run test:e2e`, upload `playwright-report/` on failure |
+
+- `node scripts/ci/check-sw.mjs` is not an npm script. It inspects `dist/` after a build
+  and fails unless the precache has `index.html` and the icons but not `dsa/` or
+  `puzzles.json`, the navigation fallback denies `/api/` and `/dsa/`, `/api/` and
+  `*.supabase.co` are `NetworkOnly`, and `manifest.json` lists the 192, 512 and maskable
+  icons with an `id` and `scope`.
+- The `npm audit` step is informational: it has `continue-on-error`, so a new advisory
+  does not fail the build.
+- `.github/dependabot.yml` asks for weekly npm and GitHub Actions update PRs (at most 5
+  open each; npm minor and patch updates are grouped).
+- To run the same checks locally before pushing:
 
 ```bash
-npm test            # node --test "test/*.test.js": pure logic, router, shortcuts, CSS guards
-npm run build       # production build (vite build)
-npm run test:e2e    # Playwright smoke spec (builds with --mode e2e, serves on :4173)
+npm run lint && npm test && npm run build && node scripts/ci/check-sw.mjs && npm run size
+npm run test:e2e
 ```
 
-`npm test` has no browser: the logic modules, the route table and router, the shortcut
-matcher and command registry, and static CSS guards (`test/shellCss.test.js`) all run
-in node. `npm run test:e2e` drives Chromium only (`e2e/smoke.spec.js`, hermetic fixtures
-in `e2e/fixtures/`) across five viewport projects: iPhone 14 (390x844), iPad portrait
-(834x1194), iPad landscape (1194x834), iPad split view third (375x1024) and desktop
-Chrome (1440x900). It needs Playwright's Chromium installed.
+> **Needs a user action, not verified:** the workflow file is in the repo, but nothing here
+> proves Actions is enabled for the GitHub repository or that it has ever run. Making
+> `check` and `e2e` required status checks on `master` is a branch protection setting in
+> GitHub that has to be turned on by the repository owner.
 
 ## API smoke tests
 
@@ -201,6 +278,60 @@ table above. Then:
 > The DSA mastery map (`public/dsa/mastery-map.html`) can't read Vite env vars — its
 > Supabase URL/anon key are hardcoded as literals near the top of its persistence
 > script and must be updated there too if the project's credentials ever change.
+
+### Preview deployments
+
+`vercel.json` holds the routing, security headers and cache headers; there is no Vercel
+setting in the repo that turns previews on. The usual Vercel Git integration builds a
+preview for each branch or pull request once the GitHub repository is linked to the Vercel
+project, and `npx vercel` (without `--prod`) makes a preview from your working copy.
+
+> **Needs a user action, not verified:** linking the repo to a Vercel project and setting
+> the environment variables are dashboard actions. Whether the Git integration is connected,
+> which Node version the project uses, and which scopes (Production, Preview, Development)
+> hold the variables have not been checked from this repo. The CI Node version is 22; the
+> Vercel project's Node setting is not in the repo.
+
+- Variables to set in Vercel (Production and, if you want working previews, Preview):
+  `GROQ_API_KEY`, `OWNER_USER_ID`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`; optional
+  `GROQ_MODEL`, `ALLOWED_ORIGINS`, `AGENT_RATE_PER_MIN`, `AGENT_RATE_PER_DAY`,
+  `VITE_API_BASE`. Meanings and defaults are in the Environment table above.
+- `OWNER_USER_ID` must be set in every scope that serves `/api/agent`, or that scope
+  rejects every call (fail-closed).
+- A preview that is given the production Supabase variables reads and writes the
+  production `kv_store` rows, so edits made in a preview are real edits. Using a separate
+  Supabase project (or at least separate keys) for the Preview scope avoids that. This is
+  an open decision for the owner; nothing in the repo enforces either choice.
+- The `VITE_` values are baked in at build time, so changing them needs a new deployment.
+- CI does not deploy and does not use any of these variables: the E2E build uses the
+  dummy values in `.env.e2e`.
+
+### In-app update prompt (PWA)
+
+The service worker is generated by `vite-plugin-pwa` in `vite.config.js` with
+`registerType: 'prompt'` and no `skipWaiting`, so a new build never replaces the running one
+by itself. Registration and the prompt live in `src/pwa/`; the prompt is mounted in its own
+React root from `src/main.jsx`.
+
+1. The app checks for a new service worker hourly and each time the tab becomes visible
+   again (`scheduleUpdateChecks` in `src/pwa/updateFlow.js`). `vercel.json` serves `/sw.js`
+   and `/manifest.json` with `Cache-Control: no-cache`, and `/assets/*` as immutable, so a
+   check sees a new worker as soon as one is deployed.
+2. When a new worker is installed and waiting, a bar reads "A new version is ready" with
+   two buttons.
+3. **Reload** first awaits the store's `flush()` so debounced edits (up to about 700 ms of
+   writes) reach storage, then calls `updateServiceWorker(true)`, which activates the new
+   worker and reloads the page. It is the only code path that applies an update. If the
+   flush throws, the update still goes ahead so you are not stranded on an old build. While
+   it runs the button shows "Saving…".
+4. **Later** only hides the bar. The app does not activate the waiting worker by itself.
+5. On the first install, a bar reads "Ready to work offline" with an OK button.
+
+The prompt is registered only in production builds, only where `serviceWorker` exists, and
+not inside the Capacitor native app. `npm run dev` never registers a service worker. The
+flush-then-update logic is unit-tested in `test/updateFlow.test.js`; the end-to-end update
+prompt on a real device (including iOS home-screen installs) is a manual check and has not
+been verified here.
 
 ## Not built yet
 
