@@ -61,10 +61,56 @@ const engine = createSyncRouter({
   flags,
   // announce changes made by pulls and other tabs, and start mirroring the key
   onV2Key: (key, engine2) => {
-    engine2.subscribe(key, () => emitStoreKey(key))
+    markLocalWrites(engine2)
+    engine2.subscribe(key, (blob) => {
+      emitStoreKey(key)
+      notifyRemote(key, blob, { local: isWriting(key) })
+    })
     mirror.watch(key)
   },
 })
+
+// Listeners of syncBackend.subscribe (useSynced's snapshot store, App's v2 tab refresh).
+// Fed by engine2's per-key subscription for v2 keys and by announceRemote for v1 pulls.
+// With every flag off and nobody subscribed this map is empty and nothing here runs.
+const remoteListeners = new Map() // key -> Set<fn(blob, {local})>
+
+function notifyRemote(key, blob, info) {
+  const set = remoteListeners.get(key)
+  if (!set || set.size === 0) return
+  for (const fn of [...set]) {
+    try {
+      fn(blob, info)
+    } catch (err) {
+      console.error('sync listener failed', err)
+    }
+  }
+}
+
+// Writes made by this tab that are still inside engine2 (counted by markLocalWrites).
+// A v2 emission while one is open is the echo of our own write (info.local), not a
+// remote change, so App does not refetch tabs for it.
+const writesInFlight = new Map()
+const isWriting = (key) => (writesInFlight.get(key) || 0) > 0
+const patched = new WeakSet()
+
+function markLocalWrites(engine2) {
+  if (patched.has(engine2)) return
+  patched.add(engine2)
+  for (const method of ['save', 'update']) {
+    const original = engine2[method].bind(engine2)
+    engine2[method] = async (key, ...rest) => {
+      writesInFlight.set(key, (writesInFlight.get(key) || 0) + 1)
+      try {
+        return await original(key, ...rest)
+      } finally {
+        const left = (writesInFlight.get(key) || 1) - 1
+        if (left > 0) writesInFlight.set(key, left)
+        else writesInFlight.delete(key)
+      }
+    }
+  }
+}
 
 // engine.mutate saves directly, so announce the key change here (useStoreKey listeners).
 async function mutateEmit(key, fn, fallback) {
@@ -86,6 +132,42 @@ async function saveSynced(key, data) {
   await engine.save(key, data)
   emitStoreKey(key)
 }
+
+// What useSynced's snapshot store and App's subscriptions talk to (R6-14): the router
+// surface, with writes going through the same emitStoreKey wrappers as every saveX.
+const syncBackend = {
+  get: (key, fallback) => getSynced(key, fallback),
+  save: (key, data) => saveSynced(key, data),
+  update: (key, fn, fallback) => mutateEmit(key, fn, fallback),
+  // fn(blob, {local}) when a pull or another tab changes the key (v2), or after a v1 pull
+  // announced by announceRemote. Returns the unsubscribe function.
+  subscribe(key, fn) {
+    let set = remoteListeners.get(key)
+    if (!set) remoteListeners.set(key, (set = new Set()))
+    set.add(fn)
+    return () => {
+      set.delete(fn)
+      if (set.size === 0 && remoteListeners.get(key) === set) remoteListeners.delete(key)
+    }
+  },
+  onStatusChange: (fn) => engine.onStatusChange(fn),
+  // { pending, lastSyncedAt }. engine2 is absent (zeros) until a v2 key is on.
+  syncStatus() {
+    const v2 = engine.v2
+    if (!v2) return { pending: 0, lastSyncedAt: null }
+    const s = v2.syncStatus()
+    return { pending: s.pending, lastSyncedAt: s.lastSyncedAt }
+  },
+  isV2: (key) => engine.isV2(key),
+  // A v1 pull changed `key` locally: hand the new blob to subscribers. Reads nothing
+  // when nobody subscribed, so with useSynced unused this does no work.
+  async announceRemote(key) {
+    if (!remoteListeners.get(key)?.size) return
+    const blob = await engine.get(key, undefined)
+    if (blob !== undefined) notifyRemote(key, blob, { local: false })
+  },
+}
+export { syncBackend }
 
 export const SYNCED_KEYS = [
   'settings', 'notes', 'progress', 'expenses', 'budgets', 'goals',
