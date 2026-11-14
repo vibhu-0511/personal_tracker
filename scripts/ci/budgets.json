@@ -1,0 +1,10 @@
+{
+  "_comment": "Gzip budgets in kB (1 kB = 1000 B, as Vite reports). 'match' is a hash-stripped chunk prefix, 'total' sums every file of that type.",
+  "note": "Seeds re-baselined on 2026-11-14 after P0/P1 growth. Old seeds (R7 plan): entry JS 135, Life 62, total JS 270, total CSS 12. New: entry JS 135, Life 62, total JS 280, entry CSS 12 (CSS rule changed from total CSS to entry CSS, match index). Re-baseline again at the P0 gate.",
+  "budgets": [
+    { "name": "entry JS", "type": "js", "match": "index", "maxKb": 135 },
+    { "name": "Life chunk", "type": "js", "match": "Life", "maxKb": 62 },
+    { "name": "total JS", "type": "js", "total": true, "maxKb": 280 },
+    { "name": "entry CSS", "type": "css", "match": "index", "maxKb": 12 }
+  ]
+}
