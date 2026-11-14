@@ -6,9 +6,9 @@
 //        v1 keys: the kv_store realtime row -> reconcileKey(key); only a 'pull' refreshes.
 //        v2 keys: the engine's own subscription (via the store's syncBackend); a change
 //                 made by this tab's own write is skipped (the caller already has it).
-//   2. bootSync           the startup order. Render waits for the network pull only when
-//                 there is no local pull cursor; with one, it renders from local data and
-//                 the pull runs in the background.
+//   2. bootSync           the startup order. Render waits for the network pull when there is
+//                 no local pull cursor; with one, it renders from local data and the v2 pull
+//                 runs in the background (the v1 reconcile is always awaited).
 //   3. syncBannerText     the banner line.
 //
 // FLAGS OFF = v1, unchanged: isV2 is false for every key, so no engine subscription is
@@ -96,8 +96,13 @@ export function createRemoteSync({ keys, isV2 = () => false, reconcileKey, subsc
 //   local cursor:    read settings now and run reconcileAll() in the background.
 // Resolves { settings, background } where background is null or a promise that never
 // rejects (it reports through onBackgroundDone / onBackgroundError).
+//
+// reconcileV1 / reconcileV2 (optional, both): the same work as reconcileAll split in two.
+// With a cursor, the v1 half is still awaited before render, exactly as v1 always did (a
+// save made before it finishes could push stale data over a newer cloud blob); only the
+// v2 half runs in the background. Without them, the whole reconcileAll is the background.
 export async function bootSync({
-  userId, claimOwner, reconcileAll, getSettings, hasLocalCursor,
+  userId, claimOwner, reconcileAll, reconcileV1, reconcileV2, getSettings, hasLocalCursor,
   onBackgroundDone, onBackgroundError,
 }) {
   await claimOwner(userId)
@@ -112,8 +117,10 @@ export async function bootSync({
     await reconcileAll()
     return { settings: await getSettings(), background: null }
   }
+  const split = typeof reconcileV1 === 'function' && typeof reconcileV2 === 'function'
+  if (split) await reconcileV1()
   const background = Promise.resolve()
-    .then(() => reconcileAll())
+    .then(() => (split ? reconcileV2() : reconcileAll()))
     .then(() => onBackgroundDone?.(), (err) => onBackgroundError?.(err))
   return { settings: await getSettings(), background }
 }

@@ -366,7 +366,9 @@ export function createEngine2({
   }
 
   // Must be called with the write lock held and init done.
-  async function writeLocked(key, next) {
+  // `stampOverride` (migration seeding only): () => hlc, used instead of the clock so a
+  // seeded record carries a deliberately old stamp and never beats a cloud record.
+  async function writeLocked(key, next, stampOverride) {
     assertShape(key, next)
     const adapter = adapterFor(key)
     await mergeOutboxFromDb()
@@ -387,7 +389,7 @@ export function createEngine2({
         next: nextItems,
         served: servedItems,
         current,
-        stamp: () => clock.send(),
+        stamp: stampOverride ?? (() => clock.send()),
         deviceId: meta.deviceId,
         ordered,
       })
@@ -461,7 +463,7 @@ export function createEngine2({
 
   // Serialised read-modify-write. The read is fresh from the db inside the lock,
   // so another tab's committed write is part of what fn sees.
-  async function update(key, fn, fallback) {
+  async function update(key, fn, fallback, { stamp } = {}) {
     adapterFor(key)
     if (typeof fn !== 'function') throw new TypeError('engine2: update needs a function')
     return enqueue(key, async () => {
@@ -470,7 +472,7 @@ export function createEngine2({
         const blob = await materialise(key, fallback, { fresh: true })
         served.set(key, clone(blob === fallback ? adapterFor(key).empty() : blob))
         const updated = await fn(blob)
-        await writeLocked(key, updated)
+        await writeLocked(key, updated, stamp)
         return updated
       })
     })
