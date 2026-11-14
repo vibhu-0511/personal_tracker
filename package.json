@@ -15,7 +15,8 @@
     "build:e2e": "vite build --mode e2e --outDir dist-e2e",
     "preview:e2e": "vite preview --mode e2e --outDir dist-e2e --port 4173 --strictPort",
     "icons": "pwa-assets-generator",
-    "size": "node scripts/ci/bundle-budget.mjs"
+    "size": "node scripts/ci/bundle-budget.mjs",
+    "check:secrets": "node scripts/check-bundle-secrets.mjs dist"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

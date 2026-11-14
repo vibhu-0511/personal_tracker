@@ -28,6 +28,7 @@ jobs:
       - run: npm run build
       - run: node scripts/ci/check-sw.mjs
       - run: npm run size
+      - run: npm run check:secrets
       # Informational only: a new advisory must not block unrelated PRs.
       - name: npm audit (informational)
         run: npm audit --audit-level=high
