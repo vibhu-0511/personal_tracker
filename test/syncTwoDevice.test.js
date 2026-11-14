@@ -322,6 +322,14 @@ test('a wrong-clock phone (+1 year) does not win: its stamp never reaches the cl
     const row = w.server.getRow('u1', 'tasks', '1')
     assert.equal(row.body.title, 'laptop, later')
     assert.ok(Number(row.hlc.slice(0, 15)) - w.clock.now() <= DAY, 'the stored stamp is within the drift guard')
+
+    // the phone's dropped edit is not acked as synced: it reconciles to the cloud and converges
+    await w.converge()
+    assert.deepEqual(view(await phone.get()), [{ id: 1, title: 'laptop, later' }])
+    assert.deepEqual(view(await laptop.get()), [{ id: 1, title: 'laptop, later' }])
+    assert.equal(w.server.getRow('u1', 'tasks', '1').body.title, 'laptop, later')
+    assert.equal(phone.engine.syncStatus().pending, 0)
+    assert.equal(phone.engine.syncStatus().quarantined, 0)
   } finally {
     w.closeAll()
   }
