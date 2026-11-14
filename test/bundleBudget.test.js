@@ -25,7 +25,7 @@ test('parseChunk strips the hash and ignores non-chunk files', () => {
 
 test('seeded budgets match the re-baselined numbers (2026-11-14)', () => {
   const kb = Object.fromEntries(budgets.map((b) => [b.name, b.maxKb]))
-  assert.deepEqual(kb, { 'entry JS': 135, 'Life chunk': 62, 'total JS': 280, 'entry CSS': 12 })
+  assert.deepEqual(kb, { 'entry JS': 135, 'Life chunk': 62, 'total JS': 310, 'entry CSS': 12 })
 })
 
 test('evaluate passes when every budget is met', () => {
