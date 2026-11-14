@@ -363,3 +363,14 @@ test('mark validates its arguments', () => {
   assert.throws(() => ob.mark('tasks', '', hlc(1)), TypeError)
   assert.throws(() => ob.mark('tasks', 'a', ''), TypeError)
 })
+
+test('discardQuarantined forgets only the quarantined version it names', () => {
+  const ob = createOutbox({})
+  ob.mark('tasks', 't1', hlc(1))
+  assert.equal(ob.quarantine({ collection: 'tasks', id: 't1', hlc: hlc(1) }, 'why'), true)
+  assert.equal(ob.discardQuarantined('tasks', 't1', hlc(2)), false)
+  assert.equal(ob.quarantinedEntries().length, 1)
+  assert.equal(ob.discardQuarantined('tasks', 't1', hlc(1)), true)
+  assert.equal(ob.quarantinedEntries().length, 0)
+  assert.equal(ob.size(), 0)
+})

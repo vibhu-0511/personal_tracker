@@ -1,6 +1,6 @@
 import test, { mock, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { createEngine2, OUTBOX_KEY, META_KEY, DEBOUNCE_MS, LONG_OFFLINE_MS } from '../src/sync/engine2.js'
+import { createEngine2, OUTBOX_KEY, META_KEY, DEBOUNCE_MS, LONG_OFFLINE_MS, REJECTED_REASON } from '../src/sync/engine2.js'
 import { createCloudV2 } from '../src/sync/cloudV2.js'
 import { serialize } from '../src/sync/hlc.js'
 import { createFakeCloudV2 } from './helpers/fakeCloudV2.js'
@@ -116,7 +116,7 @@ function setup(opts = {}) {
       lock,
       bus: group.make(),
       cloud,
-      now: clock.now,
+      now: extra.skew ? () => clock.now() + extra.skew() : clock.now,
       newId: () => `${name}${String(++n).padStart(3, '0')}`,
       random: () => 0,
       win: winEvents,
@@ -484,5 +484,101 @@ test('v2 stays off: the engine does nothing on the network until startSync()', a
   assert.deepEqual(client.calls, { push: 0, pull: 0 })
   assert.equal((await engine.flush()).status, 'not-owner')
   assert.equal(engine.syncStatus().owner, false)
+  engine.close()
+})
+
+// ---- rows the server accepts but does not apply (R6-08 follow-up) -----------------------------
+
+test('forge_push drops a stamp more than 24 h ahead: only the applied row is acked, the dropped one is quarantined', async () => {
+  let skew = 0
+  const { db, make } = setup()
+  const { engine, client } = make('a', { skew: () => skew })
+  await engine.startSync()
+  await engine.save('tasks', [{ id: 'good', title: 'ok' }])
+  await engine.flush()
+  await engine.save('tasks', [{ id: 'good', title: 'ok2' }]) // sane stamp
+  skew = 365 * DAY // the wrong clock starts before the drain
+  await engine.save('tasks', [{ id: 'good', title: 'ok2' }, { id: 'bad', title: 'future' }])
+  const r = await engine.flush()
+  assert.equal(r.rejected, 1)
+  assert.equal(client.getRow('u1', 'tasks', 'good').body.title, 'ok2', 'the applied row is acked')
+  assert.equal(client.getRow('u1', 'tasks', 'bad'), null, 'the server dropped it')
+  assert.equal(engine.outbox.size(), 0, 'nothing is left dirty (and nothing retries forever)')
+  const q = db.snapshot()[OUTBOX_KEY].quarantined
+  assert.equal(q.length, 1)
+  assert.equal(q[0][1], 'bad')
+  assert.equal(q[0][3], REJECTED_REASON)
+  engine.close()
+})
+
+test('a rejected record is re-stamped and pushed once the device clock is sane again', async () => {
+  let skew = 365 * DAY
+  const { clock, make } = setup()
+  const { engine, client } = make('a', { skew: () => skew })
+  await engine.startSync()
+  await engine.save('tasks', [{ id: 'n1', title: 'made on a wrong clock' }])
+  const wrongStamp = engine.clock.peek()
+  await engine.flush()
+  assert.equal(client.getRow('u1', 'tasks', 'n1'), null)
+  assert.equal(engine.outbox.quarantinedEntries().length, 1, 'wrong clock still: nothing to fix, it waits quarantined')
+  assert.deepEqual(await titles(engine), ['made on a wrong clock'], 'the local record is kept')
+  const calls = client.pushed.length
+  await engine.flush()
+  assert.equal(client.pushed.length, calls, 'a quarantined entry is not pushed again')
+
+  skew = 0
+  await engine.pull() // sees no server row and a stamp out of drift range of the fixed clock
+  clock.advance(DEBOUNCE_MS)
+  await engine.whenIdle()
+  const row = client.getRow('u1', 'tasks', 'n1')
+  assert.equal(row?.body.title, 'made on a wrong clock')
+  assert.ok(row.hlc < wrongStamp, 'it went out with a sane stamp')
+  assert.ok(Number(row.hlc.slice(0, 15)) - clock.now() <= DAY)
+  assert.equal(engine.syncStatus().quarantined, 0)
+  engine.close()
+})
+
+test('a rejected local version is replaced by the server row, whatever the hlc order', async () => {
+  let skew = 0
+  const { clock, db, make } = setup()
+  const a = make('a', { skew: () => skew })
+  const other = make('b').client
+  await a.engine.startSync()
+  await a.engine.save('tasks', [{ id: 't1', title: 'base' }])
+  await a.engine.flush()
+  clock.advance(1000)
+  skew = 365 * DAY
+  await a.engine.update('tasks', (l) => l.map((x) => ({ ...x, title: 'future edit' })), [])
+  skew = 0
+  assert.equal((await a.engine.flush()).rejected, 1) // the drain pulls and reconciles on its own
+  assert.deepEqual(await titles(a.engine), ['base'], 'the server row beat the local far-future stamp')
+  assert.equal(a.engine.syncStatus().quarantined, 0)
+  assert.equal(db.snapshot()[OUTBOX_KEY].quarantined.length, 0)
+  assert.ok(Number(a.engine.clock.peek().slice(0, 15)) - clock.now() < DAY, 'the clock no longer follows the refused stamp')
+
+  // a later remote edit is accepted, and a later local edit goes through and converges
+  await remoteTask(other, 't1', 'later', clock.now() + 5000)
+  await a.engine.pull()
+  assert.deepEqual(await titles(a.engine), ['later'])
+  await a.engine.update('tasks', (l) => l.map((x) => ({ ...x, title: 'a, sane' })), [])
+  await a.engine.flush()
+  assert.equal(a.client.getRow('u1', 'tasks', 't1').body.title, 'a, sane')
+  a.engine.close()
+})
+
+test('a replayed row the server already holds is not applied, and reconciles to an equal row', async () => {
+  const { make } = setup()
+  const { engine, client } = make('a')
+  await engine.startSync()
+  await engine.save('tasks', [{ id: 't1', title: 'one' }])
+  await engine.flush()
+  const rec = client.getRow('u1', 'tasks', 't1')
+  // the ack was lost: the entry is dirty again at the same hlc and is replayed
+  engine.outbox.mark('tasks', 't1', rec.hlc)
+  const r = await engine.flush()
+  assert.equal(r.rejected, 1, 'the replay is not returned by forge_push')
+  assert.equal(engine.syncStatus().quarantined, 0, 'the pull found the equal server row and cleared it')
+  assert.equal(engine.outbox.size(), 0)
+  assert.deepEqual(await titles(engine), ['one'])
   engine.close()
 })

@@ -81,6 +81,9 @@ export const BUS_OWNER_TYPE = 'r2:owner' // another user took over this device: 
 export const DEBOUNCE_MS = 700
 export const PULL_OVERLAP = 50
 export const LONG_OFFLINE_MS = 60 * 24 * 60 * 60 * 1000
+// Quarantine reason of an entry the server accepted without applying (forge_push
+// silently drops a stamp more than 24 h ahead, and ignores a stale or replayed row).
+export const REJECTED_REASON = 'rejected: not applied by the server'
 export const collectionKey = (collection) => `r2:${collection}`
 
 // hlc = '<15 digits>-<4 hex>-<node>'; the node starts at index 21.
@@ -177,6 +180,8 @@ export function createEngine2({
   let rt = null // { userId, sub }
   let rtQueue = Promise.resolve()
   let lastError = null
+  let rejectedTotal = 0 // entries quarantined as rejected since start
+  const reviewed = new Set() // rejected entries a from-scratch pull already looked at (pair + hlc)
   const sentLog = new Map() // pair -> hlc of every entry handed to send() since the last persist
   const setT = (fn, ms) => globalThis.setTimeout(fn, ms)
   const clearT = (h) => globalThis.clearTimeout(h)
@@ -243,14 +248,36 @@ export function createEngine2({
 
   // Make the clock exceed every stored stamp it loads, so a device clock that
   // went backwards (or another tab's stamp) cannot make a new edit lose.
+  // A version the server refused (REJECTED_REASON) is never observed: its stamp
+  // may be a wrong clock's, and observing it would drag every later edit there.
   function observe(map) {
+    const refused = rejectedVersions()
     let max = null
-    for (const rec of map.values()) if (max === null || rec.hlc > max) max = rec.hlc
+    for (const rec of map.values()) {
+      if (refused.get(pairKey(rec.collection, rec.id)) === rec.hlc) continue
+      if (max === null || rec.hlc > max) max = rec.hlc
+    }
     if (max !== null && max > clock.peek()) {
       try {
         clock.receive(max, { maxDriftMs: Infinity })
       } catch { /* an unusable stamp cannot be observed */ }
     }
+  }
+
+  // pair -> hlc of every quarantined entry the server rejected.
+  function rejectedVersions() {
+    const out = new Map()
+    for (const q of outbox?.quarantinedEntries() ?? []) {
+      if (q.reason === REJECTED_REASON) out.set(pairKey(q.collection, q.id), q.hlc)
+    }
+    return out
+  }
+
+  // Fresh clock that has observed the loaded records (less the refused versions):
+  // drops a stamp the in-memory clock took from a record the server rejected.
+  function resetClock() {
+    clock = createClock({ node: meta.deviceId, now })
+    for (const map of cache.values()) observe(map)
   }
 
   async function readCollection(collection) {
@@ -576,9 +603,12 @@ export function createEngine2({
   }
 
   // Reads the current record of every entry from the db at send time, then pushes.
-  // Resolves the entries it was given: an entry is acked by its own hlc, and one
+  // Resolves the entries to ack: an entry is acked by its own hlc, and one
   // re-marked meanwhile (a newer edit) stays dirty. An entry whose record is gone
-  // has nothing to send and is dropped.
+  // has nothing to send and is dropped. forge_push returns only the rows it
+  // APPLIED; a pushed row that is missing from that answer (clock-drift drop, or a
+  // stale replay) is NOT acked: it is quarantined as rejected, and the next pull
+  // reconciles the local record to the server (see applyRemote).
   async function sendBatch(entries) {
     const recs = await lock(LOCK_NAME, async () => {
       const out = []
@@ -589,8 +619,16 @@ export function createEngine2({
       return out
     })
     for (const e of entries) sentLog.set(pairKey(e.collection, e.id), e.hlc)
-    if (recs.length > 0) await cloud.push(recs)
-    return entries
+    if (recs.length === 0) return entries
+    const applied = new Set((await cloud.push(recs)).map((a) => pairKey(a.collection, String(a.id))))
+    const pushed = new Set(recs.map((r) => pairKey(r.collection, r.id)))
+    const acked = []
+    for (const e of entries) {
+      const k = pairKey(e.collection, e.id)
+      if (!pushed.has(k) || applied.has(k)) acked.push(e)
+      else if (outbox.quarantine(e, REJECTED_REASON)) rejectedTotal += 1
+    }
+    return acked
   }
 
   async function persistOutbox() {
@@ -622,13 +660,18 @@ export function createEngine2({
     if (!(await ensureOwner(userId))) return { status: 'owner-mismatch' }
     let sent = 0
     const bad = []
+    const rejectedBefore = rejectedTotal
     for (;;) {
+      const mark = rejectedTotal
       const r = await outbox.drainOnce({ send: sendBatch, refreshSession })
       sent += r.sent
       bad.push(...r.quarantined)
-      if (r.sent > 0 || r.quarantined.length > 0) await persistOutbox()
-      if (r.status === 'sent' && outbox.size() > 0 && (r.sent > 0 || r.quarantined.length > 0)) continue
-      return { ...r, status: r.status === 'sent' ? 'idle' : r.status, sent, quarantined: bad }
+      const progress = r.sent > 0 || r.quarantined.length > 0 || rejectedTotal > mark
+      if (progress) await persistOutbox()
+      if (r.status === 'sent' && outbox.size() > 0 && progress) continue
+      // The server dropped something: reconcile it from the server's rows now.
+      if (rejectedTotal > rejectedBefore) await requestPull()
+      return { ...r, status: r.status === 'sent' ? 'idle' : r.status, sent, quarantined: bad, rejected: rejectedTotal - rejectedBefore }
     }
   }
 
@@ -693,7 +736,15 @@ export function createEngine2({
   // Applies cloud rows (pull page set or one realtime row) under the write lock:
   // per-record merge by hlc, persist, then (pull only) advance the cursor, drop
   // GC'd records on a full pull, notify subscribers and other tabs.
-  async function applyRemote(rows, { cursor = null, pullStart = null, full = false, epoch: ep = epoch, userId = null } = {}) {
+  //
+  // Reconciling rejected entries (REJECTED_REASON): the server refused that local
+  // version, so any server row for the record replaces it whatever the hlc order
+  // (this is what lets a phone with a wrong clock converge: its far-future stamp
+  // would otherwise beat every remote update). When the pull started from rev 0
+  // (`reconcile`) and the server has no row at all, a local stamp that is out of
+  // drift range of this device's own clock (the clock was fixed since) is
+  // re-stamped and queued again; otherwise the record stays quarantined.
+  async function applyRemote(rows, { cursor = null, pullStart = null, full = false, reconcile = false, epoch: ep = epoch, userId = null } = {}) {
     return lock(LOCK_NAME, async () => {
       if (ep !== epoch || (userId !== null && meta.userId !== userId)) return { applied: 0, dropped: 0, stale: true }
       await mergeOutboxFromDb()
@@ -706,15 +757,23 @@ export function createEngine2({
         if (!full && fullSeen) fullSeen.add(pairKey(row.collection, String(row.id)))
       }
       const touched = new Set()
+      const refused = rejectedVersions()
       let applied = 0
       let dropped = 0
+      let reconciled = 0
+      let restamped = 0
       for (const [c, list] of byCollection) {
         const adapter = adapterFor(COLLECTION_TO_KEY[c])
         const map = await loadCollection(c, { fresh: true })
         for (const row of list) {
           const id = String(row.id)
           const local = map.get(id)
-          if (!accepts(adapter, local, row, wall)) continue
+          const supersede = local != null && refused.get(pairKey(c, id)) === local.hlc
+          if (!accepts(adapter, supersede ? null : local, row, wall)) continue
+          if (supersede) {
+            outbox.discardQuarantined(c, id, local.hlc)
+            reconciled += 1
+          }
           map.set(id, {
             collection: c, id, body: row.body ?? null, pos: row.pos ?? null,
             hlc: row.hlc, deviceId: nodeOf(row.hlc), deletedAt: row.deletedAt ?? null,
@@ -727,6 +786,32 @@ export function createEngine2({
         }
         observe(map)
       }
+
+      if (reconcile) {
+        const inCloud = new Set(rows.map((r) => pairKey(r.collection, String(r.id))))
+        const stamps = []
+        for (const q of outbox.quarantinedEntries()) {
+          if (q.reason !== REJECTED_REASON) continue
+          const k = pairKey(q.collection, q.id)
+          const rec = inCloud.has(k) ? null : (await loadCollection(q.collection, { fresh: true })).get(q.id)
+          if (rec && rec.hlc === q.hlc && isDrifted(rec.hlc, wall)) stamps.push(rec)
+          else reviewed.add(`${k}\u0000${q.hlc}`)
+        }
+        if (stamps.length > 0) {
+          resetClock() // the in-memory clock may have followed the refused stamp
+          for (const rec of stamps) {
+            const hlc = clock.send()
+            cache.get(rec.collection).set(rec.id, {
+              ...rec, hlc, deviceId: nodeOf(hlc),
+              deletedAt: rec.deletedAt == null ? null : new Date(hlcPhysicalMs(hlc)).toISOString(),
+            })
+            outbox.mark(rec.collection, rec.id, hlc) // a newer hlc leaves quarantine
+            touched.add(rec.collection)
+            restamped += 1
+          }
+        }
+      }
+      if (reconciled > 0 && restamped === 0) resetClock()
 
       if (full) {
         // Offline for more than 60 days: the server may have GC'd tombstones, so a
@@ -773,6 +858,7 @@ export function createEngine2({
           bus?.postMessage({ type: BUS_TYPE, from: tabId, collections: [...touched] })
         } catch { /* other tabs reload on their next write or start */ }
       }
+      if (restamped > 0) schedulePush()
       return { applied, dropped, stale: false }
     })
   }
@@ -785,11 +871,14 @@ export function createEngine2({
     const ep = epoch
     const pullStart = now()
     const isFull = full || (meta.lastPullAt != null && pullStart - meta.lastPullAt > LONG_OFFLINE_MS)
-    const sinceRev = isFull || meta.cursor == null ? 0 : Math.max(0, meta.cursor - PULL_OVERLAP)
+    // A rejected local version hides the server's row from a delta pull (the row's
+    // rev is below the cursor), so while one is unreviewed the pull starts at 0.
+    const wantsRejected = outbox.quarantinedEntries().some((q) => q.reason === REJECTED_REASON && !reviewed.has(`${pairKey(q.collection, q.id)}\u0000${q.hlc}`))
+    const sinceRev = isFull || wantsRejected || meta.cursor == null ? 0 : Math.max(0, meta.cursor - PULL_OVERLAP)
     fullSeen = isFull ? new Set() : null
     try {
       const res = await cloud.pull({ sinceRev })
-      const out = await applyRemote(res.rows, { cursor: res.cursor, pullStart, full: isFull, epoch: ep, userId })
+      const out = await applyRemote(res.rows, { cursor: res.cursor, pullStart, full: isFull, reconcile: sinceRev === 0, epoch: ep, userId })
       pullAttempts = 0
       return { status: 'ok', full: isFull, rows: res.rows.length, applied: out.applied, dropped: out.dropped }
     } catch (err) {

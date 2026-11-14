@@ -169,6 +169,16 @@ export function createOutbox({
     return true
   }
 
+  // Forget a quarantined version (the engine reconciled the record to the server).
+  // Only the version named is dropped; a newer edit already left quarantine in mark().
+  function discardQuarantined(collection, id, hlc) {
+    const key = keyOf(collection, id)
+    const q = quarantined.get(key)
+    if (!q || q.hlc !== hlc) return false
+    quarantined.delete(key)
+    return true
+  }
+
   // Put a quarantined pair back into the dirty set (manual retry).
   function release(collection, id) {
     const key = keyOf(collection, id)
@@ -343,6 +353,8 @@ export function createOutbox({
     mark,
     ack,
     release,
+    quarantine,
+    discardQuarantined,
     isDue,
     nextBatch,
     drainOnce,
