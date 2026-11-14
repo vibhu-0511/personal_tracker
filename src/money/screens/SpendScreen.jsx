@@ -3,12 +3,14 @@ import { deleteWithUndo } from '../../undo.js'
 import { formatMonth } from '../format.js'
 import EmptyState from '../../ui/EmptyState.jsx'
 import SpendSummary from './SpendSummary.jsx'
-import TxnList from './TxnList.jsx'
+import TxnList, { TxnDetail } from './TxnList.jsx'
+import { useInspector } from '../../shell/inspectorContext.js'
 import './spend.css'
 
 // Money > Spend: Overview and Txns merged (blueprint money.spend = spend + recent).
-// Stacked on phones; summary and list sit side by side from 1024px (spend.css).
-// onSelectTxn(expense) / selectedId let the shell inspector show a TxnDetail (R4-22).
+// Stacked in a narrow main area, side by side in a wide one (spend.css, `money` container).
+// Selecting a row opens TxnDetail through useInspector(): the right-hand pane from 1024px,
+// the Sheet below. onSelectTxn / selectedId still override that when a caller passes them.
 
 export default function SpendScreen({ onSelectTxn, selectedId = null }) {
   const {
@@ -16,8 +18,14 @@ export default function SpendScreen({ onSelectTxn, selectedId = null }) {
     persistExpenses, openAdd, openEdit, ready, error,
   } = useMoney()
 
+  const { node, open } = useInspector()
+
   if (error) return <EmptyState icon="⚠️" text={`Couldn't load Money: ${error}`} />
   if (!ready) return <EmptyState text="Loading…" />
+
+  const openedId = node?.type === TxnDetail ? node.props.id : null
+  const activeId = selectedId ?? openedId
+  const handleSelect = onSelectTxn ?? ((e) => open(<TxnDetail key={e.id} id={e.id} />))
 
   function handleDelete(id) {
     deleteWithUndo({
@@ -39,8 +47,8 @@ export default function SpendScreen({ onSelectTxn, selectedId = null }) {
           expenses={expenses}
           onEdit={openEdit}
           onDelete={handleDelete}
-          onSelect={onSelectTxn}
-          selectedId={selectedId}
+          onSelect={handleSelect}
+          selectedId={activeId}
         />
       </div>
     </div>

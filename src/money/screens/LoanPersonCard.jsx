@@ -1,60 +1,97 @@
-import { LOAN_ACTIONS } from '../logic.js'
+import { useEffect } from 'react'
+import { useMoney } from '../MoneyContext.jsx'
+import { useInspector } from '../../shell/inspectorContext.js'
+import { LOAN_ACTIONS, computeLoanBalances } from '../logic.js'
 import { formatDate, formatRupees } from '../format.js'
 import { formatTime } from '../../time.js'
+import { deleteWithUndo } from '../../undo.js'
 
-// One person's loan ledger: the net balance (passed in, computed by
-// computeLoanBalances) and an expandable list of their entries.
-// Ports Expenses.jsx LoanPersonCard.
-export default function LoanPersonCard({ person, balance, loans, expanded, onToggle, onDelete }) {
+// One person in the Loans list: a selectable row with the net balance (passed in, computed by
+// computeLoanBalances). Selecting it opens LoanPersonDetail, the ledger, in the inspector pane
+// (from 1024px) or the Sheet; it replaces the old inline accordion. Ports Expenses.jsx LoanPersonCard.
+export default function LoanPersonCard({ person, balance, count, selected = false, onSelect }) {
   const owesYou = balance > 0
-  const sorted = [...loans].sort((a, b) => b.date - a.date)
   return (
-    <div className="card" style={{ marginBottom: 8, padding: 0 }}>
-      <button className="exam-section-header" onClick={onToggle} aria-expanded={expanded}>
-        <div style={{ flex: 1, textAlign: 'left' }}>
-          <div className="h3">{person}</div>
-          <div className="meta" style={{ fontSize: 12 }}>
-            {sorted.length} entr{sorted.length === 1 ? 'y' : 'ies'}
-          </div>
-        </div>
-        <span className={owesYou ? 'up' : 'down'} style={{ fontWeight: 700, marginRight: 8 }}>
+    <div className="card money-person-card" style={{ padding: 0 }} data-selected={selected ? '' : undefined}>
+      <button
+        type="button"
+        className="money-person-main"
+        onClick={onSelect}
+        aria-current={selected ? 'true' : undefined}
+      >
+        <span className="money-person-text">
+          <span className="h3">{person}</span>
+          <span className="money-small">{count} entr{count === 1 ? 'y' : 'ies'}</span>
+        </span>
+        <span className={`money-person-balance ${owesYou ? 'up' : 'down'}`}>
           {formatRupees(Math.abs(balance))}
         </span>
-        <span className="exam-section-arrow">{expanded ? '▲' : '▼'}</span>
+        <span className="money-person-chevron" aria-hidden="true">›</span>
       </button>
-      {expanded && (
-        <div style={{ padding: '0 16px 12px' }}>
-          {sorted.map((l) => {
-            const action = LOAN_ACTIONS.find((a) => a.id === l.direction)
-            return (
-              <div
-                key={l.id}
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)' }}
-              >
-                <div>
-                  <div style={{ fontSize: 13 }}>{action?.label || l.direction}</div>
-                  <div className="meta" style={{ fontSize: 11 }}>
-                    {formatDate(l.date)}, {formatTime(l.date)}{l.note ? ` · ${l.note}` : ''}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className={action?.sign > 0 ? 'up' : 'down'} style={{ fontWeight: 600 }}>
-                    {action?.sign > 0 ? '+' : '-'}{formatRupees(l.amount)}
-                  </span>
-                  <button
-                    className="btn btn-danger-ghost btn-sm"
-                    style={{ padding: '2px 6px' }}
-                    onClick={() => onDelete(l.id)}
-                    aria-label="Delete loan entry"
-                  >
-                    ×
-                  </button>
+    </div>
+  )
+}
+
+// Inspector body: one person's entries, newest first. `person` is the display name key used by
+// computeLoanBalances. Reads live loans; closes itself when the person has no entries left.
+export function LoanPersonDetail({ person }) {
+  const { loans, loansRef, persistLoans } = useMoney()
+  const { close } = useInspector()
+  const norm = person.trim().toLowerCase()
+  const mine = loans.filter((l) => l.person.trim().toLowerCase() === norm)
+  const sorted = [...mine].sort((a, b) => b.date - a.date)
+  const balance = Object.values(computeLoanBalances(mine))[0] ?? 0
+
+  useEffect(() => {
+    if (mine.length === 0) close()
+  }, [mine.length, close])
+
+  if (mine.length === 0) return null
+
+  function deleteEntry(id) {
+    deleteWithUndo({ list: loans, id, persist: persistLoans, ref: loansRef, label: () => 'Loan entry deleted' })
+  }
+
+  return (
+    <div className="money-detail">
+      <div className="money-detail-head">
+        <h3 className="money-detail-title">{person}</h3>
+      </div>
+      <div>
+        <div className={`money-detail-amount ${balance > 0 ? 'up' : 'down'}`}>{formatRupees(Math.abs(balance))}</div>
+        <div className="money-small">
+          {balance > 0 ? 'owes you' : balance < 0 ? 'you owe' : 'settled'} · {sorted.length} entr{sorted.length === 1 ? 'y' : 'ies'}
+        </div>
+      </div>
+      <ul className="money-detail-ledger">
+        {sorted.map((l) => {
+          const action = LOAN_ACTIONS.find((a) => a.id === l.direction)
+          return (
+            <li key={l.id} className="money-detail-entry">
+              <div className="money-detail-entry-main">
+                <div className="money-detail-entry-label">{action?.label || l.direction}</div>
+                <div className="money-detail-entry-meta">
+                  {formatDate(l.date)}, {formatTime(l.date)}{l.note ? ` · ${l.note}` : ''}
                 </div>
               </div>
-            )
-          })}
-        </div>
-      )}
+              <div className="money-detail-entry-amount">
+                <span className={action?.sign > 0 ? 'up' : 'down'}>
+                  {action?.sign > 0 ? '+' : '-'}{formatRupees(l.amount)}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-danger-ghost btn-sm"
+                  style={{ padding: '2px 6px' }}
+                  onClick={() => deleteEntry(l.id)}
+                  aria-label="Delete loan entry"
+                >
+                  ×
+                </button>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

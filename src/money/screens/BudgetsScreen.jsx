@@ -76,7 +76,7 @@ export default function BudgetsScreen() {
         </button>
       </div>
 
-      <div className="stat-row" style={{ marginBottom: 14 }}>
+      <div className="money-stats-row">
         <div className="stat-card">
           <div className="stat-value" style={{ fontSize: 20, color: 'var(--accent)' }}>
             {formatRupees(total.totalBudget)}
@@ -104,6 +104,7 @@ export default function BudgetsScreen() {
         <span className="section-title">Category Budgets</span>
       </div>
 
+      <div className="money-cat-grid">
       {CATEGORIES.map((cat) => {
         const catSpent = catSpending[cat.id] || 0
         const budget = budgets[cat.id] || 0
@@ -209,6 +210,7 @@ export default function BudgetsScreen() {
           </div>
         )
       })}
+      </div>
     </div>
   )
 }
