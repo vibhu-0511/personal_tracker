@@ -647,7 +647,8 @@
       "writes": [
         "src/money/MoneyContext.jsx",
         "test/moneyNoSpend.test.js",
-        "src/store.js"
+        "src/store.js",
+        "test/syncRouter.test.js"
       ],
       "reads": [
         "docs/plan/ember/DESIGN.md",
