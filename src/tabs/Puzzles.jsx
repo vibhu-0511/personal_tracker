@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { loadPuzzles } from '../puzzles.js'
-import { getPuzzleProgress, savePuzzleProgress } from '../store.js'
+import { getPuzzleProgress, savePuzzleProgress, syncBackend } from '../store.js'
+import { isSolved, markSolved, unmark, normalize, toStored, dayKey } from '../logic/puzzleProgress.js'
 import { useHydrate } from '../useHydrate.js'
 import { fetchJson, isCancelled } from '../logic/apiClient.js'
 import { localDaySeed, shuffleDaily } from '../logic/stats.js'
@@ -25,7 +26,7 @@ const SOURCES = [
 
 // The one row used for both Today's Picks and Browse All. Memoised with stable
 // callbacks from the parent so toggling one puzzle re-renders one row, not 145.
-export const PuzzleRow = memo(function PuzzleRow({ puzzle, solved, selected, onSelect, onToggleSolved }) {
+export const PuzzleRow = memo(function PuzzleRow({ puzzle, solved, solvedAt, selected, onSelect, onToggleSolved }) {
   const { id, title, difficulty, category, source } = puzzle
   return (
     <Row
@@ -42,13 +43,13 @@ export const PuzzleRow = memo(function PuzzleRow({ puzzle, solved, selected, onS
         />
       }
       title={title}
-      sub={source ? `${category} · ${source}` : category}
+      sub={`${source ? `${category} · ${source}` : category}${solved && solvedAt != null ? ` · solved ${dayKey(solvedAt)}` : ''}`}
       trail={<Chip tone={DIFF_TONE[difficulty] || 'muted'}>{difficulty}</Chip>}
     />
   )
 })
 
-function PuzzleDetail({ puzzle, solved, onToggleSolved, onClose }) {
+function PuzzleDetail({ puzzle, solved, solvedAt, onToggleSolved, onClose }) {
   const [hintOpen, setHintOpen] = useState(false)
   const { id, title, difficulty, category, source, description, hint, solution, url } = puzzle
   return (
@@ -98,6 +99,7 @@ function PuzzleDetail({ puzzle, solved, onToggleSolved, onClose }) {
         >
           {solved ? '✓ Solved' : '☐ Mark solved'}
         </button>
+        {solved && solvedAt != null && <span className="meta">Solved {dayKey(solvedAt)}</span>}
         {url && (
           <a href={url} target="_blank" rel="noreferrer" className="btn btn-sm pz-link">
             Open source →
@@ -108,7 +110,7 @@ function PuzzleDetail({ puzzle, solved, onToggleSolved, onClose }) {
   )
 }
 
-function LichessDaily({ state, onRetry }) {
+function LichessDaily({ state, onRetry, markedToday, onMark }) {
   if (state.status === 'loading') {
     return (
       <div className="loading" role="status">
@@ -134,7 +136,14 @@ function LichessDaily({ state, onRetry }) {
         <a className="puzzle-link" href={p.url} target="_blank" rel="noreferrer">Daily Chess Puzzle</a>
         <div className="meta">Rating {p.rating}{themes ? ` · ${themes}` : ''}</div>
       </div>
-      <span className="meta pz-arrow">→</span>
+      <button
+        type="button"
+        className={`btn btn-sm${markedToday ? ' btn-success' : ''}`}
+        disabled={markedToday}
+        onClick={onMark}
+      >
+        {markedToday ? '✓ Solved today' : 'Mark solved'}
+      </button>
     </div>
   )
 }
@@ -160,6 +169,8 @@ export default function Puzzles({
   const [progress, setProgress] = useState({})
   const progressRef = useRef(progress)
   progressRef.current = progress
+  const [dailyLog, setDailyLog] = useState({})
+  const todayKey = dayKey(Date.now())
 
   // Lichess daily: loading -> ok | error (with Retry). Aborted on unmount so the
   // StrictMode double mount does not leave a stale request behind.
@@ -189,7 +200,26 @@ export default function Puzzles({
     return () => { alive = false }
   }, [loadBank])
 
-  const { error: progressError } = useHydrate([() => getPuzzleProgress().then(setProgress)], [syncTick])
+  const { error: progressError } = useHydrate([
+    () => getPuzzleProgress().then(setProgress),
+    () => syncBackend.get('dailyLog', {}).then((l) => setDailyLog(l || {})),
+  ], [syncTick])
+
+  const markDaily = useCallback(() => {
+    const key = dayKey(Date.now())
+    setSaveError('')
+    syncBackend
+      .update('dailyLog', (log) => {
+        const next = log && typeof log === 'object' ? log : {}
+        next[key] = { ...(next[key] || {}), puzzle: true }
+        return next
+      }, {})
+      .then((log) => {
+        setDailyLog({ ...(log || {}), [key]: { ...(log?.[key] || {}), puzzle: true } })
+        onChange?.()
+      })
+      .catch((e) => setSaveError(e?.message || 'Failed to save'))
+  }, [onChange])
 
   const categories = useMemo(() => [...new Set(puzzles.map((p) => p.category))].sort(), [puzzles])
 
@@ -219,11 +249,11 @@ export default function Puzzles({
 
   const toggleSolved = useCallback((id) => {
     const prev = progressRef.current
-    const next = { ...prev, [id]: !prev[id] }
+    const next = isSolved(prev, id) ? unmark(prev, id) : markSolved(prev, id)
     progressRef.current = next
     setProgress(next)
     setSaveError('')
-    savePuzzleProgress(next)
+    savePuzzleProgress(toStored(next))
       .then(() => onChange?.())
       .catch((e) => {
         progressRef.current = prev
@@ -236,7 +266,8 @@ export default function Puzzles({
     <PuzzleRow
       key={p.id}
       puzzle={p}
-      solved={!!progress[p.id]}
+      solved={isSolved(progress, p.id)}
+      solvedAt={normalize(progress[p.id]).at}
       selected={p.id === selectedId}
       onSelect={select}
       onToggleSolved={toggleSolved}
@@ -247,7 +278,8 @@ export default function Puzzles({
     <PuzzleDetail
       key={selected.id}
       puzzle={selected}
-      solved={!!progress[selected.id]}
+      solved={isSolved(progress, selected.id)}
+      solvedAt={normalize(progress[selected.id]).at}
       onToggleSolved={toggleSolved}
       onClose={split ? null : closeSelected}
     />
@@ -261,7 +293,7 @@ export default function Puzzles({
 
       <div className="logic-split">
         <div className="logic-list">
-          <LichessDaily state={daily} onRetry={retryDaily} />
+          <LichessDaily state={daily} onRetry={retryDaily} markedToday={!!dailyLog[todayKey]?.puzzle} onMark={markDaily} />
 
           <div className="section-header">
             <span className="section-title">Today's Picks</span>
