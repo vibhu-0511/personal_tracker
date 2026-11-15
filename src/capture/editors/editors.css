@@ -1,0 +1,46 @@
+/* Capture chip editors (E3-03). Tokens only; no colour literals. */
+.cap-ed { display: flex; flex-direction: column; gap: 8px; }
+.cap-ed-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.cap-ed-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.cap-ed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.cap-ed-mono { font-family: var(--font-mono, ui-monospace, monospace); font-variant-numeric: tabular-nums; }
+
+.cap-ed-opt {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 40px; padding: 8px 14px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface-raised); color: var(--text);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background 150ms, border-color 150ms;
+}
+.cap-ed-cat { flex-direction: column; border-radius: 10px; min-height: 64px; gap: 2px; }
+.cap-ed-emoji { font-size: 20px; line-height: 1; }
+.cap-ed-opt[aria-pressed="true"] {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--accent);
+}
+.cap-ed-opt[aria-pressed="true"]::before { content: "\2713"; font-size: 12px; }
+.cap-ed-cat[aria-pressed="true"]::before { content: none; }
+.cap-ed-cat[aria-pressed="true"] .cap-ed-emoji::after { content: "\2713"; font-size: 12px; margin-left: 4px; }
+@media (hover: hover) and (pointer: fine) { .cap-ed-opt:hover { border-color: var(--border-light, var(--border)); } }
+
+.cap-ed-input {
+  box-sizing: border-box; width: 100%; min-height: 40px; padding: 8px 12px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface-raised); color: var(--text); font: inherit; font-size: 15px;
+}
+.cap-ed-input[aria-invalid="true"] { border-color: var(--danger); }
+.cap-ed-amount { display: flex; align-items: center; gap: 8px; }
+.cap-ed-rupee { font-size: 20px; color: var(--text-secondary); }
+.cap-ed-error { margin: 0; font-size: 12px; color: var(--danger); }
+.cap-ed-custom { display: flex; flex-direction: column; gap: 8px; }
+
+.cap-ed-opt:focus-visible, .cap-ed-input:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .cap-ed-opt, .cap-ed-input { min-height: 44px; }
+  .cap-ed-day { min-width: 44px; padding-inline: 8px; }
+  .cap-ed-cat { min-height: 64px; }
+}
+@media (prefers-reduced-motion: reduce) { .cap-ed-opt { transition: none; } }
