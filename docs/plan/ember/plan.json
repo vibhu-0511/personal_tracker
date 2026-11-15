@@ -1074,7 +1074,8 @@
         "src/money/MoneyContext.jsx",
         "src/money/MoneyApp.jsx",
         "src/store.js",
-        "test/syncRouter.test.js"
+        "test/syncRouter.test.js",
+        "src/capture/CaptureSheet.jsx"
       ],
       "reads": [
         "docs/plan/ember/DESIGN.md",
@@ -1084,10 +1085,11 @@
       "deps": [
         "E3-05",
         "E3-06",
-        "E3-08"
+        "E3-08",
+        "E3-11"
       ],
       "acceptance": "node --test test/commands.test.js passes: N opens capture with the screen default; the palette lists New expense, New note, New reminder, New task, Check in a habit, Log mood; N does nothing while typing in an input",
-      "notes": " E3-07 first attempt found MoneyProvider is mounted only in MoneyApp.jsx, so expenses and dailyLog writers cannot be built at the shell. Approach (as E1-17 did for Life): mount MoneyProvider at the shell in App.jsx, export a useMoneyOptional hook from MoneyContext.jsx and make MoneyApp reuse a provider that is already mounted above it (never two copies of state). Add mutateProgress to store.js (via mutateEmit) for the solve writer, and update the expected store export list in test/syncRouter.test.js (stale guard, add names only). Lazy-load CaptureSheet; keep entry JS under 135 kB. Reconcile the palette wording: New habit check-in."
+      "notes": " E3-07 first attempt found MoneyProvider is mounted only in MoneyApp.jsx, so expenses and dailyLog writers cannot be built at the shell. Approach (as E1-17 did for Life): mount MoneyProvider at the shell in App.jsx, export a useMoneyOptional hook from MoneyContext.jsx and make MoneyApp reuse a provider that is already mounted above it (never two copies of state). Add mutateProgress to store.js (via mutateEmit) for the solve writer, and update the expected store export list in test/syncRouter.test.js (stale guard, add names only). Lazy-load CaptureSheet; keep entry JS under 135 kB. Reconcile the palette wording: New habit check-in. From E3-08: Money add buttons and the Mood daily cell dispatch a cancelable window event forge:open-capture with detail {type, txnType?}. App.jsx must add a window listener that calls preventDefault() and openCapture(state, route, {type}) (txnType income preselects income); CaptureSheet TYPES has no income so handle txnType in CaptureSheet.jsx (expense type with txnType income; submit.js already accepts txnType:income). Add a test that the listener exists and cancels the event."
     },
     {
       "id": "E3-08",

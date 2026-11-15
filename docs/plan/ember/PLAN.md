@@ -227,7 +227,7 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E3-07` | Mount capture in the app, add the N shortcut and palette commands | M | `src/App.jsx`<br>`src/shell/commands.js`<br>`src/shell/useShortcuts.js`<br>`test/commands.test.js`<br>`src/money/MoneyContext.jsx`<br>`src/money/MoneyApp.jsx`<br>`src/store.js`<br>`test/syncRouter.test.js` | E3-05, E3-06, E3-08 | node --test test/commands.test.js passes: N opens capture with the screen default; the palette lists New expense, New note, New reminder, New task, Check in a habit, Log mood; N does nothing while typing in an input |
+| `E3-07` | Mount capture in the app, add the N shortcut and palette commands | M | `src/App.jsx`<br>`src/shell/commands.js`<br>`src/shell/useShortcuts.js`<br>`test/commands.test.js`<br>`src/money/MoneyContext.jsx`<br>`src/money/MoneyApp.jsx`<br>`src/store.js`<br>`test/syncRouter.test.js`<br>`src/capture/CaptureSheet.jsx` | E3-05, E3-06, E3-08, E3-11 | node --test test/commands.test.js passes: N opens capture with the screen default; the palette lists New expense, New note, New reminder, New task, Check in a habit, Log mood; N does nothing while typing in an input |
 
 ### E3 · Wave 5 — 1 in parallel
 
