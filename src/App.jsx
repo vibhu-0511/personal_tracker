@@ -9,10 +9,13 @@ import BackupPanel from './backup/BackupPanel.jsx'
 import { supabase } from './supabaseClient.js'
 import ToastHost from './Toast.jsx'
 import Shell from './shell/Shell.jsx'
-import CommandPalette from './shell/CommandPalette.jsx'
-import { LifeDataProvider } from './life/LifeData.jsx'
 import { useShortcuts } from './shell/useShortcuts.js'
 import { useRoute, navigate } from './router.js'
+
+// The Life data layer (reminder actions, selectors) and the palette that reads it load as
+// their own chunks, off the entry bundle.
+const LifeDataProvider = lazy(() => import('./life/LifeData.jsx').then((m) => ({ default: m.LifeDataProvider })))
+const CommandPalette = lazy(() => import('./shell/CommandPalette.jsx'))
 
 const Home = lazy(() => import('./tabs/Home.jsx'))
 const LogicBuilding = lazy(() => import('./tabs/LogicBuilding.jsx'))
@@ -282,6 +285,7 @@ export default function App() {
   )
 
   return (
+    <Suspense fallback={<div className="app"><div className="loading" style={{ justifyContent: 'center', marginTop: '40vh' }}><span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" /></div></div>}>
     <LifeDataProvider syncTick={syncTicks.Life || 0}>
       <Shell actions={gear} toasts={<ToastHost />}>
         {!storageOk && (
@@ -339,7 +343,10 @@ export default function App() {
           {route.tab === 'agents' && <Agents />}
         </Suspense>
       </Shell>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <Suspense fallback={null}>
+        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      </Suspense>
     </LifeDataProvider>
+    </Suspense>
   )
 }
