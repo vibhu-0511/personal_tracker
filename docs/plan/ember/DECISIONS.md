@@ -14,3 +14,5 @@ Standing rule from the owner (2026-11-15): note each decision here, do not wait,
 | D8 | Owner-only tasks: E4-U1 (device checklist), E5-U1 (Mac, Apple account, shell), E5-U2 (device test) | Prepare everything, skip these, continue other tasks; E5 native tasks stay queued behind E5-U1 | Waiting on owner | E4 gate, E5 |
 | D9 | E2-06 e2e merged with 11 known failing tests (two real Today bugs, fixed in E2-10 and E2-11 next wave); the merge gate only runs npm test and build | Merge the specs, fix next wave, gate requires e2e green | Taken | E2-06, E2-10, E2-11 |
 | D10 | Page has two h1 "Today" (shell topbar and TodayHeader) | Address in E4 (shell restyle); specs use .today-header-title | Open, default taken | E2-04, E4 |
+| D11 | Timeline time labels wrap to two lines in the 50px column | Widen to ~64px or drop the AM/PM line break in a later polish task (E4 restyle) | Open, default taken | E0-09, E2-03 |
+| D12 | One merge gate (E2-10) went red once and passed on retry | Treat as a flaky test; look for it if it recurs | Open, default taken | tooling |
