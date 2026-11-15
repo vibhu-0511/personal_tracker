@@ -1789,7 +1789,8 @@
       "writes": [
         "src/App.jsx",
         "vite.config.js",
-        "test/entryChunk.test.js"
+        "test/entryChunk.test.js",
+        "test/appPaletteData.test.js"
       ],
       "reads": [
         "scripts/ci/budgets.json",
