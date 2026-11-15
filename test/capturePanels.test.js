@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 // node:test cannot import .jsx, so bundle in memory (react included).
 async function load(file) {
   const out = await build({
-    entryPoints: [fileURLToPath(new URL(`./${file}`, import.meta.url))],
+    entryPoints: [fileURLToPath(new URL(`../src/capture/panels/${file}`, import.meta.url))],
     bundle: true, write: false, format: 'esm', jsx: 'automatic', platform: 'node', loader: { '.css': 'empty' },
   })
   return import('data:text/javascript;base64,' + Buffer.from(out.outputFiles[0].text).toString('base64'))
@@ -49,7 +49,7 @@ test('solve panel offers both actions; puzzle done is disabled', () => {
   assert.match(renderToStaticMarkup(createElement(SolvePanel, { puzzleDone: true })), /disabled/)
 })
 test('quickSolve counts in code today; markPuzzleDone sets the daily flag', async () => {
-  const { solvedToday } = await import('../../logic/stats.js')
+  const { solvedToday } = await import('../src/logic/stats.js')
   const q = logic.quickSolve(NOW)
   const progress = { [q.id]: { status: q.status, tags: q.tags, updatedAt: NOW } }
   assert.equal(solvedToday(progress, NOW), 1)
@@ -58,7 +58,7 @@ test('quickSolve counts in code today; markPuzzleDone sets the daily flag', asyn
   assert.equal(logic.isPuzzleDone(log, NOW), true)
 })
 test('css uses tokens only and 44px coarse targets', () => {
-  const css = readFileSync(new URL('./panels.css', import.meta.url), 'utf8')
+  const css = readFileSync(new URL('../src/capture/panels/panels.css', import.meta.url), 'utf8')
   assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}\b|rgba?\(/)
   assert.match(css, /@media \(pointer: coarse\)[\s\S]*min-height: 44px/)
 })

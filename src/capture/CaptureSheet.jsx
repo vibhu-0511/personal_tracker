@@ -1,15 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef } from 'react'
 import Sheet from '../Sheet.jsx'
 import { parseCapture, TYPES } from './parse.js'
 import { categoryInfo } from '../money/categories.js'
 import { formatRupees } from '../money/format.js'
 import { dateKey } from '../life/logic.js'
+import { saveLastType } from './captureContext.js'
+import { showToast } from '../toast.js'
+import { AmountEditor, CategoryPicker, WhenPicker, RepeatPicker, PersonPicker } from './editors/index.js'
+import HabitPanel from './panels/HabitPanel.jsx'
+import SolvePanel from './panels/SolvePanel.jsx'
+import MoodPanel from './panels/MoodPanel.jsx'
+import { quickSolve } from './panels/logic.js'
 import './capture.css'
 
-// Capture sheet frame (DESIGN.md section 4): type chips, one text field, parsed chips,
-// hint and the primary button named after the type. Editors for the chips and the
-// Habit / Solve / Mood panels are separate tasks; this file owns the frame.
-// Props: open, onClose, defaultType, onSubmit(draft) (may be async; a throw keeps the sheet).
+// Capture sheet (DESIGN.md section 4): type chips, one text field, tappable parsed chips
+// (each opens its editor), Habit / Solve / Mood panels, and the primary button.
+// Props: open, onClose, defaultType,
+//   onSubmit(draft) -> { ok: true, undo } | { ok: false, error } (see submitDraft); a throw also
+//     counts as a failed save. On success the sheet closes and a toast offers Undo; on failure
+//     the sheet stays open with the text intact.
+//   data (optional): { habits, solvedToday, puzzleDone, mood, recentCategories, people, now }
+//     feeding the panels and pickers.
+//   returnFocusRef (optional): the plus button; focused after the sheet closes.
 
 export const TYPE_LABELS = {
   expense: 'Expense', note: 'Note', reminder: 'Reminder', task: 'Task',
@@ -70,22 +82,84 @@ export function canSubmit(draft) {
   return draft.title.trim().length > 0
 }
 
-export default function CaptureSheet({ open, onClose, defaultType = 'expense', onSubmit }) {
-  const [type, setType] = useState(defaultType)
-  const [text, setText] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+const EDITOR_FOR = { amount: 'amount', category: 'category', date: 'when', time: 'when', when: 'when', repeat: 'repeat', person: 'person' }
+const EDITOR_TITLES = { amount: 'Amount', category: 'Category', when: 'When', repeat: 'Repeat', person: 'Person' }
+
+// Parsed chips plus empty "add" chips so every editor can be reached.
+export function editableChips(draft, now = new Date()) {
+  const chips = draftChips(draft, now)
+  const has = (k) => chips.some((c) => c.key === k)
+  const add = (key, label) => chips.push({ key, label, tone: 'add' })
+  if (draft.type === 'expense') {
+    if (!has('amount')) add('amount', 'Amount')
+    if (!has('date') && !has('time')) add('when', 'When')
+    if (!has('person')) add('person', '+ Person')
+  }
+  if (draft.type === 'reminder' || draft.type === 'task') {
+    if (!has('date') && !has('time')) add('when', 'When')
+  }
+  if (draft.type === 'reminder' && !has('repeat')) add('repeat', 'Repeat')
+  return chips
+}
+
+// Pure state for the open sheet. `overrides` hold values picked in editors; they win over the parser.
+export function initialSheetState(type = 'expense', text = '') {
+  return { type, text, overrides: {}, editor: null, error: '', busy: false }
+}
+
+export function sheetReducer(state, action) {
+  switch (action.type) {
+    case 'open': return initialSheetState(action.captureType, action.text || '')
+    case 'setType': return state.type === action.captureType ? state : { ...state, type: action.captureType, editor: null, error: '' }
+    case 'setText': return { ...state, text: action.text, error: '' }
+    case 'openEditor': return { ...state, editor: EDITOR_FOR[action.key] || null }
+    case 'closeEditor': return { ...state, editor: null }
+    case 'override': return { ...state, overrides: { ...state.overrides, ...action.patch }, error: '' }
+    case 'busy': return { ...state, busy: true, error: '' }
+    case 'failed': return { ...state, busy: false, error: action.error }
+    case 'idle': return { ...state, busy: false }
+    default: return state
+  }
+}
+
+// Parsed draft with editor overrides applied.
+export function effectiveDraft(text, now, state) {
+  return { ...parseCapture(text, now, { type: state.type }), ...state.overrides }
+}
+
+export function savedMessage(draft) {
+  if (draft.type === 'habit') return 'Habit checked in'
+  if (draft.type === 'solve') return draft.puzzle ? 'Puzzle marked done' : 'Solve logged'
+  if (draft.type === 'mood') return 'Mood logged'
+  return `${TYPE_LABELS[draft.type] || 'Item'} added`
+}
+
+// Runs onSubmit and normalises the outcome:
+//   { ok: true, message, undo? } -> caller closes the sheet and shows the toast
+//   { ok: false, error }         -> caller keeps the sheet open
+export async function finishCapture(draft, onSubmit) {
+  try {
+    const res = await onSubmit(draft)
+    if (res && res.ok === false) return { ok: false, error: res.error || 'Could not save. Your text is kept.' }
+    const undo = res && typeof res.undo === 'function' ? res.undo : undefined
+    return { ok: true, message: savedMessage(draft), undo }
+  } catch (err) {
+    return { ok: false, error: err?.message || 'Could not save. Your text is kept.' }
+  }
+}
+
+export default function CaptureSheet({ open, onClose, defaultType = 'expense', onSubmit, data = {}, returnFocusRef }) {
+  const startType = TYPES.includes(defaultType) ? defaultType : 'expense'
+  const [state, dispatch] = useReducer(sheetReducer, startType, (t) => initialSheetState(t))
+  const { type, text, error, busy, editor, overrides } = state
   const fieldRef = useRef(null)
   const chipsRef = useRef(null)
+  const busyRef = useRef(false)
 
-  // Each opening starts fresh on the default type; focus goes to the field.
+  // Each opening starts fresh on the default type.
   useEffect(() => {
-    if (!open) return
-    setType(TYPES.includes(defaultType) ? defaultType : 'expense')
-    setText('')
-    setError('')
-    setBusy(false)
-  }, [open, defaultType])
+    if (open) dispatch({ type: 'open', captureType: startType })
+  }, [open, startType])
 
   useEffect(() => {
     if (!open) return
@@ -97,54 +171,103 @@ export default function CaptureSheet({ open, onClose, defaultType = 'expense', o
   }, [open, type])
 
   const now = useMemo(() => new Date(), [open, text]) // eslint-disable-line react-hooks/exhaustive-deps
-  const draft = useMemo(() => parseCapture(text, now, { type }), [text, now, type])
-  const chips = draftChips(draft, now)
+  const draft = useMemo(() => effectiveDraft(text, now, state), [text, now, type, overrides]) // eslint-disable-line react-hooks/exhaustive-deps
+  const chips = editableChips(draft, now)
   const hasPanel = PANEL_TYPES.includes(type)
   const ready = canSubmit(draft) && !busy
 
-  async function submit(e) {
+  function close() {
+    onClose?.()
+    requestAnimationFrame(() => returnFocusRef?.current?.focus?.())
+  }
+
+  async function commit(d) {
+    if (!onSubmit || busyRef.current) return
+    busyRef.current = true
+    dispatch({ type: 'busy' })
+    const res = await finishCapture(d, onSubmit)
+    busyRef.current = false
+    if (!res.ok) { dispatch({ type: 'failed', error: res.error }); return }
+    dispatch({ type: 'idle' })
+    close()
+    showToast(res.message, res.undo ? { undo: async () => { await res.undo() } } : undefined)
+  }
+
+  function submit(e) {
     e?.preventDefault()
-    if (!ready || !onSubmit) return
-    setBusy(true)
-    setError('')
-    try {
-      await onSubmit(draft)
-      onClose?.()
-    } catch (err) {
-      setError(err?.message || 'Could not save. Your text is kept.')
-    } finally {
-      setBusy(false)
+    if (ready) commit(draft)
+  }
+
+  function chooseType(t) {
+    saveLastType(t)
+    dispatch({ type: 'setType', captureType: t })
+  }
+
+  const setWhen = (ms) => dispatch({ type: 'override', patch: { at: new Date(ms), date: dateKey(new Date(ms)) } })
+
+  function renderEditor() {
+    if (editor === 'amount') {
+      return <AmountEditor value={draft.amount} autoFocus onChange={(v) => dispatch({ type: 'override', patch: { amount: v } })} />
     }
+    if (editor === 'category') {
+      return (
+        <CategoryPicker
+          value={draft.category}
+          recent={data.recentCategories}
+          onChange={(c) => { dispatch({ type: 'override', patch: { category: c } }); dispatch({ type: 'closeEditor' }) }}
+        />
+      )
+    }
+    if (editor === 'when') {
+      return <WhenPicker value={draft.at ? draft.at.getTime() : null} now={now.getTime()} onChange={setWhen} />
+    }
+    if (editor === 'repeat') {
+      return <RepeatPicker value={draft.repeat} at={draft.at ? draft.at.getTime() : undefined} onChange={(r) => dispatch({ type: 'override', patch: { repeat: r } })} />
+    }
+    if (editor === 'person') {
+      return <PersonPicker value={draft.person} people={data.people} onChange={(p) => dispatch({ type: 'override', patch: { person: p } })} />
+    }
+    return null
+  }
+
+  function renderPanel() {
+    const stamp = data.now ?? now.getTime()
+    if (type === 'habit') {
+      return <HabitPanel habits={data.habits} now={stamp} onCheckIn={(id) => commit({ type: 'habit', title: '', habitId: id })} />
+    }
+    if (type === 'solve') {
+      return (
+        <SolvePanel
+          solvedToday={data.solvedToday}
+          puzzleDone={data.puzzleDone}
+          onSolved={() => commit({ type: 'solve', title: '', problem: { id: quickSolve(stamp).id } })}
+          onPuzzleDone={() => commit({ type: 'solve', title: '', puzzle: true })}
+        />
+      )
+    }
+    return <MoodPanel value={data.mood ?? null} onPick={(v) => commit({ type: 'mood', title: '', mood: v })} />
   }
 
   return (
-    <Sheet open={open} onClose={onClose} className="capture-sheet">
+    <Sheet open={open} onClose={close} className="capture-sheet">
       <form className="capture" onSubmit={submit}>
         <div className="capture-types" role="group" aria-label="Type" ref={chipsRef}>
           {TYPES.map((t) => (
-            <button
-              key={t}
-              type="button"
-              className="capture-type"
-              aria-pressed={t === type}
-              onClick={() => setType(t)}
-            >
+            <button key={t} type="button" className="capture-type" aria-pressed={t === type} onClick={() => chooseType(t)}>
               {TYPE_LABELS[t]}
             </button>
           ))}
         </div>
 
         {hasPanel ? (
-          <div className="capture-panel" data-type={type}>
-            {TYPE_LABELS[type]}
-          </div>
+          <div className="capture-panel-host" data-type={type}>{renderPanel()}</div>
         ) : (
           <input
             ref={fieldRef}
             className="capture-field"
             type="text"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => dispatch({ type: 'setText', text: e.target.value })}
             placeholder={PLACEHOLDERS[type]}
             aria-label={`${TYPE_LABELS[type]} details`}
             autoComplete="off"
@@ -155,18 +278,38 @@ export default function CaptureSheet({ open, onClose, defaultType = 'expense', o
         {!hasPanel && (
           <div className="capture-parsed" aria-live="polite">
             {chips.map((c) => (
-              <span key={c.key} className="capture-chip" data-tone={c.tone || 'default'}>{c.label}</span>
+              <button
+                key={c.key}
+                type="button"
+                className="capture-chip"
+                data-tone={c.tone || 'default'}
+                data-chip={c.key}
+                style={{ font: 'inherit', fontSize: 13, cursor: 'pointer' }}
+                aria-expanded={editor === EDITOR_FOR[c.key]}
+                onClick={() => dispatch({ type: 'openEditor', key: c.key })}
+              >
+                {c.label}
+              </button>
             ))}
+          </div>
+        )}
+
+        {!hasPanel && editor && (
+          <div className="capture-editor" role="group" aria-label={`Edit ${EDITOR_TITLES[editor]}`}>
+            {renderEditor()}
+            <button type="button" className="capture-type" onClick={() => dispatch({ type: 'closeEditor' })}>Done</button>
           </div>
         )}
 
         {error && <p className="capture-error" role="alert">{error}</p>}
 
         <div className="capture-foot">
-          <span className="capture-hint">Tap a chip to change it</span>
-          <button type="submit" className="capture-primary" disabled={!ready}>
-            {primaryLabel(type)}
-          </button>
+          <span className="capture-hint">{hasPanel ? 'Tap an option to log it' : 'Tap a chip to change it'}</span>
+          {!hasPanel && (
+            <button type="submit" className="capture-primary" disabled={!ready}>
+              {primaryLabel(type)}
+            </button>
+          )}
         </div>
       </form>
     </Sheet>
