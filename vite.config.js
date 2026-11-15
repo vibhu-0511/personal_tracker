@@ -12,7 +12,7 @@ const pwa = VitePWA({
   manifest: false,
   devOptions: { enabled: false },
   workbox: {
-    globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+    globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
     globIgnores: ['dsa/**', 'puzzles.json'],
     navigateFallback: '/index.html',
     navigateFallbackDenylist: [/^\/api\//, /^\/dsa\//],

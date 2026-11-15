@@ -34,6 +34,7 @@ export const TABS = [
 
 // `chrome` is the browser theme-color (the theme's page background).
 export const THEMES = [
+  { id: 'ember', label: 'Ember', color: '#ff8a3d', chrome: '#0a0c10' },
   { id: 'ocean', label: 'Ocean', color: '#6ea8fe', chrome: '#0a0c10' },
   { id: 'forest', label: 'Forest', color: '#4ade80', chrome: '#0a0c10' },
   { id: 'sunset', label: 'Sunset', color: '#fb923c', chrome: '#0a0c10' },
@@ -77,7 +78,7 @@ export default function App() {
 
   const route = useRoute()
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [settings, setSettings] = useState({ cfHandle: '', theme: 'ocean' })
+  const [settings, setSettings] = useState({ cfHandle: '', theme: 'ember' })
   const [draftHandle, setDraftHandle] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [storageOk, setStorageOk] = useState(true)
