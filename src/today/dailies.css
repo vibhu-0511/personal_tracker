@@ -1,0 +1,73 @@
+/* Today dailies strip: five equal cells in one row, never wrapping (390px: ~65px each). */
+.dailies-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-1);
+  width: 100%;
+}
+@media (min-width: 600px) {
+  .dailies-strip { gap: var(--space-2); }
+}
+
+.dailies-strip .dailies-cell {
+  min-width: 0;
+  overflow: hidden;
+  padding: var(--space-2) var(--space-1);
+  align-items: center;
+  text-align: center;
+}
+.dailies-strip .ember-daily-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.dailies-strip .ember-daily-value {
+  max-width: 100%;
+  gap: 2px;
+  font-size: 13px;
+}
+.dailies-strip .ember-daily-value > span:not(.ember-daily-check) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dailies-strip .ember-daily-check { flex: none; width: 14px; height: 14px; font-size: 10px; }
+@media (min-width: 600px) {
+  .dailies-strip .dailies-cell { padding: var(--space-2) var(--space-3); align-items: flex-start; text-align: left; }
+  .dailies-strip .ember-daily-label { font-size: 11px; letter-spacing: 0.08em; }
+  .dailies-strip .ember-daily-value { font-size: 15px; gap: var(--space-1); }
+  .dailies-strip .ember-daily-check { width: 16px; height: 16px; font-size: 11px; }
+}
+
+/* Loading: five skeleton cells in --surface-raised, same footprint as a cell. */
+.dailies-skel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 56px;
+  padding: var(--space-2) var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.dailies-skel-bar {
+  display: block;
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+}
+.dailies-skel-label { width: 60%; height: 8px; }
+.dailies-skel-value { width: 40%; height: 14px; }
+@media (min-width: 600px) {
+  .dailies-skel { align-items: flex-start; padding: var(--space-2) var(--space-3); }
+}
+@media (pointer: coarse) {
+  .dailies-skel { min-height: 44px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dailies-skel-bar { animation: dailies-pulse 1.4s ease-in-out infinite; }
+}
+@keyframes dailies-pulse { 50% { opacity: 0.55; } }
