@@ -1,4 +1,4 @@
-/* Ember primitives: DailyCell, SegDots. Tokens only, no colour literals. */
+/* Ember primitives: DailyCell, SegDots. Tokens only; ember-only tokens carry a fallback that exists under every theme. */
 
 /* ── DailyCell ── */
 .ember-daily {
@@ -48,7 +48,7 @@ a.ember-daily, button.ember-daily { cursor: pointer; }
   height: 16px;
   border-radius: var(--radius-round);
   background: var(--success);
-  color: var(--success-fg);
+  color: var(--success-fg, var(--on-accent, #fff));
   font-size: 11px;
   line-height: 1;
 }
@@ -77,4 +77,8 @@ a.ember-daily, button.ember-daily { cursor: pointer; }
 .ember-segdot[data-filled="true"] {
   border-color: var(--accent);
   background: var(--accent);
+}
+/* cream: --border is a hairline tone (~1.2:1); empty cells need >= 3:1 against --bg */
+:root[data-accent="cream"] .ember-segdot:not([data-filled="true"]) {
+  border-color: var(--text-tertiary);
 }
