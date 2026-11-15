@@ -10,6 +10,7 @@ import { supabase } from './supabaseClient.js'
 import ToastHost from './Toast.jsx'
 import Shell from './shell/Shell.jsx'
 import CommandPalette from './shell/CommandPalette.jsx'
+import { LifeDataProvider } from './life/LifeData.jsx'
 import { useShortcuts } from './shell/useShortcuts.js'
 import { useRoute, navigate } from './router.js'
 
@@ -281,7 +282,7 @@ export default function App() {
   )
 
   return (
-    <>
+    <LifeDataProvider syncTick={syncTicks.Life || 0}>
       <Shell actions={gear} toasts={<ToastHost />}>
         {!storageOk && (
           <div className="banner-warn">
@@ -339,6 +340,6 @@ export default function App() {
         </Suspense>
       </Shell>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-    </>
+    </LifeDataProvider>
   )
 }
