@@ -6,7 +6,10 @@ const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
 const life = readFileSync(new URL('../src/tabs/Life.jsx', import.meta.url), 'utf8')
 
 test('App imports LifeDataProvider', () => {
-  assert.match(app, /import \{ LifeDataProvider \} from '\.\/life\/LifeData\.jsx'/)
+  assert.match(
+    app,
+    /import \{ LifeDataProvider \} from '\.\/life\/LifeData\.jsx'|lazy\(\(\) => import\('\.\/life\/LifeData\.jsx'\)/,
+  )
 })
 
 test('CommandPalette renders inside a LifeDataProvider, fed the Life sync tick', () => {
