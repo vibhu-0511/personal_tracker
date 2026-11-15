@@ -1,4 +1,4 @@
-// Run: node --test src/capture/editors/editors.test.js (npm test only globs test/*.test.js)
+// Run: node --test test/captureEditors.test.js
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { build } from 'esbuild'
@@ -8,11 +8,11 @@ import { readFileSync } from 'node:fs'
 async function load(file) {
   const out = await build({
     stdin: {
-      contents: `export * from ${JSON.stringify(fileURLToPath(new URL(file, import.meta.url)))}
+      contents: `export * from ${JSON.stringify(fileURLToPath(new URL(file, new URL('../src/capture/editors/', import.meta.url))))}
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 export const render = (C, props) => renderToStaticMarkup(createElement(C, props))`,
-      resolveDir: fileURLToPath(new URL('.', import.meta.url)), loader: 'js',
+      resolveDir: fileURLToPath(new URL('../src/capture/editors/', import.meta.url)), loader: 'js',
     },
     bundle: true, write: false, format: 'esm', jsx: 'automatic', platform: 'node',
     loader: { '.css': 'empty' },
@@ -74,7 +74,7 @@ test('RepeatPicker, PersonPicker, AmountEditor render', () => {
 })
 
 test('css: tokens only, 44px coarse targets, focus-visible', () => {
-  const css = readFileSync(fileURLToPath(new URL('./editors.css', import.meta.url)), 'utf8')
+  const css = readFileSync(fileURLToPath(new URL('../src/capture/editors/editors.css', import.meta.url)), 'utf8')
   assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/)
   assert.match(css, /@media \(pointer: coarse\)[\s\S]*min-height: 44px/)
   assert.match(css, /:focus-visible/)
