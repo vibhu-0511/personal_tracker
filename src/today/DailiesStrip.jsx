@@ -3,9 +3,19 @@ import './dailies.css'
 
 const SKELETON_COUNT = 5
 
+// Opens capture on Mood through a cancelable window event the app's capture host claims with
+// preventDefault(). Returns true when claimed; otherwise the cell just follows its link.
+export const OPEN_CAPTURE_EVENT = 'forge:open-capture'
+function requestMoodCapture() {
+  try {
+    return window.dispatchEvent(new CustomEvent(OPEN_CAPTURE_EVENT, { cancelable: true, detail: { type: 'mood' } })) === false
+  } catch { return false }
+}
+
 // The five Today dailies in one row. Each cell links to its screen.
 // Props: `items` from computeDailies(...).items; `loading` shows five skeleton cells (no spinner);
-// `onOpenMood` (optional) lets the Mood cell open capture instead of just navigating.
+// `onOpenMood` (optional) overrides how the Mood cell opens capture; by default it asks the
+// app's capture host (event above) and falls back to its link when no host is mounted.
 export default function DailiesStrip({ items = [], loading = false, onOpenMood, className = '' }) {
   const cls = `dailies-strip ${className}`.trim()
   if (loading) {
@@ -23,8 +33,10 @@ export default function DailiesStrip({ items = [], loading = false, onOpenMood, 
   return (
     <nav className={cls} aria-label="Dailies">
       {items.map((d) => {
-        const opensCapture = d.id === 'mood' && typeof onOpenMood === 'function'
-        const onClick = opensCapture ? (e) => { e.preventDefault(); onOpenMood() } : undefined
+        const onClick = d.id !== 'mood' ? undefined : (e) => {
+          if (typeof onOpenMood === 'function') { e.preventDefault(); onOpenMood(); return }
+          if (requestMoodCapture()) e.preventDefault()
+        }
         return (
           <DailyCell
             key={d.id}
