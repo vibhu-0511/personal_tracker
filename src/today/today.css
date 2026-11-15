@@ -1,14 +1,40 @@
-/* Today home grid (B3-13). `.today-grid` is its OWN size container (name: tg),
-   so the column count follows the grid's width, not the app width. A container
-   cannot restyle itself, so the actual grid is its child `.today-grid-cells`.
-   Columns: 2 below 600px, 4 from 600px, 6 from 900px (grid width).
+/* Today home layout (E2-05). `.today-home` is a size container (name: th): one
+   column below 900px, and from 900px the kept tiles form a second column beside
+   the header, dailies, next up and timeline.
 
-   Spans of the first-group tiles (they carry no span class of their own), by
-   DOM position: 1 streak, 2 wallet, 3 pets, 4 code, 6 tasks. Position 5 (watch)
-   and 7-9 (spend, mood, tutor) get theirs from tiles-b.css via .today-tile-*.
-   2 cols: streak 1, wallet 1, pets 2, code 1, tasks 2
-   4 cols: streak 2, wallet 2, pets 3, code 1, tasks 3
-   6 cols: streak 3, wallet 3, pets 4, code 2, tasks 4 */
+   The tiles live in `.today-grid` (its own container, name: tg), so their column
+   count follows the tile column's width. A container cannot restyle itself, so
+   the grid is its child `.today-grid-cells`.
+   DOM order of the five kept tiles: 1 streak, 2 wallet, 3 pets, 4 watch, 5 tutor.
+   tg 2 cols (<600px): streak 1, wallet 1, pets 2, watch 2, tutor 2
+   tg 4 cols (>=600px): streak 2, wallet 2, pets 4, watch 4, tutor 4 */
+
+.today-home {
+  container: th / inline-size;
+  width: 100%;
+}
+
+.today-home-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.today-home-tiles {
+  margin-top: 16px;
+  min-width: 0;
+}
+
+@container th (min-width: 900px) {
+  .today-home {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .today-home-tiles { margin-top: 0; }
+}
 
 .today-grid {
   container: tg / inline-size;
@@ -25,25 +51,12 @@
 .today-grid-cells > * { min-width: 0; }
 
 .today-grid-cells > :nth-child(1),
-.today-grid-cells > :nth-child(2),
-.today-grid-cells > :nth-child(4) { grid-column: span 1; }
-.today-grid-cells > :nth-child(3),
-.today-grid-cells > :nth-child(6) { grid-column: span 2; }
+.today-grid-cells > :nth-child(2) { grid-column: span 1; }
+.today-grid-cells > :nth-child(n+3) { grid-column: span 2; }
 
 @container tg (min-width: 600px) {
   .today-grid-cells { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .today-grid-cells > :nth-child(1),
   .today-grid-cells > :nth-child(2) { grid-column: span 2; }
-  .today-grid-cells > :nth-child(3),
-  .today-grid-cells > :nth-child(6) { grid-column: span 3; }
-  .today-grid-cells > :nth-child(4) { grid-column: span 1; }
-}
-
-@container tg (min-width: 900px) {
-  .today-grid-cells { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .today-grid-cells > :nth-child(1),
-  .today-grid-cells > :nth-child(2) { grid-column: span 3; }
-  .today-grid-cells > :nth-child(3),
-  .today-grid-cells > :nth-child(6) { grid-column: span 4; }
-  .today-grid-cells > :nth-child(4) { grid-column: span 2; }
+  .today-grid-cells > :nth-child(n+3) { grid-column: span 4; }
 }
