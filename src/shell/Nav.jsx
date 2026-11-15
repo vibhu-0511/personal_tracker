@@ -4,22 +4,24 @@
 // navigation, focus and aria-current work without any click handler.
 import { useRoute } from '../router.js'
 import { ROUTES, TAB_IDS, formatHash } from '../routes.js'
+import Icon from '../ui/Icon.jsx'
 
-// Icons live here, not in routes.js (a pure table with no presentation).
+// Icon names (see src/ui/icons.js) live here, not in routes.js (a pure table
+// with no presentation). Each tab id has an icon of the same name.
 export const NAV_ICONS = {
-  today: '☀️',
-  life: '🌱',
-  logic: '🧠',
-  money: '💰',
-  invest: '📈',
-  agents: '🤖',
+  today: 'today',
+  life: 'life',
+  logic: 'logic',
+  money: 'money',
+  invest: 'invest',
+  agents: 'agents',
 }
 
 // Default items: the six top-level tabs in route-table order (Today first).
 export const NAV_ITEMS = TAB_IDS.map((id) => ({
   id,
   label: ROUTES[id].label,
-  icon: NAV_ICONS[id] ?? '•',
+  icon: NAV_ICONS[id],
 }))
 
 // `active` overrides the tab taken from the URL; `items` overrides NAV_ITEMS.
@@ -40,7 +42,7 @@ export default function Nav({ active, items = NAV_ITEMS }) {
             href={formatHash({ tab: item.id })}
             aria-current={item.id === current ? 'page' : undefined}
           >
-            <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+            <span className="nav-icon" aria-hidden="true"><Icon name={item.icon} size={22} /></span>
             <span className="nav-label">{item.label}</span>
           </a>
         ))}
