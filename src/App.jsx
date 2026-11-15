@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import {
   getSettings, saveSettings, storageAvailable, reconcileAll, reconcileKey, SYNCED_KEYS,
   claimOwner, flush, syncBackend,
@@ -10,11 +10,16 @@ import { supabase } from './supabaseClient.js'
 import ToastHost from './Toast.jsx'
 import Shell from './shell/Shell.jsx'
 import { useShortcuts } from './shell/useShortcuts.js'
+import { captureCommands, registry } from './shell/commands.js'
 import { useRoute, navigate } from './router.js'
 
 // The Life data layer (reminder actions, selectors) and the palette that reads it load as
 // their own chunks, off the entry bundle.
 const LifeDataProvider = lazy(() => import('./life/LifeData.jsx').then((m) => ({ default: m.LifeDataProvider })))
+// Money's provider is hoisted here too (MoneyApp reuses it), so the capture sheet can write
+// expenses from any tab. Both it and the capture host load as their own chunks.
+const MoneyProvider = lazy(() => import('./money/MoneyContext.jsx').then((m) => ({ default: m.MoneyProvider })))
+const CaptureHost = lazy(() => import('./money/MoneyApp.jsx').then((m) => ({ default: m.CaptureHost })))
 const CommandPalette = lazy(() => import('./shell/CommandPalette.jsx'))
 
 const Home = lazy(() => import('./tabs/Home.jsx'))
@@ -97,10 +102,45 @@ export default function App() {
     if (window.location.hash !== `#${route.path}`) navigate(route.path, { replace: true })
   }, [route.path])
 
+  // Capture sheet state. The default type per screen (captureContext.openCapture) is resolved
+  // inside the lazy CaptureHost from `route`, which keeps the capture parser off the entry chunk.
+  // `txnType` rides along for the Money income button.
+  const [capture, setCapture] = useState({ open: false, type: undefined, route: undefined, txnType: undefined })
+  const [captureMounted, setCaptureMounted] = useState(false)
+  const returnFocusRef = useRef(null)
+  const routeRef = useRef(route)
+  routeRef.current = route
+  const startCapture = useCallback((target, opts = {}) => {
+    const r = target || routeRef.current
+    try { returnFocusRef.current = document.activeElement } catch { /* no document */ }
+    setCaptureMounted(true)
+    setCapture({ open: true, type: opts.type, route: { tab: r.tab, view: r.view }, txnType: opts.txnType })
+  }, [])
+  const closeCaptureSheet = useCallback(() => setCapture((s) => ({ ...s, open: false })), [])
+
   useShortcuts({
     onOpenPalette: () => setPaletteOpen((v) => !v),
+    onCapture: () => startCapture(),
     charKeys: settings.shortcuts !== false,
   })
+
+  // Palette commands that open capture on a given type.
+  useEffect(() => {
+    const offs = captureCommands(({ type }) => startCapture(undefined, { type })).map((c) => registry.register(c))
+    return () => offs.forEach((off) => off())
+  }, [startCapture])
+
+  // Money's add buttons and the Mood cell ask for capture with a cancelable window event;
+  // claiming it with preventDefault() stops them falling back to their own sheet.
+  useEffect(() => {
+    const onOpenCapture = (e) => {
+      e.preventDefault()
+      const d = e.detail || {}
+      startCapture(undefined, { type: d.type, txnType: d.txnType === 'income' ? 'income' : undefined })
+    }
+    window.addEventListener('forge:open-capture', onOpenCapture)
+    return () => window.removeEventListener('forge:open-capture', onOpenCapture)
+  }, [startCapture])
 
   useEffect(() => {
     const onVisibility = () => { if (document.visibilityState === 'hidden') flush() }
@@ -287,7 +327,8 @@ export default function App() {
   return (
     <Suspense fallback={<div className="app"><div className="loading" style={{ justifyContent: 'center', marginTop: '40vh' }}><span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" /></div></div>}>
     <LifeDataProvider syncTick={syncTicks.Life || 0}>
-      <Shell actions={gear} toasts={<ToastHost />}>
+    <MoneyProvider syncTick={syncTicks.Expenses || 0}>
+      <Shell actions={gear} toasts={<ToastHost />} onCapture={(r) => startCapture(r)} captureOpen={capture.open}>
         {!storageOk && (
           <div className="banner-warn">
             Storage unavailable — notes and progress won't persist in this browser.
@@ -343,9 +384,22 @@ export default function App() {
           {route.tab === 'agents' && <Agents />}
         </Suspense>
       </Shell>
+      {captureMounted && (
+        <Suspense fallback={null}>
+          <CaptureHost
+            open={capture.open}
+            onClose={closeCaptureSheet}
+            type={capture.type}
+            route={capture.route}
+            txnType={capture.txnType}
+            returnFocusRef={returnFocusRef}
+          />
+        </Suspense>
+      )}
       <Suspense fallback={null}>
         <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       </Suspense>
+    </MoneyProvider>
     </LifeDataProvider>
     </Suspense>
   )

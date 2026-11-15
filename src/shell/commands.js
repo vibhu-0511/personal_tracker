@@ -89,6 +89,25 @@ export function navigationCommands(go = navigate) {
   return out
 }
 
+// --- capture commands --------------------------------------------------------
+// Palette entries that open the capture sheet on a given type. `open({ type })` is the
+// app's openCapture; the app registers these with the registry while it is mounted.
+export const CAPTURE_COMMANDS = [
+  { id: 'capture:expense', label: 'New expense', type: 'expense', keywords: ['spend', 'money', 'add'] },
+  { id: 'capture:note', label: 'New note', type: 'note', keywords: ['write', 'add'] },
+  { id: 'capture:reminder', label: 'New reminder', type: 'reminder', keywords: ['remind', 'add'] },
+  { id: 'capture:task', label: 'New task', type: 'task', keywords: ['todo', 'add'] },
+  { id: 'capture:habit', label: 'New habit check-in', type: 'habit', keywords: ['habit', 'check in', 'done'] },
+  { id: 'capture:solve', label: 'Log a solve', type: 'solve', keywords: ['problem', 'puzzle', 'code'] },
+  { id: 'capture:mood', label: 'Log mood', type: 'mood', keywords: ['feeling'] },
+]
+
+export function captureCommands(open) {
+  return CAPTURE_COMMANDS.map(({ id, label, type, keywords }) => ({
+    id, label, keywords, hint: 'Capture', run: () => open({ type }),
+  }))
+}
+
 // --- fuzzy filter -----------------------------------------------------------
 // Ranks commands by label (keywords count for less). Empty query keeps order.
 export function filterCommands(commands, query) {

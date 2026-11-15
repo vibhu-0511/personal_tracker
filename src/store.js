@@ -340,3 +340,6 @@ export async function mutateMoodLog(fn) {
 export async function mutateNotes(fn) {
   return mutateEmit('notes', fn, [])
 }
+export async function mutateProgress(fn) {
+  return mutateEmit('progress', fn, {})
+}

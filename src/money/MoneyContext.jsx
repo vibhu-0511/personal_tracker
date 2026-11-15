@@ -85,6 +85,11 @@ export function MoneyProvider({ syncTick = 0, children }) {
     await saveExpenses(next)
     if (cleared !== log) await persistDailyLog(cleared)
   }, [dailyLogRef, expensesRef, persistDailyLog])
+  // Writer-shaped: (prev) => next against the latest dailyLog (used by the capture sheet).
+  const updateDailyLog = useCallback(
+    (change) => persistDailyLog(typeof change === 'function' ? change(dailyLogRef.current) : change),
+    [dailyLogRef, persistDailyLog],
+  )
   const markNoSpend = useCallback(
     (dayKey) => persistDailyLog(withNoSpend(dailyLogRef.current, dayKey)),
     [dailyLogRef, persistDailyLog],
@@ -130,7 +135,7 @@ export function MoneyProvider({ syncTick = 0, children }) {
   const strip = useMemo(() => calcMonthStrip(expenses, dailyLog), [expenses, dailyLog])
 
   const value = useMemo(() => ({
-    dailyLog, logStreak: streak, monthStrip: strip, markNoSpend,
+    dailyLog, logStreak: streak, monthStrip: strip, markNoSpend, updateDailyLog,
     expenses, budgets, goals, loans,
     expensesRef, budgetsRef, goalsRef, loansRef,
     viewMonth, prevMonth, nextMonth,
@@ -138,7 +143,7 @@ export function MoneyProvider({ syncTick = 0, children }) {
     openAdd, openEdit, closeSheet, sheetRequest,
     saving, runSaving, ready, error,
   }), [
-    dailyLog, streak, strip, markNoSpend,
+    dailyLog, streak, strip, markNoSpend, updateDailyLog,
     expenses, budgets, goals, loans, expensesRef, budgetsRef, goalsRef, loansRef,
     viewMonth, prevMonth, nextMonth,
     persistExpenses, persistBudgets, persistGoals, persistLoans,
@@ -153,4 +158,10 @@ export function useMoney() {
   const ctx = useContext(MoneyContext)
   if (!ctx) throw new Error('useMoney must be used inside <MoneyProvider>')
   return ctx
+}
+
+// null when no provider is mounted. The shell mounts one provider for the whole app (so the
+// capture sheet can write expenses); MoneyApp reuses it instead of mounting a second copy.
+export function useMoneyOptional() {
+  return useContext(MoneyContext)
 }
