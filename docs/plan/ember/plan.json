@@ -532,7 +532,11 @@
         "src/sync/flags.js",
         "src/sync/appSubscriptions.js",
         "src/backup/backup.js",
-        "test/dailyLogStore.test.js"
+        "test/dailyLogStore.test.js",
+        "test/backup.test.js",
+        "test/appSubscriptions.test.js",
+        "test/syncAdapters.test.js",
+        "test/syncRouter.test.js"
       ],
       "reads": [
         "docs/plan/ember/DESIGN.md",
@@ -543,7 +547,7 @@
         "E0-GATE"
       ],
       "acceptance": "node --test test/dailyLogStore.test.js test/backup.test.js test/sync.test.js test/appSubscriptions.test.js passes: dailyLog is in SYNCED_KEYS and the flags list, exports and imports in a backup, and a backup made before this change still imports",
-      "notes": "Shape: { \"YYYY-MM-DD\": { noSpend?: true, puzzle?: true } }. Sync v1 only. Do not touch supabase/ or any v2 SQL."
+      "notes": "Shape: { \"YYYY-MM-DD\": { noSpend?: true, puzzle?: true } }. Sync v1 only. Do not touch supabase/ or any v2 SQL. dailyLog is a v1 synced key only: do NOT add it to V2_KEYS in flags.js (sync v2 stays off, no adapter). Existing tests that hard-code the 17-key list are updated to 18 (stale guards, not weakened); syncAdapters test excludes v1-only keys."
     },
     {
       "id": "E1-07",
