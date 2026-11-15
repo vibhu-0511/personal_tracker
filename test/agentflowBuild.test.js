@@ -55,3 +55,15 @@ test('readRepo measures own commits since the merge-base with HEAD, not against 
     assert.equal(st['T-1'].s, 'merged'); assert.equal(st['T-0'].s, 'running')
   } finally { fs.rmSync(d, { recursive: true, force: true }) }
 })
+
+test('deriveStatuses: phase ids other than P<n> (E0, X12) are recognised', () => {
+  const plan = [{ id: 'E0-01' }, { id: 'X12-02' }, { id: 'E1-09' }]
+  const repo = {
+    branches: [{ name: 'wave/E1-W1/E1-09', sha: 'abc', own: 0, inHead: false }],
+    mergeSubjects: ['Merge wave/E0-W1/E0-01 into integration branch', 'Merge wave/X12-W3/X12-02'],
+  }
+  const s = deriveStatuses(plan, repo)
+  assert.equal(s['E0-01'].s, 'merged')
+  assert.equal(s['X12-02'].s, 'merged')
+  assert.equal(s['E1-09'].s, 'running')
+})
