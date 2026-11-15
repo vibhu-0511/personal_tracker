@@ -1,0 +1,83 @@
+/* puzzles: list rows, filters and inspector detail for the Puzzles view (R3-06).
+   Layout (.logic-split / .logic-inspector) comes from logic.css. */
+
+.pz-grow { flex: 1; min-width: 0; }
+.pz-arrow { font-size: 20px; }
+
+.pz-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pz-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 145 rows: skip layout and paint for rows that are off screen. */
+.pz-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 56px;
+}
+
+.pz-browse-head { margin-top: 8px; }
+
+.pz-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pz-filters select {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+}
+
+/* Inspector detail */
+.pz-detail { min-width: 0; }
+.pz-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pz-detail-title { margin: 0 0 6px; min-width: 0; overflow-wrap: anywhere; }
+.pz-detail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.pz-detail-desc { margin-bottom: 12px; }
+.pz-detail-block { margin-bottom: 10px; }
+.pz-hint { margin-top: 6px; font-style: italic; }
+.pz-summary { cursor: pointer; }
+.pz-solution {
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: var(--radius-xs);
+}
+.pz-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.pz-link { display: inline-flex; text-decoration: none; }
+
+.pz-sources { margin-top: 12px; text-align: center; }
+.pz-sources .meta { margin-bottom: 8px; }
+.pz-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}

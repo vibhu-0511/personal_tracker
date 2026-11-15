@@ -1,0 +1,325 @@
+/* Shared UI primitives (B3-03). Class names are prefixed ui- so legacy
+   .card/.chip/.life-row rules in styles.css keep working untouched.
+   Tokens come from B3-spec section 1; fallbacks reference legacy tokens or
+   non-hex values only, so this file works before and after the token merge. */
+
+/* ── Global-friendly focus ring ── */
+.ui-tile a:focus-visible,
+.ui-tile button:focus-visible,
+.ui-row-main:focus-visible,
+.ui-check:focus-visible,
+.ui-pill:focus-visible,
+.ui-empty-action:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+
+/* ── Tile ── */
+.ui-tile {
+  --ui-tile-bg: var(--tile-plain, var(--surface));
+  position: relative;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: var(--tile-pad, 14px);
+  border: 1px solid var(--border);
+  border-radius: var(--tile-radius, var(--radius));
+  background: var(--ui-tile-bg);
+  color: var(--text);
+  box-shadow: var(--tile-shadow, none);
+}
+.ui-tile[data-tone="peach"] { --ui-tile-bg: var(--tile-peach, color-mix(in srgb, var(--surface) 84%, orange 16%)); }
+.ui-tile[data-tone="mint"] { --ui-tile-bg: var(--tile-mint, color-mix(in srgb, var(--surface) 84%, mediumseagreen 16%)); }
+.ui-tile[data-tone="butter"] { --ui-tile-bg: var(--tile-butter, color-mix(in srgb, var(--surface) 84%, gold 16%)); }
+.ui-tile[data-tone="lilac"] { --ui-tile-bg: var(--tile-lilac, color-mix(in srgb, var(--surface) 84%, mediumpurple 16%)); }
+.ui-tile[data-tone="sky"] { --ui-tile-bg: var(--tile-sky, color-mix(in srgb, var(--surface) 84%, dodgerblue 16%)); }
+.ui-tile-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.ui-tile-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ui-tile-link {
+  /* real <a>/<button> on the title, stretched over the whole tile */
+  color: inherit;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+.ui-tile-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.ui-tile-link:focus-visible { outline-offset: 4px; }
+.ui-tile-meta {
+  font-size: 12px;
+  color: var(--tile-sec, var(--text-secondary));
+  flex-shrink: 0;
+}
+.ui-tile-body {
+  /* sits above the stretched link; only inner controls capture pointer events */
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  pointer-events: none;
+}
+.ui-tile-body > * { pointer-events: auto; }
+.ui-tile[data-interactive] { cursor: pointer; }
+
+/* ── Row ── */
+.ui-row {
+  --ui-row-min: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--ui-row-min);
+  padding: 6px 12px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--tile-inner, var(--surface));
+  color: var(--text);
+}
+@media (pointer: fine) {
+  .ui-row[data-dense] { --ui-row-min: 36px; padding-block: 3px; }
+}
+.ui-row[data-selected] {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.ui-row[data-done] .ui-row-title {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+.ui-row-lead,
+.ui-row-trail {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.ui-row-trail { font-size: 12px; color: var(--text-secondary); gap: 6px; }
+.ui-row-main {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--ui-row-min);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.ui-row-main { cursor: pointer; }
+.ui-row-title {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ui-row-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (hover: hover) {
+  .ui-row:has(button.ui-row-main):hover { background: var(--hover, var(--surface-raised)); }
+}
+
+/* ── Check: 22px visual inside a 28px (fine) / 44px (coarse) hit area ── */
+.ui-check {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (pointer: coarse) {
+  .ui-check { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+}
+.ui-check-box {
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--border-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  color: transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.ui-check[aria-checked="true"] .ui-check-box {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--bg);
+}
+.ui-check[data-tone="accent"][aria-checked="true"] .ui-check-box {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--on-accent, white);
+}
+@media (hover: hover) {
+  .ui-check:hover .ui-check-box { border-color: var(--accent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-check-box { transition: none; }
+}
+
+/* ── Chip ── */
+.ui-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.ui-chip[data-tone="muted"] {
+  background: var(--hover, var(--surface-raised));
+  color: var(--text-secondary);
+}
+.ui-chip[data-tone="success"] { background: var(--success-dim); color: var(--success); }
+.ui-chip[data-tone="warn"] { background: var(--warn-dim); color: var(--warn); }
+.ui-chip[data-tone="hot"] {
+  background: var(--hot-bg, var(--danger-dim));
+  color: var(--danger);
+}
+
+/* ── Pill (header pills such as Lv and rupee total) ── */
+.ui-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+@media (pointer: coarse) {
+  a.ui-pill, button.ui-pill { min-height: 44px; padding-inline: 14px; }
+}
+.ui-pill-icon { font-size: 14px; line-height: 1; }
+a.ui-pill, button.ui-pill { cursor: pointer; }
+@media (hover: hover) {
+  a.ui-pill:hover, button.ui-pill:hover { border-color: var(--border-light); background: var(--hover, var(--surface)); }
+}
+
+/* ── Stat ── */
+.ui-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.ui-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.ui-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+.ui-stat[data-tone="success"] .ui-stat-value { color: var(--success); }
+.ui-stat[data-tone="warn"] .ui-stat-value { color: var(--warn); }
+.ui-stat[data-tone="danger"] .ui-stat-value { color: var(--danger); }
+.ui-stat[data-tone="accent"] .ui-stat-value { color: var(--accent); }
+
+/* ── EmptyState ── */
+.ui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+.ui-empty-icon { font-size: 32px; line-height: 1; }
+.ui-empty-text { margin: 0; font-size: 14px; }
+.ui-empty-action {
+  min-height: 36px;
+  padding: 6px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .ui-empty-action { min-height: 44px; }
+}
+@media (hover: hover) {
+  .ui-empty-action:hover { background: var(--hover, var(--surface)); }
+}
+
+/* ── Kbd: keyboard hint, only where a keyboard is plausible ── */
+.ui-kbd { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .ui-kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+}

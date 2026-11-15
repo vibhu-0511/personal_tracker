@@ -1,0 +1,106 @@
+/* code: Code view problem list + focus inspector (R3-05)
+   Builds on logic.css (.logic-split / .logic-list / .logic-inspector / .logic-row).
+   The list pane scrolls on its own so paging never moves the window. */
+
+.code-view { min-width: 0; }
+
+/* Error / retry banner: sits above both panes. */
+.code-banners { display: grid; gap: 8px; margin-bottom: 12px; }
+.code-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+}
+.code-banner-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.code-banner .btn { flex: none; }
+
+.code-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.code-summary strong { color: var(--text); font-weight: 600; }
+
+/* The list pane: bounded height, scrolls independently of the page. */
+.code-scroll {
+  min-height: 240px;
+  max-height: calc(100dvh - 260px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.code-scroll[aria-busy="true"] { opacity: 0.55; transition: opacity 0.15s; }
+
+.code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  font: inherit;
+}
+.code-row-main { min-width: 0; flex: 1 1 auto; }
+.code-row-name {
+  display: block;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.code-row-end { flex: none; }
+
+.code-pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 0;
+}
+
+/* Inspector (inline from 1024px, inside a Sheet below). */
+.logic-inspector.code-inspector { max-height: calc(100dvh - 32px); }
+.code-inspector,
+.code-sheet-body { display: grid; gap: 12px; align-content: start; }
+.code-insp-title { margin: 0; font-size: 18px; line-height: 1.3; overflow-wrap: anywhere; }
+.code-insp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.code-insp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.code-insp-link { font-weight: 600; color: var(--accent); }
+.code-insp-h {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+.code-tagbars { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.code-tagbar-head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; margin-bottom: 4px; }
+.code-tagbar-count { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.code-keys { font-size: 12px; color: var(--text-tertiary); }
+.code-keys kbd {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-weight: 600;
+}
+
+@media (pointer: coarse) {
+  .code-insp-actions .btn { min-height: 44px; }
+}

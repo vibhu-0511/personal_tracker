@@ -1,0 +1,115 @@
+/* Today tiles, group B (Spend, Mood, Watch, Tutor). B3-12.
+   Tone comes from Tile data-tone; only layout and inner controls live here.
+   Column spans follow the .today-grid container (name: tg): 2 cols <600px,
+   4 cols 600-899px, 6 cols >=900px. Spans: Spend 2/2/4, Mood 2/2/2,
+   Watch 1/1/2, Tutor 2/4/6. */
+
+.today-tile-spend,
+.today-tile-mood,
+.today-tile-tutor { grid-column: span 2; }
+.today-tile-watch { grid-column: span 1; }
+
+@container tg (min-width: 600px) {
+  .today-tile-tutor { grid-column: span 4; }
+}
+@container tg (min-width: 900px) {
+  .today-tile-spend { grid-column: span 4; }
+  .today-tile-watch { grid-column: span 2; }
+  .today-tile-tutor { grid-column: span 6; }
+}
+
+.tb-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--tile-sec, var(--text-secondary));
+}
+.tb-big {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Spend */
+.tb-spend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.tb-spend-sum { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.tb-spend-total { font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* Mood: five 44px targets in a full-width row */
+.tb-moods {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.tb-mood-btn {
+  flex: 1 1 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: inherit;
+  background: var(--tile-inner, var(--surface-raised));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs, 10px);
+  cursor: pointer;
+}
+.tb-mood-btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.tb-mood-btn:disabled { opacity: .5; cursor: default; }
+.tb-mood-btn:focus-visible,
+.tb-chip-btn:focus-visible,
+.tb-ask-input:focus-visible,
+.tb-ask-btn:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+
+/* Tutor */
+.tb-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.tb-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.tb-ask { display: flex; gap: 8px; }
+.tb-ask-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  font: inherit;
+  color: var(--text);
+  background: var(--tile-inner, var(--surface-raised));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs, 10px);
+}
+.tb-ask-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--on-accent, #fff);
+  background: var(--accent);
+  border: 0;
+  border-radius: var(--radius-xs, 10px);
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tb-mood-btn:not(:disabled):hover { border-color: var(--accent); }
+  .tb-ask-btn:hover { filter: brightness(1.08); }
+}

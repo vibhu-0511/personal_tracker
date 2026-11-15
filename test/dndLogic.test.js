@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { placeItem, taskDropPatch, canNest, moveSubtask } from '../src/dnd/logic.js'
+import { placeItem, moveMany, taskDropPatch, canNest, moveSubtask } from '../src/dnd/logic.js'
 
 const ids = (l) => l.map((x) => x.id).join('')
 const L = () => ['a', 'b', 'c', 'd'].map((id) => ({ id }))
@@ -47,4 +47,28 @@ test('moveSubtask moves within and across tasks', () => {
   const toEmpty = moveSubtask(tasks, 's4', 't2', 't3', null, false)
   assert.deepEqual(toEmpty[2].subtasks.map((s) => s.id), ['s4'])
   assert.deepEqual(toEmpty[1].subtasks, [])
+})
+
+test('moveMany moves a group before/after a target keeping list order', () => {
+  assert.equal(ids(moveMany(L(), ['c', 'a'], 'd', { after: true })), 'bdac')
+  assert.equal(ids(moveMany(L(), ['a', 'b'], 'd')), 'cabd')
+  assert.equal(ids(moveMany(L(), ['d', 'c'], 'a')), 'cdab')
+})
+
+test('moveMany appends on null overId, merges patch, ignores unknown ids', () => {
+  const out = moveMany(L(), ['a', 'zz', 'b'], null, { patch: { parentId: 'x' } })
+  assert.equal(ids(out), 'cdab')
+  assert.deepEqual(out.slice(2).map((x) => x.parentId), ['x', 'x'])
+  assert.equal(out[0].parentId, undefined)
+  const l = L()
+  assert.equal(moveMany(l, ['zz'], 'a'), l)
+  assert.equal(moveMany(l, [], 'a'), l)
+})
+
+test('moveMany is a no-op when overId is one of the moved ids, and matches placeItem for one id', () => {
+  const l = L()
+  assert.equal(moveMany(l, ['a', 'b'], 'b'), l)
+  assert.deepEqual(moveMany(L(), ['a'], 'c', { after: true }), placeItem(L(), 'a', 'c', { after: true }))
+  assert.deepEqual(moveMany(L(), ['d'], 'b'), placeItem(L(), 'd', 'b'))
+  assert.equal(ids(l), 'abcd')
 })

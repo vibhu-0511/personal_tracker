@@ -1,23 +1,38 @@
-import { useEffect, useState } from 'react'
-import Today, { solvedToday } from './Today.jsx'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import CodeView, { solvedToday } from './CodeView.jsx'
 import Puzzles from './Puzzles.jsx'
-import Exams, { EXAMS } from './Exams.jsx'
+import Exams from './Exams.jsx'
+import { EXAMS } from '../logic/examData.js'
 import { loadPuzzles } from '../puzzles.js'
 import { getProgress, getPuzzleProgress, getExamProgress } from '../store.js'
+
+const DsaView = lazy(() => import('./DsaView.jsx'))
 
 const VIEWS = [
   { id: 'code', icon: '⚡', label: 'Code' },
   { id: 'puzzles', icon: '🧩', label: 'Puzzles' },
   { id: 'exams', icon: '📝', label: 'Exams' },
+  { id: 'dsa', icon: '📘', label: 'DSA' },
 ]
+
+const VIEW_IDS = VIEWS.map((v) => v.id)
 
 const TOTAL_EXAM_TOPICS = EXAMS.reduce(
   (sum, ex) => sum + ex.sections.reduce((s, sec) => s + sec.topics.length, 0),
   0
 )
 
-export default function LogicBuilding({ cfHandle, syncTicks }) {
-  const [view, setView] = useState('code')
+// Controlled when `view` is passed (with `onViewChange`); otherwise keeps the
+// active view in local state. Unknown view ids fall back to 'code'.
+export default function LogicBuilding({ cfHandle, syncTicks = {}, view: viewProp, onViewChange }) {
+  const [localView, setLocalView] = useState('code')
+  const requested = viewProp !== undefined ? viewProp : localView
+  const view = VIEW_IDS.includes(requested) ? requested : 'code'
+  const setView = (id) => {
+    if (viewProp === undefined) setLocalView(id)
+    if (onViewChange) onViewChange(id)
+  }
+  const codeTick = (syncTicks.Code || 0) + (syncTicks.Today || 0)
   const [glance, setGlance] = useState({ solvedToday: 0, puzzlesSolved: 0, examPct: 0 })
   const [puzzleCount, setPuzzleCount] = useState(0)
   const [localTick, setLocalTick] = useState(0)
@@ -39,7 +54,7 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
         })
       }
     )
-  }, [syncTicks.Today, syncTicks.Puzzles, syncTicks.Exams, localTick])
+  }, [codeTick, syncTicks.Puzzles, syncTicks.Exams, localTick])
 
   return (
     <div>
@@ -71,17 +86,14 @@ export default function LogicBuilding({ cfHandle, syncTicks }) {
         ))}
       </div>
 
-      <a
-        href="/dsa/mastery-map.html"
-        className="btn btn-sm"
-        style={{ width: '100%', marginBottom: 12, textAlign: 'center', display: 'block' }}
-      >
-        📘 DSA Mastery Map
-      </a>
-
-      {view === 'code' && <Today syncTick={syncTicks.Today || 0} cfHandle={cfHandle} onChange={bump} />}
+      {view === 'code' && <CodeView syncTick={codeTick} cfHandle={cfHandle} onChange={bump} />}
       {view === 'puzzles' && <Puzzles syncTick={syncTicks.Puzzles || 0} onChange={bump} />}
       {view === 'exams' && <Exams syncTick={syncTicks.Exams || 0} onChange={bump} />}
+      {view === 'dsa' && (
+        <Suspense fallback={<div className="empty">Loading DSA map…</div>}>
+          <DsaView />
+        </Suspense>
+      )}
     </div>
   )
 }

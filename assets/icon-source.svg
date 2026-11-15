@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Forge</title>
+  <defs>
+    <linearGradient id="outer" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#e8431a"/>
+      <stop offset="0.55" stop-color="#ff7a1a"/>
+      <stop offset="1" stop-color="#ffb02e"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffb02e"/>
+      <stop offset="1" stop-color="#ffe27a"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed background; maskable and apple-touch icons rely on it being opaque. -->
+  <rect width="512" height="512" fill="#0a0c10"/>
+  <!-- Flame: bounding box x166-346, y106-406, inside the central 60 percent of the canvas. -->
+  <path fill="url(#outer)" d="M256 106C270 170 340 200 346 290C350 355 305 406 256 406C207 406 162 360 166 296C168 250 196 224 212 196C218 232 236 240 242 232C252 190 236 150 256 106Z"/>
+  <path fill="url(#inner)" d="M256 250C262 280 300 300 300 342C300 374 280 392 256 392C232 392 212 374 212 342C212 308 240 296 256 250Z"/>
+</svg>

@@ -1,0 +1,562 @@
+[
+ {
+  "id": "http",
+  "label": "HTTP & REST",
+  "category": "web",
+  "phase": "P0",
+  "level": 1,
+  "requires": []
+ },
+ {
+  "id": "evloop",
+  "label": "Event loop & rendering",
+  "category": "web",
+  "phase": "P0",
+  "level": 1,
+  "requires": []
+ },
+ {
+  "id": "css",
+  "label": "CSS flex & grid",
+  "category": "web",
+  "phase": "P0",
+  "level": 1,
+  "requires": []
+ },
+ {
+  "id": "idb",
+  "label": "IndexedDB & storage",
+  "category": "web",
+  "phase": "P0",
+  "level": 1,
+  "requires": [
+   "evloop"
+  ]
+ },
+ {
+  "id": "a11y",
+  "label": "Accessibility",
+  "category": "web",
+  "phase": "P0",
+  "level": 2,
+  "requires": [
+   "css"
+  ]
+ },
+ {
+  "id": "resp",
+  "label": "Fluid & responsive design",
+  "category": "ui",
+  "phase": "P0",
+  "level": 1,
+  "requires": [
+   "css"
+  ]
+ },
+ {
+  "id": "cq",
+  "label": "Container queries",
+  "category": "ui",
+  "phase": "P0",
+  "level": 2,
+  "requires": [
+   "resp"
+  ]
+ },
+ {
+  "id": "tokens",
+  "label": "Design tokens & theming",
+  "category": "ui",
+  "phase": "P0",
+  "level": 2,
+  "requires": [
+   "css"
+  ]
+ },
+ {
+  "id": "adapt",
+  "label": "Adaptive app shell",
+  "category": "ui",
+  "phase": "P0",
+  "level": 2,
+  "requires": [
+   "cq",
+   "tokens"
+  ]
+ },
+ {
+  "id": "touch",
+  "label": "Pointer, touch & hover",
+  "category": "ui",
+  "phase": "P0",
+  "level": 2,
+  "requires": [
+   "resp"
+  ]
+ },
+ {
+  "id": "motion",
+  "label": "Animation & reduced motion",
+  "category": "ui",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "evloop",
+   "css"
+  ]
+ },
+ {
+  "id": "gest",
+  "label": "Gestures & drag-drop",
+  "category": "ui",
+  "phase": "P1",
+  "level": 3,
+  "requires": [
+   "touch",
+   "motion"
+  ]
+ },
+ {
+  "id": "react",
+  "label": "React components & hooks",
+  "category": "ui",
+  "phase": "P0",
+  "level": 1,
+  "requires": [
+   "evloop"
+  ]
+ },
+ {
+  "id": "state",
+  "label": "State & derived state",
+  "category": "ui",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "react"
+  ]
+ },
+ {
+  "id": "split",
+  "label": "Code splitting",
+  "category": "ui",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "react"
+  ]
+ },
+ {
+  "id": "virt",
+  "label": "List virtualization",
+  "category": "ui",
+  "phase": "P2",
+  "level": 3,
+  "requires": [
+   "react",
+   "evloop"
+  ]
+ },
+ {
+  "id": "manifest",
+  "label": "Manifest & installability",
+  "category": "pwa",
+  "phase": "P1",
+  "level": 1,
+  "requires": [
+   "http"
+  ]
+ },
+ {
+  "id": "sw",
+  "label": "Service workers",
+  "category": "pwa",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "http",
+   "evloop"
+  ]
+ },
+ {
+  "id": "cachestrat",
+  "label": "Cache strategies",
+  "category": "pwa",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "sw"
+  ]
+ },
+ {
+  "id": "bgsync",
+  "label": "Background sync",
+  "category": "pwa",
+  "phase": "P2",
+  "level": 3,
+  "requires": [
+   "sw",
+   "idb"
+  ]
+ },
+ {
+  "id": "push",
+  "label": "Web Push & notifications",
+  "category": "pwa",
+  "phase": "P3",
+  "level": 3,
+  "requires": [
+   "sw",
+   "manifest"
+  ]
+ },
+ {
+  "id": "perf",
+  "label": "Core Web Vitals & budgets",
+  "category": "pwa",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "split",
+   "cachestrat"
+  ]
+ },
+ {
+  "id": "localfirst",
+  "label": "Local-first architecture",
+  "category": "data",
+  "phase": "P2",
+  "level": 2,
+  "requires": [
+   "idb"
+  ]
+ },
+ {
+  "id": "optim",
+  "label": "Optimistic UI",
+  "category": "data",
+  "phase": "P2",
+  "level": 2,
+  "requires": [
+   "state",
+   "localfirst"
+  ]
+ },
+ {
+  "id": "lww",
+  "label": "Last-write-wins & clocks",
+  "category": "data",
+  "phase": "P2",
+  "level": 2,
+  "requires": [
+   "localfirst"
+  ]
+ },
+ {
+  "id": "lamport",
+  "label": "Lamport & hybrid logical clocks",
+  "category": "data",
+  "phase": "P2",
+  "level": 3,
+  "requires": [
+   "lww"
+  ]
+ },
+ {
+  "id": "tomb",
+  "label": "Tombstones & soft delete",
+  "category": "data",
+  "phase": "P2",
+  "level": 2,
+  "requires": [
+   "lww"
+  ]
+ },
+ {
+  "id": "crdt",
+  "label": "CRDTs",
+  "category": "data",
+  "phase": "P3",
+  "level": 3,
+  "requires": [
+   "lamport"
+  ]
+ },
+ {
+  "id": "outbox",
+  "label": "Outbox & idempotent writes",
+  "category": "data",
+  "phase": "P2",
+  "level": 3,
+  "requires": [
+   "localfirst",
+   "bgsync"
+  ]
+ },
+ {
+  "id": "debounce",
+  "label": "Debounce, batching, backoff",
+  "category": "data",
+  "phase": "P1",
+  "level": 1,
+  "requires": [
+   "evloop"
+  ]
+ },
+ {
+  "id": "rt",
+  "label": "Realtime & change data capture",
+  "category": "data",
+  "phase": "P2",
+  "level": 2,
+  "requires": [
+   "http"
+  ]
+ },
+ {
+  "id": "pgmodel",
+  "label": "Relational modelling & migrations",
+  "category": "data",
+  "phase": "P2",
+  "level": 2,
+  "requires": [
+   "http"
+  ]
+ },
+ {
+  "id": "serverless",
+  "label": "Serverless functions",
+  "category": "be",
+  "phase": "P0",
+  "level": 1,
+  "requires": [
+   "http"
+  ]
+ },
+ {
+  "id": "proxy",
+  "label": "API proxy / BFF",
+  "category": "be",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "serverless"
+  ]
+ },
+ {
+  "id": "ratelimit",
+  "label": "Rate limiting & quotas",
+  "category": "be",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "proxy"
+  ]
+ },
+ {
+  "id": "cdn",
+  "label": "HTTP caching & CDN",
+  "category": "be",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "http",
+   "cachestrat"
+  ]
+ },
+ {
+  "id": "auth",
+  "label": "Authentication",
+  "category": "sec",
+  "phase": "P1",
+  "level": 2,
+  "requires": [
+   "http"
+  ]
+ },
+ {
+  "id": "rls",
+  "label": "Row-level security",
+  "category": "sec",
+  "phase": "P2",
+  "level": 2,
+  "requires": [
+   "auth",
+   "pgmodel"
+  ]
+ },
+ {
+  "id": "csp",
+  "label": "CSP, XSS & secrets hygiene",
+  "category": "sec",
+  "phase": "P4",
+  "level": 2,
+  "requires": [
+   "http"
+  ]
+ },
+ {
+  "id": "backup",
+  "label": "Backups, export & recovery",
+  "category": "sec",
+  "phase": "P2",
+  "level": 2,
+  "requires": [
+   "pgmodel"
+  ]
+ },
+ {
+  "id": "cap",
+  "label": "Capacitor & WebView bridges",
+  "category": "nat",
+  "phase": "P3",
+  "level": 2,
+  "requires": [
+   "manifest",
+   "react"
+  ]
+ },
+ {
+  "id": "nativeapi",
+  "label": "Keychain, haptics, biometrics",
+  "category": "nat",
+  "phase": "P3",
+  "level": 3,
+  "requires": [
+   "cap"
+  ]
+ },
+ {
+  "id": "deeplink",
+  "label": "Deep links, share sheet, widgets",
+  "category": "nat",
+  "phase": "P3",
+  "level": 3,
+  "requires": [
+   "cap"
+  ]
+ },
+ {
+  "id": "store",
+  "label": "TestFlight & App Store",
+  "category": "nat",
+  "phase": "P3",
+  "level": 2,
+  "requires": [
+   "cap"
+  ]
+ },
+ {
+  "id": "pencil",
+  "label": "Pencil & canvas input",
+  "category": "nat",
+  "phase": "P3",
+  "level": 3,
+  "requires": [
+   "touch"
+  ]
+ },
+ {
+  "id": "testpyr",
+  "label": "Testing pyramid",
+  "category": "ops",
+  "phase": "P4",
+  "level": 1,
+  "requires": []
+ },
+ {
+  "id": "e2e",
+  "label": "E2E & device matrix",
+  "category": "ops",
+  "phase": "P4",
+  "level": 2,
+  "requires": [
+   "testpyr",
+   "resp"
+  ]
+ },
+ {
+  "id": "ci",
+  "label": "CI/CD & preview deploys",
+  "category": "ops",
+  "phase": "P4",
+  "level": 2,
+  "requires": [
+   "testpyr",
+   "serverless"
+  ]
+ },
+ {
+  "id": "obs",
+  "label": "Observability",
+  "category": "ops",
+  "phase": "P4",
+  "level": 2,
+  "requires": [
+   "ci"
+  ]
+ },
+ {
+  "id": "flags",
+  "label": "Feature flags & staged rollout",
+  "category": "ops",
+  "phase": "P4",
+  "level": 2,
+  "requires": [
+   "ci"
+  ]
+ },
+ {
+  "id": "prompt",
+  "label": "Prompt design",
+  "category": "ai",
+  "phase": "P5",
+  "level": 1,
+  "requires": []
+ },
+ {
+  "id": "llmgw",
+  "label": "LLM gateway, cost & caching",
+  "category": "ai",
+  "phase": "P5",
+  "level": 2,
+  "requires": [
+   "proxy",
+   "prompt",
+   "ratelimit"
+  ]
+ },
+ {
+  "id": "sse",
+  "label": "Streaming (SSE)",
+  "category": "ai",
+  "phase": "P5",
+  "level": 2,
+  "requires": [
+   "http",
+   "llmgw"
+  ]
+ },
+ {
+  "id": "rag",
+  "label": "RAG & embeddings",
+  "category": "ai",
+  "phase": "P5",
+  "level": 3,
+  "requires": [
+   "llmgw",
+   "pgmodel"
+  ]
+ },
+ {
+  "id": "evals",
+  "label": "Evals & guardrails",
+  "category": "ai",
+  "phase": "P5",
+  "level": 3,
+  "requires": [
+   "prompt",
+   "testpyr"
+  ]
+ }
+]

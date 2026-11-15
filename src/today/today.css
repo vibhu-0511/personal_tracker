@@ -1,0 +1,49 @@
+/* Today home grid (B3-13). `.today-grid` is its OWN size container (name: tg),
+   so the column count follows the grid's width, not the app width. A container
+   cannot restyle itself, so the actual grid is its child `.today-grid-cells`.
+   Columns: 2 below 600px, 4 from 600px, 6 from 900px (grid width).
+
+   Spans of the first-group tiles (they carry no span class of their own), by
+   DOM position: 1 streak, 2 wallet, 3 pets, 4 code, 6 tasks. Position 5 (watch)
+   and 7-9 (spend, mood, tutor) get theirs from tiles-b.css via .today-tile-*.
+   2 cols: streak 1, wallet 1, pets 2, code 1, tasks 2
+   4 cols: streak 2, wallet 2, pets 3, code 1, tasks 3
+   6 cols: streak 3, wallet 3, pets 4, code 2, tasks 4 */
+
+.today-grid {
+  container: tg / inline-size;
+  width: 100%;
+  padding: 0;
+}
+
+.today-grid-cells {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.today-grid-cells > * { min-width: 0; }
+
+.today-grid-cells > :nth-child(1),
+.today-grid-cells > :nth-child(2),
+.today-grid-cells > :nth-child(4) { grid-column: span 1; }
+.today-grid-cells > :nth-child(3),
+.today-grid-cells > :nth-child(6) { grid-column: span 2; }
+
+@container tg (min-width: 600px) {
+  .today-grid-cells { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .today-grid-cells > :nth-child(1),
+  .today-grid-cells > :nth-child(2) { grid-column: span 2; }
+  .today-grid-cells > :nth-child(3),
+  .today-grid-cells > :nth-child(6) { grid-column: span 3; }
+  .today-grid-cells > :nth-child(4) { grid-column: span 1; }
+}
+
+@container tg (min-width: 900px) {
+  .today-grid-cells { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .today-grid-cells > :nth-child(1),
+  .today-grid-cells > :nth-child(2) { grid-column: span 3; }
+  .today-grid-cells > :nth-child(3),
+  .today-grid-cells > :nth-child(6) { grid-column: span 4; }
+  .today-grid-cells > :nth-child(4) { grid-column: span 2; }
+}

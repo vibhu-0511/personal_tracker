@@ -1,0 +1,79 @@
+{
+  "settings": { "cfHandle": "step_bro", "theme": "cream", "inspector": true, "startTab": "today" },
+  "notes": [
+    { "id": "n-b2", "title": "Segment tree", "body": "lazy propagation", "updatedAt": 1699990000000, "tags": ["dsa"] },
+    { "id": 1699980000123, "title": "Numeric legacy id", "body": "", "updatedAt": 1699980000123 },
+    { "id": "n-a1", "title": "Zebra last", "body": "order must follow the array, not the id", "updatedAt": 1699970000000 }
+  ],
+  "progress": {
+    "two-sum": { "status": "solved", "tags": ["array", "hash"], "updatedAt": 1699000000000 },
+    "lru-cache": { "status": "attempted", "tags": [], "updatedAt": 1699000100000 },
+    "1500": { "status": "solved", "tags": ["dp"], "updatedAt": 1699000200000 }
+  },
+  "expenses": [
+    { "id": "e-3", "amount": 12.5, "category": "food", "date": "2026-11-10", "note": "lunch" },
+    { "id": "e-1", "amount": 480, "category": "rent", "date": "2026-11-01", "note": "" },
+    { "id": "e-2", "amount": 0, "category": "other", "date": "2026-11-05", "note": null }
+  ],
+  "budgets": { "food": 6000, "rent": 0, "travel": 2500.5 },
+  "goals": [
+    { "id": "g-1", "name": "Emergency fund", "target": 100000, "saved": 25000 },
+    { "id": "g-2", "name": "Laptop", "target": 90000, "saved": 0, "due": "2027-03-01" }
+  ],
+  "examProgress": {
+    "gate::os::scheduling": true,
+    "gate::os::deadlocks": false,
+    "gate::dbms::normal forms": true
+  },
+  "examNotes": [
+    { "id": "x-2", "exam": "gate", "text": "Banker's algorithm", "createdAt": 1699500000000 },
+    { "id": "x-1", "exam": "gate", "text": "3NF vs BCNF", "createdAt": 1699400000000 }
+  ],
+  "investProgress": {
+    "done": { "l-intro": true, "l-risk": true, "l:colon": true },
+    "quiz": { "q-intro": { "score": 4, "of": 5 }, "q-risk": { "score": 0, "of": 5 } },
+    "tasks": { "t-open-demat": false, "t-sip": true },
+    "current": "l-diversify"
+  },
+  "watchlist": [
+    { "id": "w-2", "symbol": "NIFTYBEES.NS", "addedAt": 1699300000000 },
+    { "id": "w-1", "symbol": "TCS.NS", "addedAt": 1699200000000 }
+  ],
+  "tasks": [
+    {
+      "id": "t-3", "title": "Ship sync v2 adapters", "done": false, "due": "2026-11-15",
+      "subtasks": [{ "id": "s-1", "title": "fixtures", "done": true }, { "id": "s-2", "title": "tests", "done": false }]
+    },
+    { "id": "t-1", "title": "Gym 6pm", "done": true, "subtasks": [] },
+    { "id": 1699100000999, "title": "Numeric id task", "done": false }
+  ],
+  "reminders": [
+    { "id": "r-1", "text": "Pay card bill", "at": "2026-11-18T09:00", "done": false },
+    { "id": "r-0", "text": "Renew domain", "at": "2026-11-16T09:00", "done": true }
+  ],
+  "habits": [
+    {
+      "id": "h-2", "name": "Read 20 pages", "category": "mind", "species": "owl", "domain": "learning", "createdAt": 1698000000000,
+      "checkins": ["2026-11-12", "2026-11-10", "2026-11-11", "2026-11-13"]
+    },
+    {
+      "id": "h-1", "name": "Run", "category": "body", "species": "fox", "domain": "health", "createdAt": 1697000000000,
+      "checkins": ["2026-11-01", "2026-11-09"]
+    },
+    { "id": "h-3", "name": "Meditate", "category": "mind", "species": "cat", "domain": "calm", "createdAt": 1699000000000, "checkins": [] }
+  ],
+  "moodLog": [
+    { "date": "2026-11-12", "valence": 75, "source": "logged" },
+    { "date": "2026-11-10", "valence": 50, "source": "derived" },
+    { "date": "2026-11-13", "valence": 100, "source": "logged" },
+    { "date": "2026-11-11", "valence": 25, "source": "derived" }
+  ],
+  "loans": [
+    { "id": "l-2", "name": "Bike", "principal": 60000, "rate": 9.5, "emi": 5200, "start": "2026-02-01" },
+    { "id": "l-1", "name": "Phone", "principal": 30000, "rate": 0, "emi": 2500, "start": "2026-06-01" }
+  ],
+  "puzzleProgress": { "p-01": true, "p-02": false, "p-17": true },
+  "checklists": [
+    { "id": "c-1", "title": "Trip packing", "items": [{ "id": "i-1", "text": "Charger", "done": true }] }
+  ]
+}

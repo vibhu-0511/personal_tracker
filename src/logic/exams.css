@@ -1,0 +1,100 @@
+/* exams: sections list | topic-checklist + notes inspector (R3-07)
+   Builds on the shared .logic-split / .logic-row layout from logic.css. Below
+   1024px the view stays a single-column accordion; from 1024px the sections are
+   a selectable list and the selected section's topics and the exam notes live in
+   the inspector column. */
+
+.exams-view {
+  min-width: 0;
+}
+
+.exams-summary {
+  margin-bottom: 12px;
+}
+.exams-summary-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* Accordion sections (single column) */
+.exams-section-card {
+  margin-bottom: 8px;
+  padding: 0;
+}
+.exams-section-body {
+  padding: 0 16px 12px;
+}
+
+/* Sections list rows (split layout) */
+.exams-section-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  font: inherit;
+}
+.exams-section-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.exams-section-meter {
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.exams-section-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+/* Inspector content */
+.exams-inspector-card {
+  padding: 16px;
+}
+.exams-inspector-title {
+  margin-bottom: 2px;
+}
+.exams-topics {
+  margin: 8px 0 16px;
+}
+.exams-topic-text[data-done="true"] {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* Notes */
+.exams-note-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.exams-note-form input {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.exams-note-form select {
+  flex: 0 1 160px;
+  min-width: 0;
+  max-width: 160px;
+}
+.exams-notes-empty {
+  padding: 24px 16px;
+}
+
+.exams-material {
+  margin-top: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.exams-material-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}

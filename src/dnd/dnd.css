@@ -1,0 +1,10 @@
+/* Drag handle: keep the 28px desktop look, grow to a 44px target for touch / coarse pointers. */
+@media (pointer: coarse) {
+  .drag-handle {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

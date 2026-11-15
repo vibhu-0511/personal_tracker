@@ -1,58 +1,40 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import { pathToFileURL } from 'node:url'
-import path from 'node:path'
+import { VitePWA } from 'vite-plugin-pwa'
+import { apiDevPlugin } from './vite-plugins/apiDev.js'
+import { cspMetaPlugin } from './vite-plugins/cspMeta.js'
 
-// vite preview's server has no ssrLoadModule (that's dev-only); fall back to a
-// plain dynamic import so /api/* also works under `vite preview`.
-async function loadApiModule(server, name) {
-  if (typeof server.ssrLoadModule === 'function') {
-    return server.ssrLoadModule(`/api/${name}.js`)
-  }
-  return import(pathToFileURL(path.join(process.cwd(), 'api', `${name}.js`)).href)
-}
-
-function apiDevPlugin() {
-  const mw = (server) => {
-    server.middlewares.use(async (req, res, next) => {
-        if (!req.url.startsWith('/api/')) return next()
-
-        const url = new URL(req.url, 'http://localhost')
-        const name = url.pathname.slice('/api/'.length)
-        if (name.includes('..')) return res.writeHead(400).end()
-
-        req.query = Object.fromEntries(url.searchParams)
-        res.status = (code) => {
-          res.statusCode = code
-          return res
-        }
-        res.json = (obj) => {
-          res.setHeader('Content-Type', 'application/json')
-          res.end(JSON.stringify(obj))
-        }
-
-        try {
-          if (req.method === 'POST') {
-            const chunks = []
-            for await (const chunk of req) chunks.push(chunk)
-            req.body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString()) : {}
-          }
-          const mod = await loadApiModule(server, name)
-          await mod.default(req, res)
-        } catch (err) {
-          console.error(`api/${name} dev handler error`, err)
-          res.status(500).json({ error: 'Internal error' })
-        }
-      })
-  }
-  return {
-    name: 'forge-api-dev',
-    configureServer: mw,
-    configurePreviewServer: mw,
-  }
-}
+// generateSW; manifest stays the hand-edited public/manifest.json, registration is
+// done by src/pwa (injectRegister false), and the dev server never gets a SW.
+const pwa = VitePWA({
+  registerType: 'prompt',
+  injectRegister: false,
+  manifest: false,
+  devOptions: { enabled: false },
+  workbox: {
+    globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+    globIgnores: ['dsa/**', 'puzzles.json'],
+    navigateFallback: '/index.html',
+    navigateFallbackDenylist: [/^\/api\//, /^\/dsa\//],
+    cleanupOutdatedCaches: true,
+    // push and notificationclick handlers live in public/push-sw.js (generateSW has no src/sw.js).
+    importScripts: ['push-sw.js'],
+    runtimeCaching: [
+      { urlPattern: ({ url }) => url.pathname.startsWith('/api/'), handler: 'NetworkOnly' },
+      { urlPattern: ({ url }) => url.hostname.endsWith('.supabase.co'), handler: 'NetworkOnly' },
+      {
+        urlPattern: ({ url }) => url.pathname === '/puzzles.json',
+        handler: 'StaleWhileRevalidate',
+        options: { cacheName: 'puzzles', expiration: { maxEntries: 4 } },
+      },
+    ],
+  },
+})
 
 export default defineConfig(({ mode }) => {
   Object.assign(process.env, loadEnv(mode, process.cwd(), ''))
-  return { plugins: [react(), apiDevPlugin()] }
+  // The CSP meta is for the native (Capacitor) build only; the plugin is a no-op
+  // in every other mode, so the web build output is unchanged.
+  const csp = cspMetaPlugin({ mode, apiBase: process.env.VITE_API_BASE })
+  return { plugins: [react(), pwa, apiDevPlugin(), csp] }
 })

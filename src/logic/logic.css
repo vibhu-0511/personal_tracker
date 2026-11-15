@@ -1,0 +1,73 @@
+/* logic: shared list | inspector layout for the Logic views (R3-01)
+   Single column by default (phones, rail widths). From 1024px container width on
+   the `app` container (shell.css) the view becomes two columns: a list and a
+   sticky, independently scrolling inspector. Same threshold as --inspector-min. */
+
+.logic-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.logic-list {
+  min-width: 0;
+}
+
+/* The inspector column stays out of the flow until there is room for it. */
+.logic-inspector {
+  display: none;
+  min-width: 0;
+}
+
+@container app (min-width: 1024px) {
+  .logic-split {
+    grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr);
+  }
+
+  .logic-inspector {
+    display: block;
+    position: sticky;
+    top: 0;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Selectable rows used by the list column. */
+.logic-row {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.logic-row[aria-selected="true"],
+.logic-row[aria-current="true"] {
+  border-color: var(--accent);
+}
+.logic-row:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .logic-row:hover {
+    background: var(--hover);
+  }
+}
+@media (pointer: coarse) {
+  .logic-row {
+    min-height: 44px;
+  }
+}
+
+.logic-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+}

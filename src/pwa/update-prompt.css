@@ -1,0 +1,39 @@
+/* Update prompt banner: sits above the bottom tab bar, uses theme tokens only. */
+.update-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h, 56px) + 12px);
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 24px);
+  max-width: 480px;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  font-size: 14px;
+}
+.update-prompt-msg { flex: 1; min-width: 0; }
+.update-prompt-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.update-prompt button {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.update-prompt button.update-prompt-primary {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--on-accent, #fff);
+}
+.update-prompt button:disabled { opacity: 0.6; cursor: default; }

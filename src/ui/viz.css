@@ -1,0 +1,117 @@
+/* Data-viz primitives (B3-04): Bar, Ring, Donut, Spark.
+   Colours come from --chart-1..6 / --track / --surface (B3-02) with literal
+   fallbacks so this file works before the token merge. */
+
+/* ── Bar ── */
+.viz-bar {
+  --viz-bar-color: var(--accent, #6ea8fe);
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--track, var(--border));
+}
+.viz-bar[data-tone="success"] { --viz-bar-color: var(--success, #3dd68c); }
+.viz-bar[data-tone="warn"] { --viz-bar-color: var(--warn, #ffb86b); }
+.viz-bar[data-tone="danger"] { --viz-bar-color: var(--danger, #ff7a90); }
+.viz-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--viz-bar-color);
+  transition: width .4s ease;
+}
+
+/* ── Ring ── */
+.viz-ring {
+  --viz-size: 92px;
+  width: var(--viz-size);
+  height: var(--viz-size);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.viz-ring-inner {
+  width: calc(var(--viz-size) - 16px);
+  height: calc(var(--viz-size) - 16px);
+  border-radius: 50%;
+  background: var(--ui-tile-bg, var(--surface));
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+/* ── Donut ── */
+.viz-donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.viz-donut {
+  --viz-size: 104px;
+  --viz-thick: 17px;
+  width: var(--viz-size);
+  height: var(--viz-size);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.viz-donut-center {
+  width: calc(var(--viz-size) - var(--viz-thick) * 2);
+  height: calc(var(--viz-size) - var(--viz-thick) * 2);
+  border-radius: 50%;
+  background: var(--ui-tile-bg, var(--surface));
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.15;
+  color: var(--text);
+}
+.viz-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text);
+}
+.viz-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.viz-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+.viz-legend-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.viz-legend-pct,
+.viz-legend-empty { color: var(--text-secondary); }
+
+/* ── Spark ── */
+.viz-spark {
+  flex: none;
+  color: var(--accent, #6ea8fe);
+}
+.viz-spark[data-tone="success"] { color: var(--success, #3dd68c); }
+.viz-spark[data-tone="danger"] { color: var(--danger, #ff7a90); }
+
+@media (prefers-reduced-motion: reduce) {
+  .viz-bar-fill { transition: none; }
+}

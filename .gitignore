@@ -3,3 +3,8 @@ dist
 .env
 .vercel
 .superpowers
+.live
+dist-e2e
+test-results
+playwright-report
+.agentflow

@@ -1,0 +1,46 @@
+/* Today tiles A (B3-11): Streak, Wallet, Pets, Code, Tasks. Tokens only; no
+   hover rules, so nothing needs the (hover: hover) guard. */
+
+.tla-tile { min-height: 132px; }
+
+.tla-big { display: flex; align-items: baseline; gap: 6px; }
+.tla-big-num { font-size: 30px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tla-big-unit { font-size: 13px; color: var(--tile-sec, var(--text-secondary)); }
+.tla-sub { margin: 0; font-size: 12px; color: var(--tile-sec, var(--text-secondary)); }
+
+.tla-empty {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  margin: 0; font-size: 13px; color: var(--tile-sec, var(--text-secondary));
+}
+.tla-empty-icon { font-size: 24px; }
+
+/* Loading skeleton */
+.tla-skel {
+  height: 72px; border-radius: var(--radius-xs, 8px);
+  background: var(--tile-inner, var(--border));
+  animation: tla-pulse 1.4s ease-in-out infinite;
+}
+.tla-skel-round { width: 84px; height: 84px; border-radius: 50%; }
+@keyframes tla-pulse { 50% { opacity: .5; } }
+@media (prefers-reduced-motion: reduce) { .tla-skel { animation: none; } }
+
+/* Complete / check-in controls: 44px hit area at every pointer size */
+.tla-check.ui-check { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+
+/* Pets */
+.tla-pets, .tla-tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.tla-pet { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.tla-pet-face { font-size: 24px; flex-shrink: 0; }
+.tla-pet-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.tla-pet-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tla-pet-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--tile-sec, var(--text-secondary)); }
+.tla-more { text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
+.tla-more:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+
+/* Code ring */
+.tla-ring { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tla-ring-num { font-size: 18px; font-variant-numeric: tabular-nums; }
+
+/* Tasks */
+.tla-task { gap: 4px; padding-inline: 4px; background: transparent; border-color: transparent; }
+.tla-task .ui-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
