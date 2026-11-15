@@ -2,6 +2,8 @@
 // (375x1024). The second proves the shell follows container width, not device:
 // an iPad in a narrow window gets the phone layout (blueprint matrix, E-01).
 import { test, expect } from '../fixtures/hermetic.js'
+import { KV_SEED } from '../fixtures/data.js'
+import { KV_EMBER_DAY, NOW } from '../fixtures/ember-day.js'
 import {
   TAB_COUNT, TAB_LABELS, onlyProjects, openApp, nav, navItems, appWidth, modeForWidth,
   expectNoHorizontalScroll, boxOf, safeAreaMetrics, gapToViewportBottom, undersizedTargets, settle,
@@ -80,5 +82,43 @@ test.describe('phone shell', () => {
     // And it clears the tab bar: its bottom edge is above the bar's top edge.
     const fabBox = await boxOf(fab)
     expect(fabBox.y + fabBox.height).toBeLessThanOrEqual(bar.y)
+  })
+})
+
+// Today on the fixture day (Sun 15 Nov 2026, 16:18): seeded through kvSeed, clock fixed.
+test.describe('phone shell: Today (Ember)', () => {
+  test.use({ kvSeed: { ...KV_SEED, ...KV_EMBER_DAY, tasks: [], settings: { ...KV_SEED.settings, theme: 'ember' } } })
+  test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(NOW) })
+
+  const nextUp = (page) => page.getByRole('region', { name: 'Next up' })
+  const tiles = (page) => page.getByRole('complementary', { name: 'Today tiles' })
+
+  async function openToday(page) {
+    await openApp(page, '#/today')
+    await expect(nextUp(page).getByRole('heading')).toHaveText('Gym, leg day')
+  }
+
+  test('no horizontal scroll at 390 and 375 and the layout follows the container width', async ({ page }) => {
+    await openToday(page)
+    await expect(page.getByRole('list', { name: 'Today timeline' })).toBeVisible()
+    expect([390, 375]).toContain(page.viewportSize().width)
+    await expectNoHorizontalScroll(page)
+    const home = await boxOf(page.locator('.today-home'))
+    const main = await boxOf(page.locator('.today-home-main'))
+    const side = await boxOf(tiles(page))
+    expect(home.width).toBeLessThan(900)
+    expect(side.y, 'tiles stack below').toBeGreaterThanOrEqual(main.y + main.height - 0.5)
+  })
+
+  test('dailies are one row and Done on next up moves it from Gym to Call mom', async ({ page }) => {
+    await openToday(page)
+    const cells = page.getByRole('navigation', { name: 'Dailies' }).locator('.ember-daily')
+    await expect(cells).toHaveCount(5)
+    const ys = []
+    for (let i = 0; i < 5; i++) ys.push((await boxOf(cells.nth(i))).y)
+    for (const y of ys) expect(y).toBeCloseTo(ys[0], 0)
+    await nextUp(page).getByRole('button', { name: 'Done' }).click()
+    await expect(nextUp(page).getByRole('heading')).toHaveText('Call mom')
+    await expectNoHorizontalScroll(page)
   })
 })

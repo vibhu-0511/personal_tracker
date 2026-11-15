@@ -2,6 +2,8 @@
 // (hybrid decision D5: inspector from 1024px; errata C-4, E-03). Rotating
 // mid-session must keep the selected item.
 import { test, expect } from '../fixtures/hermetic.js'
+import { KV_SEED } from '../fixtures/data.js'
+import { KV_EMBER_DAY, NOW } from '../fixtures/ember-day.js'
 import {
   TAB_LABELS, onlyProjects, openApp, nav, navItems, appWidth, modeForWidth, boxOf,
   expectNoHorizontalScroll, inputModel, safeAreaMetrics,
@@ -83,5 +85,44 @@ test.describe('iPad landscape sidebar and inspector', () => {
   test('touch input model: coarse pointer, no real-hover query', async ({ page }) => {
     await openApp(page, '#/life/tasks')
     expect(await inputModel(page)).toEqual({ hoverFine: false, coarse: true })
+  })
+})
+
+// Today on the fixture day (Sun 15 Nov 2026, 16:18): seeded through kvSeed, clock fixed.
+test.describe('iPad landscape sidebar and inspector: Today (Ember)', () => {
+  test.use({ kvSeed: { ...KV_SEED, ...KV_EMBER_DAY, tasks: [], settings: { ...KV_SEED.settings, theme: 'ember' } } })
+  test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(NOW) })
+
+  const nextUp = (page) => page.getByRole('region', { name: 'Next up' })
+  const tiles = (page) => page.getByRole('complementary', { name: 'Today tiles' })
+
+  async function openToday(page) {
+    await openApp(page, '#/today')
+    await expect(nextUp(page).getByRole('heading')).toHaveText('Gym, leg day')
+  }
+
+  test('no horizontal scroll at 1194 and the layout follows the container width', async ({ page }) => {
+    await openToday(page)
+    await expect(page.getByRole('list', { name: 'Today timeline' })).toBeVisible()
+    expect(page.viewportSize().width).toBe(1194)
+    await expectNoHorizontalScroll(page)
+    const home = await boxOf(page.locator('.today-home'))
+    const main = await boxOf(page.locator('.today-home-main'))
+    const side = await boxOf(tiles(page))
+    expect(home.width, 'Today container beside the sidebar').toBeGreaterThanOrEqual(900)
+    expect(side.x, 'tiles are a second column').toBeGreaterThanOrEqual(main.x + main.width - 0.5)
+    expect(side.y).toBeLessThanOrEqual(main.y + 1)
+  })
+
+  test('dailies are one row and Done on next up moves it from Gym to Call mom', async ({ page }) => {
+    await openToday(page)
+    const cells = page.getByRole('navigation', { name: 'Dailies' }).locator('.ember-daily')
+    await expect(cells).toHaveCount(5)
+    const ys = []
+    for (let i = 0; i < 5; i++) ys.push((await boxOf(cells.nth(i))).y)
+    for (const y of ys) expect(y).toBeCloseTo(ys[0], 0)
+    await nextUp(page).getByRole('button', { name: 'Done' }).click()
+    await expect(nextUp(page).getByRole('heading')).toHaveText('Call mom')
+    await expectNoHorizontalScroll(page)
   })
 })
