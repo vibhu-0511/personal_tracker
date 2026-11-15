@@ -1,0 +1,32 @@
+/* Fab (E0-10). Sits above the tab bar and the bottom safe area. --tabbar-h
+   already includes the inset on phones and is 0px on desktop, so max() keeps
+   it clear of the inset in both cases. */
+.ui-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(max(var(--tabbar-h, 0px), env(safe-area-inset-bottom, 0px)) + 12px);
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--accent-fg, var(--on-accent));
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+.ui-fab:active { transform: scale(0.94); }
+.ui-fab:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 3px;
+}
+@media (min-width: 600px) {
+  .ui-fab { right: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-fab { transition: none; }
+}
