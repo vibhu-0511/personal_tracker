@@ -12,6 +12,13 @@
 .today-home {
   container: th / inline-size;
   width: 100%;
+  /* A container cannot restyle itself with its own @container query, so the
+     900px switch is intrinsic: the two columns wrap when their 3:2 bases
+     (525.6px + 350.4px + 24px gap = 900px) no longer fit side by side. */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  align-items: flex-start;
 }
 
 .today-home-main {
@@ -19,21 +26,12 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  flex: 3 1 525.6px;
 }
 
 .today-home-tiles {
-  margin-top: 16px;
   min-width: 0;
-}
-
-@container th (min-width: 900px) {
-  .today-home {
-    display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    gap: 24px;
-    align-items: start;
-  }
-  .today-home-tiles { margin-top: 0; }
+  flex: 2 1 350.4px;
 }
 
 .today-grid {
