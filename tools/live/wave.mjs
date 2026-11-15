@@ -7,15 +7,19 @@
 //   node tools/live/wave.mjs merge ID...     merge one at a time; npm test + build after each
 //   node tools/live/wave.mjs clean ID...     remove worktrees (branches stay)
 //   node tools/live/wave.mjs status          counts per phase
+// Plan file: FORGE_PLAN env or --plan <file>; default docs/plan/plan.json. Commit trailers: FORGE_TRAILERS.
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { deriveStatuses, readRepo } from './lib/build.mjs'
+import { loadPlanFile, splitPlanArg, trailers } from './lib/plan.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const WT = process.env.FORGE_WT || '/home/user/wt'
-const plan = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/plan/plan.json'), 'utf8'))
+const { plan: planFlag, args: cliArgs } = splitPlanArg(process.argv.slice(2))
+const { rel: PLAN_REL, plan } = loadPlanFile(ROOT, planFlag)
+const TRAILERS = trailers()
 const T = Object.fromEntries(plan.tasks.map(t => [t.id, t]))
 let overrides = {}
 try { overrides = JSON.parse(fs.readFileSync(path.join(ROOT, '.live/overrides.json'), 'utf8')) } catch { /* ignored: best effort */ }
@@ -84,11 +88,12 @@ function prep(ids) {
 function brief(id) {
   const t = T[id]; if (!t) throw new Error('unknown task ' + id)
   const dir = path.join(WT, id)
-  const reports = [`docs/plan/research/${t.source}-report.md`]
-  if (t.source === 'B3') reports.push('docs/plan/research/B3-spec.md')
+  const b = plan.meta?.brief || {}
+  const ctx = b.context || [`docs/plan/research/${t.source}-report.md`, ...(t.source === 'B3' ? ['docs/plan/research/B3-spec.md'] : []), 'docs/plan/WORKFLOW.md', 'docs/plan/blueprint-errata.md']
+  const rules = b.rules || 'Defaults assumed for open decisions D1-D17 (docs/plan/OPEN-DECISIONS.md): hash router, inspector from 1024px, Level never decreases, Habits as dense rows, Money merged to 4 views (overview/budget/goals/loans), cream theme synced in settings.'
   console.log(`# Brief: ${t.id} · ${t.title}
 
-You are one agent in a parallel build wave of the Forge plan (${t.phase}, wave ${t.wave}). Work ONLY in this git worktree (already created, on branch ${branchOf(t)}):
+You are one agent in a parallel build wave of the plan ${PLAN_REL} (${t.phase}, wave ${t.wave}). Work ONLY in this git worktree (already created, on branch ${branchOf(t)}):
   ${dir}
 Run \`cd ${dir}\` first and keep every command inside it. Never touch /home/user/personal_tracker.
 
@@ -101,7 +106,7 @@ ${t.writes.map(w => '- ' + w).join('\n')}
 
 ## You may read
 ${(t.reads || []).map(r => '- ' + r).join('\n') || '- anything in the repo'}
-Context: ${reports.map(r => '`' + r + '`').join(', ')} (read the sections relevant to this task), docs/plan/WORKFLOW.md, and docs/plan/blueprint-errata.md for canonical numbers.
+Context (read the sections relevant to this task): ${ctx.map(r => '`' + r + '`').join(', ')}
 
 ## Acceptance (must pass; add or update the tests it names)
 ${t.acceptance}
@@ -111,14 +116,13 @@ ${t.notes || '(none)'}
 
 ## Rules
 - Touch NOTHING outside the write list. If the task cannot be done without another file, STOP and report exactly which file and why.
-- Defaults assumed for open decisions D1-D17 (docs/plan/OPEN-DECISIONS.md): hash router, inspector from 1024px, Level never decreases, Habits as dense rows, Money merged to 4 views (overview/budget/goals/loans), cream theme synced in settings.
+- ${rules}
 - Do not invent facts you cannot verify (versions, API behaviour, credentials). Do not call external services, do not use secrets, do not run anything against a live database.
 - node_modules is symlinked; do not run npm install/ci or change package.json unless it is in your write list.
 - Before committing run: npm test && npm run build (both must be green) plus the acceptance command.
 - Stage only your write-list paths by explicit path (never git add -A). Commit once on your branch. Do not push. Do not open a PR.
-- Commit message: "<type>(<scope>): <summary> (${t.id})" followed by a blank line and these two trailer lines exactly:
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01T1mhHa2P7qHUqNNWGzmkKo
+- Commit message: "<type>(<scope>): <summary> (${t.id})" followed by a blank line and these trailer lines exactly:
+${TRAILERS}
 
 ## Final report (max 10 lines)
 branch, commit sha, files changed, test counts, acceptance output, deviations or risks.`)
@@ -152,13 +156,13 @@ function merge(ids) {
   const failed = []
   for (const id of ids) {
     const t = T[id], pre = git('rev-parse', 'HEAD')
-    const r = run('git', ['merge', '--no-ff', '-q', '-m', `Merge ${branchOf(t)} into dev branch (${t.phase} wave ${t.wave})\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01T1mhHa2P7qHUqNNWGzmkKo`, branchOf(t)])
+    const r = run('git', ['merge', '--no-ff', '-q', '-m', `Merge ${branchOf(t)} into dev branch (${t.phase} wave ${t.wave})\n\n${TRAILERS}`, branchOf(t)])
     if (r.status !== 0) { run('git', ['merge', '--abort']); console.log(`FAIL ${id}: merge conflict\n${tail(r.stdout + r.stderr, 8)}`); failed.push(id); continue }
     const g = gate()
     if (!g.ok) { run('git', ['reset', '--hard', pre]); console.log(`FAIL ${id}: gate red, merge reverted\n${g.tail}`); failed.push(id); continue }
     console.log(`MERGED ${id}: tests ${g.tests}, build green`)
   }
-  const lint = run('node', ['scripts/plan/plan-lint.mjs', 'docs/plan/plan.json'])
+  const lint = run('node', ['scripts/plan/plan-lint.mjs', PLAN_REL])
   console.log('plan-lint:', tail(lint.stdout, 1))
   process.exitCode = failed.length ? 1 : 0
 }
@@ -177,7 +181,7 @@ async function status() {
   console.log(JSON.stringify(out))
 }
 
-const [cmd, ...args] = process.argv.slice(2)
+const [cmd, ...args] = cliArgs
 const table = { next, prep: () => prep(args), brief: () => brief(args[0]), check: () => check(args), merge: () => merge(args), clean: () => clean(args), status }
 if (!table[cmd]) { console.error('usage: wave.mjs next|prep|brief|check|merge|clean|status'); process.exit(2) }
 await table[cmd]()

@@ -1,8 +1,8 @@
 // Derives per-task build status from git. Pure (deriveStatuses) + a git reader (readRepo).
 import { execFile } from 'node:child_process'
 
-const BRANCH_RE = /^wave\/(P\d+)-W(\d+)\/([A-Za-z0-9-]+)$/
-const MERGE_RE = /wave\/(P\d+)-W(\d+)\/([A-Za-z0-9-]+)/g
+const BRANCH_RE = /^wave\/([A-Z]+\d+)-W(\d+)\/([A-Za-z0-9-]+)$/
+const MERGE_RE = /wave\/([A-Z]+\d+)-W(\d+)\/([A-Za-z0-9-]+)/g
 
 // plan: [{id, o?}]  repo: {branches:[{name,sha,own,inHead,worktree}], mergeSubjects:[str]}
 // own = commits on the branch since it forked from HEAD; inHead = tip reachable from HEAD.
