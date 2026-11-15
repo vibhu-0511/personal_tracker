@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Forge Design Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=Nunito:wght@500;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: three stacked direction boards. Each board = header, a wrapping row of
+   three phone screens plus one widget wall, then the reasoning. Compare table last. */
+:root {
+  --bg: #f4f5f8; --card: #ffffff; --fg: #161922; --muted: #5a6170; --line: #dfe2ea;
+  --accent: #3a4acf; --bezel: #1b1e27;
+  --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0e1015; --card: #171a22; --fg: #eceef4; --muted: #9ba2b0; --line: #282c37; --accent: #94a0ff; --bezel: #2b2f3b; color-scheme: dark }
+}
+:root[data-theme="dark"] { --bg: #0e1015; --card: #171a22; --fg: #eceef4; --muted: #9ba2b0; --line: #282c37; --accent: #94a0ff; --bezel: #2b2f3b; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.55 }
+.page { max-width: 1360px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 40px }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.15 }
+h1 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.02em }
+h2 { font-size: clamp(24px, 3vw, 32px); letter-spacing: -0.01em }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-family: var(--f-body); font-weight: 600 }
+p { margin: 0 }
+.lede { color: var(--muted); max-width: 65ch; margin-top: 8px }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px }
+.jump a { text-decoration: none; color: var(--fg); border: 1px solid var(--line); background: var(--card); padding: 7px 14px; border-radius: 999px; font-weight: 500; font-size: 14px }
+.jump a:hover { border-color: var(--accent); color: var(--accent) }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+.dir { border-top: 1px solid var(--line); padding-top: 28px; display: flex; flex-direction: column; gap: 22px }
+.dir-head { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between }
+.dir-head > div { min-width: 0; max-width: 68ch }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px }
+.dir-head p { color: var(--muted); margin-top: 6px }
+.mode { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--card) }
+.mode button { font: 500 13px var(--f-body); border: 0; background: none; color: var(--muted); padding: 6px 14px; border-radius: 999px; cursor: pointer }
+.mode button[aria-pressed="true"] { background: var(--fg); color: var(--bg) }
+
+.stage { display: flex; flex-wrap: wrap; gap: 26px 22px; justify-content: center; align-items: flex-start }
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; align-items: center }
+figcaption { font-size: 13px; color: var(--muted); text-align: center; max-width: 290px }
+figcaption b { color: var(--fg); font-weight: 600 }
+
+.why { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 28px }
+.why > div { min-width: 0 }
+.why ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px }
+.why li { font-size: 14px }
+.why li b { font-weight: 600 }
+
+/* ───────── mock primitives (all colours come from the direction's --m-* set) ───────── */
+.phone { width: 296px; flex: none; border-radius: 46px; padding: 8px; background: var(--bezel); box-shadow: 0 18px 40px rgba(10, 14, 30, 0.18) }
+.screen { height: 596px; border-radius: 38px; background: var(--m-bg); color: var(--m-fg); font-family: var(--m-font); font-size: 13px; line-height: 1.35; display: flex; flex-direction: column; position: relative; overflow: hidden }
+.sb { height: 36px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 4px 24px 0; font: 600 12px var(--f-body) }
+.sb i { width: 74px; height: 21px; border-radius: 12px; background: #000 }
+.sb u { width: 21px; height: 10px; border: 1.5px solid currentColor; border-radius: 3px; opacity: 0.8; position: relative }
+.sb u::after { content: ""; position: absolute; inset: 1.5px 5px 1.5px 1.5px; background: currentColor; border-radius: 1px }
+.body { flex: 1; min-height: 0; padding: 6px 16px 0; display: flex; flex-direction: column; gap: 10px }
+.ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none }
+.sec { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--m-sec) }
+.sub { color: var(--m-sec) }
+.chk { width: 18px; height: 18px; border-radius: 50%; border: 1.6px solid var(--m-sec); flex: none; display: grid; place-items: center }
+.chk.on { background: var(--m-accent); border-color: var(--m-accent); color: var(--m-on) }
+.chk.on .ic { width: 12px; height: 12px; stroke-width: 3 }
+.done { text-decoration: line-through; color: var(--m-sec) }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: var(--m-raised); font-size: 11.5px; font-weight: 600; white-space: nowrap }
+.chip .ic { width: 13px; height: 13px }
+.chip.on { background: var(--m-accent); color: var(--m-on) }
+.chip.ghost { background: none; border: 1.4px dashed var(--m-sec); color: var(--m-sec) }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.btn { white-space: nowrap; background: var(--m-accent); color: var(--m-on); font-weight: 700; font-size: 13px; border-radius: var(--m-r); padding: 10px 16px; text-align: center }
+.tabbar { flex: none; display: flex; justify-content: space-around; align-items: center; padding: 8px 10px 18px; border-top: 1px solid var(--m-line); background: var(--m-bg) }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; font-weight: 600; color: var(--m-sec) }
+.tab.on { color: var(--m-accent) }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--m-surface); border-radius: 26px 26px 0 0; padding: 10px 16px 22px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.28) }
+.sheet::before { content: ""; width: 36px; height: 4px; border-radius: 2px; background: var(--m-line); align-self: center }
+.dim { opacity: 0.32 }
+.caret { display: inline-block; width: 1.5px; height: 1.1em; background: var(--m-accent); vertical-align: -2px; margin-left: 1px }
+.tnum { font-variant-numeric: tabular-nums }
+
+/* widget wall */
+.wall { width: 356px; max-width: 100%; border-radius: 30px; padding: 20px; background: var(--m-wall); display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-family: var(--m-font); color: var(--m-fg); font-size: 12.5px; line-height: 1.35 }
+.w { border-radius: 22px; background: var(--m-surface); padding: 14px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; min-width: 0; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12) }
+.w.s { height: 150px }
+.w.m { grid-column: span 2; height: 150px }
+.w.l { grid-column: span 2; height: 300px }
+.w-big { font-size: 15px; font-weight: 700; line-height: 1.2 }
+.w-row { display: flex; align-items: center; gap: 8px; min-width: 0 }
+.w-row span.t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.w-add { width: 30px; height: 30px; border-radius: 50%; background: var(--m-accent); color: var(--m-on); display: grid; place-items: center; flex: none }
+.lock { grid-column: span 2; border-radius: 22px; padding: 12px 14px; background: linear-gradient(135deg, #20242f, #0c0e13); color: #f2f3f7; display: flex; gap: 12px; align-items: center; font-family: var(--f-body) }
+.lock .rect { flex: 1; min-width: 0; font-size: 12px; line-height: 1.3 }
+.lock .rect b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.lock .circ { width: 46px; height: 46px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); display: grid; place-items: center; font-weight: 700; font-size: 15px; flex: none }
+.lock small { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6 }
+
+/* ───────── A · Command ───────── */
+.dir-a { --m-font: "Inter", system-ui, sans-serif; --m-r: 12px;
+  --m-bg: #0d1220; --m-surface: #161d30; --m-raised: #1e2742; --m-line: #26304a; --m-fg: #e8ecf6; --m-sec: #98a3bb; --m-accent: #7c8cff; --m-on: #0d1220; --m-warn: #ffb86b; --m-wall: linear-gradient(160deg, #2a3260, #121728) }
+.dir-a[data-mode="light"] { --m-bg: #f5f7fc; --m-surface: #ffffff; --m-raised: #e9edf7; --m-line: #dce2ef; --m-fg: #131929; --m-sec: #586178; --m-accent: #4050d6; --m-on: #ffffff; --m-warn: #9a5a00; --m-wall: linear-gradient(160deg, #c9d2ff, #eef1fb) }
+.a-title { font-size: 26px; font-weight: 700; letter-spacing: -0.02em }
+.a-top { display: flex; justify-content: space-between; align-items: flex-end }
+.a-list { display: flex; flex-direction: column }
+.a-row { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--m-line); min-width: 0 }
+.a-row > div { min-width: 0; flex: 1 }
+.a-row .one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.a-row .sub { font-size: 11.5px }
+.a-time { font-size: 11.5px; color: var(--m-sec); white-space: nowrap; font-variant-numeric: tabular-nums }
+.a-time.late { color: var(--m-warn); font-weight: 600 }
+.a-cap { flex: none; margin: 0 12px 8px; padding: 11px 14px; border-radius: 14px; background: var(--m-raised); border: 1px solid var(--m-line); display: flex; align-items: center; gap: 10px; color: var(--m-sec) }
+.a-cap span { flex: 1 }
+.a-search { padding: 9px 12px; border-radius: 12px; background: var(--m-raised); display: flex; gap: 8px; align-items: center; color: var(--m-sec) }
+.a-input { font-size: 16px; font-weight: 500; line-height: 1.4 }
+.a-input mark { background: color-mix(in srgb, var(--m-accent) 28%, transparent); color: inherit; border-radius: 5px; padding: 1px 3px }
+.a-foot { display: flex; justify-content: space-between; align-items: center }
+
+/* ───────── B · Bento ───────── */
+.dir-b { --m-font: "Nunito", ui-rounded, system-ui, sans-serif; --m-r: 16px;
+  --m-bg: #f2f0f7; --m-surface: #ffffff; --m-raised: #e9e5f3; --m-line: #e2ddee; --m-fg: #26213a; --m-sec: #5f5873; --m-accent: #5a46d6; --m-on: #ffffff;
+  --t-butter: #fdecae; --t-mint: #d3f0e1; --t-lilac: #e3dafc; --t-peach: #ffddce; --t-sky: #d4e8fb; --t-inner: rgba(255, 255, 255, 0.7); --m-wall: linear-gradient(160deg, #cfc4f5, #f6d9cf) }
+.dir-b[data-mode="dark"] { --m-bg: #15131e; --m-surface: #201d2c; --m-raised: #2a2639; --m-line: #322d44; --m-fg: #f0edf8; --m-sec: #aaa3bf; --m-accent: #ab9dff; --m-on: #17122e;
+  --t-butter: #3a321c; --t-mint: #1b372d; --t-lilac: #302843; --t-peach: #3b2a21; --t-sky: #212e43; --t-inner: rgba(255, 255, 255, 0.08); --m-wall: linear-gradient(160deg, #2c2450, #3a2622) }
+.b-hi { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15 }
+.b-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.tile { border-radius: 22px; padding: 13px; display: flex; flex-direction: column; gap: 6px; min-width: 0 }
+.tile.wide { grid-column: span 2 }
+.butter { background: var(--t-butter) } .mint { background: var(--t-mint) } .lilac { background: var(--t-lilac) } .peach { background: var(--t-peach) } .sky { background: var(--t-sky) } .plain { background: var(--m-surface) }
+.tile .lab { font-size: 10.5px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; opacity: 0.72; display: flex; align-items: center; gap: 5px }
+.tile .lab .ic { width: 13px; height: 13px; stroke-width: 2.2 }
+.tile .big { font-size: 17px; font-weight: 800; line-height: 1.2 }
+.tile .num { font-size: 26px; font-weight: 800; line-height: 1 }
+.pill { white-space: nowrap; background: var(--t-inner); border-radius: 999px; padding: 6px 8px; font-weight: 700; font-size: 12px; text-align: center }
+.pill.solid { background: var(--m-fg); color: var(--m-bg) }
+.b-acts { display: flex; gap: 6px; margin-top: 2px }
+.b-acts .pill { flex: 1 }
+.ring { width: 50px; height: 50px; flex: none }
+.ring circle { fill: none; stroke-width: 6 }
+.ring .tr { stroke: var(--t-inner) } .ring .pr { stroke: var(--m-accent); stroke-linecap: round }
+.b-tabbar { border-top: 0; padding: 6px 22px 18px; justify-content: space-between }
+.fab { width: 52px; height: 52px; border-radius: 50%; background: var(--m-accent); color: var(--m-on); display: grid; place-items: center; margin-top: -22px; box-shadow: 0 8px 18px color-mix(in srgb, var(--m-accent) 45%, transparent) }
+.fab .ic { width: 24px; height: 24px; stroke-width: 2.4 }
+.b-cols { display: flex; gap: 10px } .b-cols > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px }
+.b-cols .tile p { font-size: 12px; opacity: 0.85 }
+.b-cols .tile .big { font-size: 14.5px }
+.b-rem { display: flex; gap: 12px; align-items: center; background: var(--m-surface); border-radius: 18px; padding: 10px 12px }
+.b-rem .tm { width: 50px; text-align: center; font-weight: 800; font-size: 14px; line-height: 1.1; flex: none }
+.b-rem .tm small { display: block; font-size: 10px; font-weight: 700; color: var(--m-sec) }
+.b-rem > div:nth-child(2) { flex: 1; min-width: 0 }
+.b-field { background: var(--m-raised); border-radius: 14px; padding: 11px 13px; font-weight: 700; font-size: 14px }
+.b-when { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.b-when > div { border-radius: 16px; padding: 9px 11px; font-weight: 800; font-size: 12.5px; line-height: 1.25 }
+.b-when small { display: block; font-weight: 600; font-size: 11px; opacity: 0.75 }
+.b-when .sel { outline: 2.5px solid var(--m-accent); outline-offset: -2.5px }
+
+/* ───────── C · Timeline ───────── */
+.dir-c { --m-font: "Inter", system-ui, sans-serif; --m-serif: "Newsreader", Georgia, serif; --m-mono: "JetBrains Mono", ui-monospace, monospace; --m-r: 8px;
+  --m-bg: #f7f8f5; --m-surface: #ffffff; --m-raised: #ecefe9; --m-line: #d9ded6; --m-fg: #151a17; --m-sec: #5a645e; --m-accent: #1b6b50; --m-on: #ffffff; --m-hl: #ffe45c; --m-wall: linear-gradient(160deg, #bfd9cb, #eef0e2) }
+.dir-c[data-mode="dark"] { --m-bg: #0f1412; --m-surface: #171d1a; --m-raised: #1f2723; --m-line: #2a332e; --m-fg: #e9eeea; --m-sec: #98a49d; --m-accent: #5fd0a4; --m-on: #0b1510; --m-hl: #6a5a00; --m-wall: linear-gradient(160deg, #173a2c, #111714) }
+.c-week { display: flex; justify-content: space-between; font-family: var(--m-mono); font-size: 10.5px; color: var(--m-sec); text-align: center }
+.c-week span { width: 30px; padding: 4px 0; border-radius: 8px; line-height: 1.5 }
+.c-week b { display: block; font-size: 13px; color: var(--m-fg); font-weight: 600 }
+.c-week .on { background: var(--m-fg); color: var(--m-bg) } .c-week .on b { color: var(--m-bg) }
+.c-date { font-family: var(--m-serif); font-size: 30px; font-weight: 500; line-height: 1.05; letter-spacing: -0.01em }
+.c-date small { display: block; font-family: var(--m-font); font-size: 12px; color: var(--m-sec); letter-spacing: 0; margin-top: 4px }
+.c-tl { display: grid; grid-template-columns: 42px 1fr; row-gap: 0 }
+.c-tl time { font-family: var(--m-mono); font-size: 11px; color: var(--m-sec); padding-top: 9px }
+.c-tl .e { border-left: 1.5px solid var(--m-line); padding: 7px 0 7px 14px; position: relative; min-width: 0 }
+.c-tl .e::before { content: ""; position: absolute; left: -5px; top: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--m-bg); border: 1.5px solid var(--m-sec) }
+.c-tl .e.note::before { border-radius: 2px; border-color: var(--m-accent); background: var(--m-accent) }
+.c-tl .e.past::before { background: var(--m-sec) }
+.c-tl .e b { font-weight: 600 }
+.c-tl .e .q { font-family: var(--m-serif); font-size: 14.5px; line-height: 1.35; background: var(--m-surface); border: 1px solid var(--m-line); border-radius: 10px; padding: 8px 10px; display: block }
+.c-tl .now { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-family: var(--m-mono); font-size: 10.5px; font-weight: 600; color: var(--m-accent); margin: 2px 0 }
+.c-tl .now::after { content: ""; flex: 1; height: 1.5px; background: var(--m-accent) }
+.c-write { flex: none; margin: 0 14px 18px; padding: 12px 14px; border-radius: 12px; background: var(--m-fg); color: var(--m-bg); display: flex; align-items: center; gap: 10px; font-weight: 500 }
+.c-write span { flex: 1; opacity: 0.75 }
+.c-ed-title { font-family: var(--m-serif); font-size: 25px; font-weight: 600; line-height: 1.1 }
+.c-ed { font-family: var(--m-serif); font-size: 16px; line-height: 1.5; display: flex; flex-direction: column; gap: 9px }
+.c-ed mark { background: var(--m-hl); color: inherit; padding: 0 2px }
+.c-ed .cl { display: flex; gap: 8px; align-items: center; font-family: var(--m-font); font-size: 13.5px }
+.c-ed .chk { border-radius: 5px }
+.c-meta { font-family: var(--m-mono); font-size: 10.5px; color: var(--m-sec) }
+.c-bar { flex: none; display: flex; align-items: center; gap: 16px; padding: 10px 18px 20px; border-top: 1px solid var(--m-line); color: var(--m-sec) }
+.c-bar .aa { font-family: var(--m-serif); font-size: 17px; font-weight: 600 }
+.c-bar .chip { margin-left: auto }
+.c-lib { display: flex; flex-direction: column }
+.c-lib > div { padding: 9px 0; border-bottom: 1px solid var(--m-line); display: grid; grid-template-columns: 1fr auto; gap: 2px 10px }
+.c-lib b { font-family: var(--m-serif); font-size: 16px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.c-lib .sub { grid-column: 1 / -1; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.c-wt { display: grid; grid-template-columns: 40px 1fr; gap: 3px 0; align-items: baseline }
+.c-wt time { font-family: var(--m-mono); font-size: 10.5px; color: var(--m-sec) }
+.c-wt .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.c-wt .nowl { grid-column: 1 / -1; height: 1.5px; background: var(--m-accent) }
+
+/* compare */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--card) }
+table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: 14px }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top }
+tr:last-child td { border-bottom: 0 }
+thead th { font-family: var(--f-display); font-size: 15px }
+tbody th { font-weight: 600; color: var(--muted); white-space: nowrap }
+.pick { border: 1px solid var(--accent); border-radius: 14px; padding: 16px 18px; background: var(--card); max-width: 80ch }
+.pick b { color: var(--accent) }
+.fine { font-size: 13px; color: var(--muted); max-width: 80ch }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 1112 0v5l1.5 2h-15zM10 20.5a2 2 0 004 0"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0012 0M12 17v4"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3zM12 13v7"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M5 11a7 7 0 0112-4l2 2M19 13a7 7 0 01-12 4l-2-2M19 4v5h-5M5 20v-5h5"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M4 4h7l9 9-7 7-9-9zM8 8h.01"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M10 6h10M10 12h10M10 18h10M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+</svg>
+
+<div class="page">
+  <header>
+    <h1>Forge: three ways to capture your day</h1>
+    <p class="lede">Notes, reminders and a home-screen widget, designed three different ways. Every screen uses the same sample day (Sunday 15 November) so you can compare like for like. Each board has a light and dark switch.</p>
+    <nav class="jump" aria-label="Directions">
+      <a href="#command">A · Command</a>
+      <a href="#bento">B · Bento</a>
+      <a href="#timeline">C · Timeline</a>
+      <a href="#compare">Compare</a>
+    </nav>
+  </header>
+
+  <!-- ═════════ A ═════════ -->
+  <section class="dir dir-a" id="command" data-mode="dark">
+    <div class="dir-head">
+      <div>
+        <div class="eyebrow">Direction A</div>
+        <h2>Command</h2>
+        <p>One list and one input. You type a thought into the bar under your thumb, and the app decides whether it is a note or a reminder from the words you used.</p>
+      </div>
+      <div class="mode" role="group" aria-label="Command theme">
+        <button type="button" id="a-dark" data-set="dark" aria-pressed="true">Dark</button>
+        <button type="button" id="a-light" data-set="light" aria-pressed="false">Light</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><i></i><u></u></div>
+          <div class="body">
+            <div class="a-top">
+              <div><div class="sub">Sun, 15 Nov</div><div class="a-title">Today</div></div>
+              <svg class="ic"><use href="#i-search"/></svg>
+            </div>
+            <div class="sec">Up next · 4</div>
+            <div class="a-list">
+              <div class="a-row"><span class="chk"></span><div class="one">Send rent receipt</div><span class="a-time late">Yesterday</span></div>
+              <div class="a-row"><span class="chk"></span><div class="one">Pay electricity bill</div><span class="a-time">6:00 PM</span></div>
+              <div class="a-row"><span class="chk"></span><div class="one">Call Maa</div><span class="a-time">8:30 PM</span></div>
+              <div class="a-row"><span class="chk on"><svg class="ic"><use href="#i-check"/></svg></span><div class="one done">Gym</div><span class="a-time">7:00 AM</span></div>
+            </div>
+            <div class="sec">Pinned notes</div>
+            <div class="a-list">
+              <div class="a-row"><svg class="ic sub"><use href="#i-pin"/></svg><div><div class="one">Groceries</div><div class="one sub">Paneer, curd, coriander, atta…</div></div></div>
+              <div class="a-row"><svg class="ic sub"><use href="#i-pin"/></svg><div><div class="one">Widget ideas</div><div class="one sub">Show only the next thing, not a list</div></div></div>
+              <div class="a-row"><svg class="ic sub"><use href="#i-pin"/></svg><div><div class="one">Wi-Fi and meter numbers</div><div class="one sub">Consumer no. 2104 5568 · router admin…</div></div></div>
+            </div>
+          </div>
+          <div class="a-cap"><svg class="ic"><use href="#i-plus"/></svg><span>Note or reminder…</span><svg class="ic"><use href="#i-mic"/></svg></div>
+          <div class="tabbar">
+            <div class="tab on"><svg class="ic"><use href="#i-sun"/></svg>Today</div>
+            <div class="tab"><svg class="ic"><use href="#i-note"/></svg>Notes</div>
+            <div class="tab"><svg class="ic"><use href="#i-bell"/></svg>Reminders</div>
+          </div>
+        </div></div>
+        <figcaption><b>Today.</b> Overdue first, then by time. The capture bar never moves.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><i></i><u></u></div>
+          <div class="body">
+            <div class="a-title">Notes</div>
+            <div class="a-search"><svg class="ic"><use href="#i-search"/></svg>Search 24 notes</div>
+            <div class="chips"><span class="chip on">All</span><span class="chip">Pinned</span><span class="chip">Work</span><span class="chip">Home</span></div>
+            <div class="a-list">
+              <div class="a-row"><div><div class="one">Widget ideas</div><div class="one sub">Show only the next thing, not a list</div></div><span class="a-time">8:12 AM</span></div>
+              <div class="a-row"><div><div class="one">Groceries</div><div class="one sub">Paneer, curd, coriander, atta…</div></div><span class="a-time">Sat</span></div>
+              <div class="a-row"><div><div class="one">Atomic Habits, ch. 4</div><div class="one sub">Make the cue obvious. Stack new habits on…</div></div><span class="a-time">Thu</span></div>
+              <div class="a-row"><div><div class="one">Goa trip budget</div><div class="one sub">Flights 11,400 · stay 9,000 · scooter 1,600</div></div><span class="a-time">9 Nov</span></div>
+              <div class="a-row"><div><div class="one">Interview prep: graphs</div><div class="one sub">Dijkstra vs 0-1 BFS, when each one wins</div></div><span class="a-time">6 Nov</span></div>
+              <div class="a-row"><div><div class="one">Wi-Fi and meter numbers</div><div class="one sub">Consumer no. 2104 5568 · router admin…</div></div><span class="a-time">2 Nov</span></div>
+            </div>
+          </div>
+          <div class="a-cap"><svg class="ic"><use href="#i-plus"/></svg><span>Note or reminder…</span><svg class="ic"><use href="#i-mic"/></svg></div>
+          <div class="tabbar">
+            <div class="tab"><svg class="ic"><use href="#i-sun"/></svg>Today</div>
+            <div class="tab on"><svg class="ic"><use href="#i-note"/></svg>Notes</div>
+            <div class="tab"><svg class="ic"><use href="#i-bell"/></svg>Reminders</div>
+          </div>
+        </div></div>
+        <figcaption><b>Notes.</b> A dense, searchable list. Two lines per note, nothing decorative.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><i></i><u></u></div>
+          <div class="body dim">
+            <div class="a-top"><div><div class="sub">Sun, 15 Nov</div><div class="a-title">Today</div></div></div>
+            <div class="sec">Up next · 4</div>
+            <div class="a-list">
+              <div class="a-row"><span class="chk"></span><div class="one">Send rent receipt</div><span class="a-time">Yesterday</span></div>
+              <div class="a-row"><span class="chk"></span><div class="one">Pay electricity bill</div><span class="a-time">6:00 PM</span></div>
+              <div class="a-row"><span class="chk"></span><div class="one">Call Maa</div><span class="a-time">8:30 PM</span></div>
+            </div>
+          </div>
+          <div class="sheet">
+            <div class="a-input">Renew car insurance <mark>friday 10am</mark><span class="caret"></span></div>
+            <div class="sec">Understood as</div>
+            <div class="chips">
+              <span class="chip on"><svg class="ic"><use href="#i-bell"/></svg>Reminder</span>
+              <span class="chip"><svg class="ic"><use href="#i-clock"/></svg>Fri 20 Nov, 10:00 AM</span>
+              <span class="chip ghost"><svg class="ic"><use href="#i-repeat"/></svg>Repeat yearly</span>
+              <span class="chip ghost"><svg class="ic"><use href="#i-tag"/></svg>Add tag</span>
+            </div>
+            <div class="a-foot"><span class="sub">Keep as a note</span><span class="btn">Save reminder</span></div>
+          </div>
+        </div></div>
+        <figcaption><b>Capture.</b> The date you typed is highlighted and turned into a reminder. One tap undoes the guess.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="wall">
+          <div class="w s">
+            <div class="sec">Up next</div>
+            <div class="w-big">Pay electricity bill</div>
+            <div class="sub tnum">6:00 PM · in 8 h</div>
+            <div class="w-row" style="margin-top:auto"><span class="chk"></span><span class="t sub">Mark done</span></div>
+          </div>
+          <div class="w s">
+            <div class="sec">Capture</div>
+            <div class="w-row" style="margin-top:auto"><span class="w-add"><svg class="ic"><use href="#i-note"/></svg></span><span class="t">Note</span></div>
+            <div class="w-row"><span class="w-add"><svg class="ic"><use href="#i-bell"/></svg></span><span class="t">Reminder</span></div>
+            <div class="w-row"><span class="w-add"><svg class="ic"><use href="#i-mic"/></svg></span><span class="t">Voice</span></div>
+          </div>
+          <div class="w m">
+            <div class="w-row"><span class="sec" style="flex:1">Today · 3 left</span><span class="w-add"><svg class="ic"><use href="#i-plus"/></svg></span></div>
+            <div class="w-row"><span class="chk"></span><span class="t">Send rent receipt</span><span class="a-time late">Yesterday</span></div>
+            <div class="w-row"><span class="chk"></span><span class="t">Pay electricity bill</span><span class="a-time">6:00 PM</span></div>
+            <div class="w-row"><span class="chk"></span><span class="t">Call Maa</span><span class="a-time">8:30 PM</span></div>
+          </div>
+          <div class="lock">
+            <div class="circ">3</div>
+            <div class="rect"><small>Lock screen</small><b>Pay electricity bill</b>6:00 PM</div>
+          </div>
+        </div>
+        <figcaption><b>Widgets.</b> Small "next up", small capture launcher, medium checklist, lock-screen line.</figcaption>
+      </figure>
+    </div>
+
+    <div class="why">
+      <div><h3>UX principles at work</h3><ul>
+        <li><b>Hick's law:</b> one entry point for everything, so there is no "is this a note or a reminder?" decision before you type.</li>
+        <li><b>Fitts's law and thumb zone:</b> the capture bar is wide and sits in the easiest reach area.</li>
+        <li><b>Jakob's law:</b> behaves like the list apps you already know, so there is nothing to learn.</li>
+      </ul></div>
+      <div><h3>Best if</h3><ul>
+        <li>You capture many small things and care most about speed.</li>
+        <li>You like the current Forge look. This reuses its dark ocean theme and list rows.</li>
+      </ul></div>
+      <div><h3>Trade-offs</h3><ul>
+        <li>Least visual. Notes look the same as reminders at a glance.</li>
+        <li>Date parsing has to be right. A wrong guess costs trust, so the "understood as" chips are essential.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- ═════════ B ═════════ -->
+  <section class="dir dir-b" id="bento" data-mode="light">
+    <div class="dir-head">
+      <div>
+        <div class="eyebrow">Direction B</div>
+        <h2>Bento</h2>
+        <p>Your day as a board of tiles. Each tile answers one question at a glance, and each tile is also a widget, so the home screen and the app look like the same product.</p>
+      </div>
+      <div class="mode" role="group" aria-label="Bento theme">
+        <button type="button" id="b-light" data-set="light" aria-pressed="true">Light</button>
+        <button type="button" id="b-dark" data-set="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><i></i><u></u></div>
+          <div class="body">
+            <div><div class="sub" style="font-weight:700">Sunday, 15 November</div><div class="b-hi">Good morning.<br>3 things left today.</div></div>
+            <div class="b-grid">
+              <div class="tile wide butter">
+                <div class="lab"><svg class="ic"><use href="#i-bell"/></svg>Next up · 6:00 PM</div>
+                <div class="big">Pay electricity bill</div>
+                <div class="b-acts"><span class="pill solid">Done</span><span class="pill">+1 h</span><span class="pill">Tomorrow</span></div>
+              </div>
+              <div class="tile mint">
+                <div class="lab">Today</div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <svg class="ring" viewBox="0 0 56 56"><circle class="tr" cx="28" cy="28" r="22"/><circle class="pr" cx="28" cy="28" r="22" stroke-dasharray="34.6 138.2" transform="rotate(-90 28 28)"/></svg>
+                  <div><div class="num">1/4</div><div style="font-size:11px;font-weight:700;opacity:.75">done</div></div>
+                </div>
+              </div>
+              <div class="tile lilac">
+                <div class="lab"><svg class="ic"><use href="#i-note"/></svg>Notes</div>
+                <div class="num">24</div>
+                <div style="font-size:11.5px;font-weight:700;opacity:.8">Last: Widget ideas</div>
+              </div>
+              <div class="tile wide peach">
+                <div class="lab"><svg class="ic"><use href="#i-pin"/></svg>Groceries</div>
+                <div class="w-row"><span class="chk on"><svg class="ic"><use href="#i-check"/></svg></span><span class="t done">Paneer</span></div>
+                <div class="w-row"><span class="chk"></span><span class="t" style="font-weight:700">Curd</span></div>
+                <div class="w-row"><span class="chk"></span><span class="t" style="font-weight:700">Coriander, atta</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar b-tabbar">
+            <div class="tab on"><svg class="ic"><use href="#i-sun"/></svg>Today</div>
+            <div class="tab"><svg class="ic"><use href="#i-note"/></svg>Notes</div>
+            <div class="fab"><svg class="ic"><use href="#i-plus"/></svg></div>
+            <div class="tab"><svg class="ic"><use href="#i-bell"/></svg>Remind</div>
+            <div class="tab"><svg class="ic"><use href="#i-search"/></svg>Search</div>
+          </div>
+        </div></div>
+        <figcaption><b>Today.</b> The next reminder is the largest tile, with its three likely actions on it.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><i></i><u></u></div>
+          <div class="body">
+            <div class="b-hi">Notes</div>
+            <div class="chips"><span class="chip on">All</span><span class="chip">Pinned</span><span class="chip">Lists</span><span class="chip">Work</span></div>
+            <div class="b-cols">
+              <div>
+                <div class="tile peach"><div class="lab"><svg class="ic"><use href="#i-pin"/></svg>List</div><div class="big">Groceries</div><p>Paneer, curd, coriander, atta</p></div>
+                <div class="tile sky"><div class="big">Goa trip budget</div><p>Flights 11,400<br>Stay 9,000<br>Scooter 1,600</p></div>
+                <div class="tile plain"><div class="big">Wi-Fi and meter numbers</div><p>Consumer no. 2104 5568</p></div>
+              </div>
+              <div>
+                <div class="tile lilac"><div class="lab"><svg class="ic"><use href="#i-pin"/></svg>Idea</div><div class="big">Widget ideas</div><p>Show only the next thing, not a list. One tap to mark it done.</p></div>
+                <div class="tile mint"><div class="big">Atomic Habits, ch. 4</div><p>Make the cue obvious. Stack new habits on old ones.</p></div>
+                <div class="tile butter"><div class="big">Interview prep</div><p>Dijkstra vs 0-1 BFS</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar b-tabbar">
+            <div class="tab"><svg class="ic"><use href="#i-sun"/></svg>Today</div>
+            <div class="tab on"><svg class="ic"><use href="#i-note"/></svg>Notes</div>
+            <div class="fab"><svg class="ic"><use href="#i-plus"/></svg></div>
+            <div class="tab"><svg class="ic"><use href="#i-bell"/></svg>Remind</div>
+            <div class="tab"><svg class="ic"><use href="#i-search"/></svg>Search</div>
+          </div>
+        </div></div>
+        <figcaption><b>Notes.</b> Colour is a note's identity. You find "the lilac one" before you read a title.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><i></i><u></u></div>
+          <div class="body dim">
+            <div class="b-hi">Reminders</div>
+            <div class="sec">Today</div>
+            <div class="b-rem"><div class="tm">6:00<small>PM</small></div><div><b>Pay electricity bill</b></div><span class="chk"></span></div>
+            <div class="b-rem"><div class="tm">8:30<small>PM</small></div><div><b>Call Maa</b></div><span class="chk"></span></div>
+          </div>
+          <div class="sheet">
+            <div class="b-hi" style="font-size:18px">New reminder</div>
+            <div class="b-field">Renew car insurance<span class="caret"></span></div>
+            <div class="sec">When</div>
+            <div class="b-when">
+              <div class="butter">This evening<small>Today, 6:00 PM</small></div>
+              <div class="mint">Tomorrow<small>Mon, 9:00 AM</small></div>
+              <div class="sky sel">Friday<small>20 Nov, 10:00 AM</small></div>
+              <div class="lilac">Pick a time<small>Date and repeat</small></div>
+            </div>
+            <div class="btn">Save reminder</div>
+          </div>
+        </div></div>
+        <figcaption><b>New reminder.</b> Four big preset times cover most cases, so the date picker is the exception.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="wall">
+          <div class="w s butter">
+            <div class="tile" style="padding:0;gap:6px;height:100%">
+              <div class="lab"><svg class="ic"><use href="#i-bell"/></svg>Next up</div>
+              <div class="big">Pay electricity bill</div>
+              <div style="font-weight:700;opacity:.75">6:00 PM</div>
+              <div class="pill solid" style="margin-top:auto">Done</div>
+            </div>
+          </div>
+          <div class="w s mint">
+            <div class="tile" style="padding:0;height:100%">
+              <div class="lab">Today</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+                <svg class="ring" viewBox="0 0 56 56"><circle class="tr" cx="28" cy="28" r="22"/><circle class="pr" cx="28" cy="28" r="22" stroke-dasharray="34.6 138.2" transform="rotate(-90 28 28)"/></svg>
+                <div class="num">1/4</div>
+              </div>
+              <div style="font-weight:700;opacity:.75;margin-top:auto">3 left · next 6 PM</div>
+            </div>
+          </div>
+          <div class="w m peach">
+            <div class="tile" style="padding:0;height:100%">
+              <div class="w-row"><span class="lab" style="flex:1"><svg class="ic"><use href="#i-pin"/></svg>Groceries</span><span class="w-add"><svg class="ic"><use href="#i-plus"/></svg></span></div>
+              <div class="w-row"><span class="chk on"><svg class="ic"><use href="#i-check"/></svg></span><span class="t done">Paneer</span></div>
+              <div class="w-row"><span class="chk"></span><span class="t" style="font-weight:700">Curd</span></div>
+              <div class="w-row"><span class="chk"></span><span class="t" style="font-weight:700">Coriander, atta</span></div>
+            </div>
+          </div>
+          <div class="lock">
+            <div class="circ">1/4</div>
+            <div class="rect"><small>Lock screen</small><b>Pay electricity bill</b>6:00 PM</div>
+          </div>
+        </div>
+        <figcaption><b>Widgets.</b> The same tiles as the app: next up, day progress, and any pinned checklist.</figcaption>
+      </figure>
+    </div>
+
+    <div class="why">
+      <div><h3>UX principles at work</h3><ul>
+        <li><b>Recognition over recall:</b> colour, size and position tell you what a tile is before you read it.</li>
+        <li><b>Visual hierarchy:</b> the next reminder is the biggest thing on screen; everything else is smaller.</li>
+        <li><b>Consistency:</b> a tile in the app and the widget on the home screen are the same object.</li>
+      </ul></div>
+      <div><h3>Best if</h3><ul>
+        <li>The widget matters as much as the app, and you want to act without opening it.</li>
+        <li>You mostly check your day rather than write long notes.</li>
+      </ul></div>
+      <div><h3>Trade-offs</h3><ul>
+        <li>Fewer items per screen than a list. With 60+ notes you lean on search.</li>
+        <li>Capture is two taps (plus, then note or reminder) instead of one.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- ═════════ C ═════════ -->
+  <section class="dir dir-c" id="timeline" data-mode="light">
+    <div class="dir-head">
+      <div>
+        <div class="eyebrow">Direction C</div>
+        <h2>Timeline</h2>
+        <p>The day is one page read top to bottom. Reminders sit at the time they are due, notes sit at the time you wrote them, and a line marks now.</p>
+      </div>
+      <div class="mode" role="group" aria-label="Timeline theme">
+        <button type="button" id="c-light" data-set="light" aria-pressed="true">Light</button>
+        <button type="button" id="c-dark" data-set="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><i></i><u></u></div>
+          <div class="body">
+            <div class="c-week">
+              <span>M<b>9</b></span><span>T<b>10</b></span><span>W<b>11</b></span><span>T<b>12</b></span><span>F<b>13</b></span><span>S<b>14</b></span><span class="on">S<b>15</b></span>
+            </div>
+            <div class="c-date">Sunday<small>15 November · 3 reminders left · 1 note</small></div>
+            <div class="c-tl">
+              <time>07:00</time><div class="e past"><span class="done">Gym</span></div>
+              <time>08:12</time><div class="e note"><span class="q">Widget should show only the next thing, not a list.</span></div>
+              <div class="now">09:41 now</div>
+              <time>13:00</time><div class="e"><b>Send rent receipt</b><div class="sub">Moved from yesterday</div></div>
+              <time>18:00</time><div class="e"><b>Pay electricity bill</b><div class="sub">Repeats monthly</div></div>
+              <time>20:30</time><div class="e"><b>Call Maa</b></div>
+            </div>
+          </div>
+          <div class="c-write"><svg class="ic"><use href="#i-plus"/></svg><span>Write or remind…</span><svg class="ic"><use href="#i-mic"/></svg></div>
+        </div></div>
+        <figcaption><b>Today.</b> Circles are reminders, squares are notes. Yesterday's miss is rescheduled, not shamed.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><i></i><u></u></div>
+          <div class="body">
+            <div class="c-meta">SUN 15 NOV · 08:12 · #ideas</div>
+            <div class="c-ed-title">Widget ideas</div>
+            <div class="c-ed">
+              <span>The widget should <mark>show only the next thing</mark>, not a list. A list on the home screen becomes wallpaper in a week.</span>
+              <span>One tap marks it done, and the next item slides in.</span>
+              <span class="cl"><span class="chk on"><svg class="ic"><use href="#i-check"/></svg></span><span class="done">Sketch the small size</span></span>
+              <span class="cl"><span class="chk"></span>Try it on the lock screen</span>
+              <span class="cl"><span class="chk"></span>Decide what shows when nothing is due</span>
+            </div>
+            <div class="chips" style="margin-top:4px"><span class="chip"><svg class="ic"><use href="#i-bell"/></svg>Reminds you Mon, 9:00 AM</span></div>
+          </div>
+          <div class="c-bar">
+            <span class="aa">Aa</span><svg class="ic"><use href="#i-list"/></svg><svg class="ic"><use href="#i-tag"/></svg><svg class="ic"><use href="#i-pin"/></svg>
+            <span class="chip on"><svg class="ic"><use href="#i-bell"/></svg>Remind me</span>
+          </div>
+        </div></div>
+        <figcaption><b>Note.</b> A page for writing. Any note can carry its own reminder, so the two are one thing.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="sb"><span>9:41</span><i></i><u></u></div>
+          <div class="body">
+            <div class="c-date" style="font-size:26px">Library</div>
+            <div class="a-search" style="border-radius:10px"><svg class="ic"><use href="#i-search"/></svg>Search notes and reminders</div>
+            <div class="c-meta">THIS WEEK</div>
+            <div class="c-lib">
+              <div><b>Widget ideas</b><span class="c-meta">Sun 08:12</span><span class="sub">Show only the next thing, not a list</span></div>
+              <div><b>Groceries</b><span class="c-meta">Sat 19:40</span><span class="sub">1 of 4 ticked · Paneer, curd, coriander…</span></div>
+              <div><b>Atomic Habits, ch. 4</b><span class="c-meta">Thu 22:05</span><span class="sub">Make the cue obvious. Stack new habits on…</span></div>
+            </div>
+            <div class="c-meta">EARLIER IN NOVEMBER</div>
+            <div class="c-lib">
+              <div><b>Goa trip budget</b><span class="c-meta">9 Nov</span><span class="sub">Flights 11,400 · stay 9,000 · scooter 1,600</span></div>
+              <div><b>Interview prep: graphs</b><span class="c-meta">6 Nov</span><span class="sub">Dijkstra vs 0-1 BFS, when each one wins</span></div>
+            </div>
+          </div>
+          <div class="c-write"><svg class="ic"><use href="#i-plus"/></svg><span>Write or remind…</span><svg class="ic"><use href="#i-mic"/></svg></div>
+        </div></div>
+        <figcaption><b>Library.</b> Everything you have written, grouped by when. Search covers notes and reminders together.</figcaption>
+      </figure>
+
+      <figure>
+        <div class="wall">
+          <div class="w s">
+            <div class="c-meta">SUN 15 NOV</div>
+            <div class="c-date" style="font-size:17px">Pay electricity bill</div>
+            <div class="c-meta" style="margin-top:auto;color:var(--m-accent);font-weight:600">18:00 · in 8 h</div>
+          </div>
+          <div class="w s">
+            <div class="c-meta">LAST NOTE · 08:12</div>
+            <div style="font-family:var(--m-serif);font-size:15px;line-height:1.3">Widget should show only the next thing, not a list.</div>
+          </div>
+          <div class="w m">
+            <div class="w-row"><span class="c-date" style="font-size:18px;flex:1">Sunday</span><span class="w-add"><svg class="ic"><use href="#i-plus"/></svg></span></div>
+            <div class="c-wt">
+              <time>08:12</time><span class="t sub">Note · Widget ideas</span>
+              <span class="nowl"></span>
+              <time>13:00</time><span class="t">Send rent receipt</span>
+              <time>18:00</time><span class="t">Pay electricity bill</span>
+              <time>20:30</time><span class="t">Call Maa</span>
+            </div>
+          </div>
+          <div class="lock">
+            <div class="circ" style="font-family:var(--m-mono);font-size:12px">18:00</div>
+            <div class="rect"><small>Lock screen</small><b>Pay electricity bill</b>then Call Maa, 20:30</div>
+          </div>
+        </div>
+        <figcaption><b>Widgets.</b> Next item, last note, and a mini day with the now line.</figcaption>
+      </figure>
+    </div>
+
+    <div class="why">
+      <div><h3>UX principles at work</h3><ul>
+        <li><b>Mental model match:</b> a day already has an order. Laying things on time removes sorting and filtering.</li>
+        <li><b>Law of common region and proximity:</b> the now line splits done from to-do without a single label.</li>
+        <li><b>Zeigarnik effect:</b> unfinished items stay visibly below the line, which pulls you to close them.</li>
+      </ul></div>
+      <div><h3>Best if</h3><ul>
+        <li>You write longer notes and like looking back at what a day held.</li>
+        <li>Most of your reminders have a time, not just a date.</li>
+      </ul></div>
+      <div><h3>Trade-offs</h3><ul>
+        <li>Undated things (a someday list, reference notes) have no natural place and live only in Library.</li>
+        <li>Largest build. The timeline, editor and note-reminder link are all new screens.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- ═════════ compare ═════════ -->
+  <section class="dir" id="compare">
+    <div class="dir-head"><div><h2>Side by side</h2></div></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th></th><th>A · Command</th><th>B · Bento</th><th>C · Timeline</th></tr></thead>
+        <tbody>
+          <tr><th>Capture</th><td>1 tap, then type. Fastest.</td><td>2 taps, big preset times.</td><td>1 tap, then type.</td></tr>
+          <tr><th>Glance value</th><td>Medium. You read a list.</td><td>High. The answer is the biggest tile.</td><td>High for timed days.</td></tr>
+          <tr><th>Long notes</th><td>Plain editor.</td><td>Cards suit short notes and lists.</td><td>Best. Built for writing.</td></tr>
+          <tr><th>Widget fit</th><td>Good. Checklist and launcher.</td><td>Best. Tiles are widgets already.</td><td>Good. Mini timeline is distinctive.</td></tr>
+          <tr><th>Fit with current Forge</th><td>Closest. Same theme and rows.</td><td>Close. Today already uses pastel tiles.</td><td>New visual language.</td></tr>
+          <tr><th>Build size</th><td>Small</td><td>Medium</td><td>Large</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pick"><b>My pick: B, with A's capture bar.</b> You asked for a widget as a first-class feature, and Bento is the only direction where the app and the widget are the same design. Swapping its plus button for Command's type-anything bar gets capture back to one tap. Tell me A, B, C or a mix and I will build from there.</div>
+    <p class="fine">About the widget: a home-screen widget cannot be shipped from the web app alone. It needs the native iOS wrapper that the Forge plan already schedules. iOS widgets allow buttons and tick boxes but not typing, so every widget above uses only taps, and the plus buttons open the app straight into capture.</p>
+  </section>
+</div>
+
+<script>
+document.querySelectorAll('.mode button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    b.closest('.dir').dataset.mode = b.dataset.set;
+    b.parentNode.querySelectorAll('button').forEach(function (x) {
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+  });
+});
+</script>
+</body>
+</html>
