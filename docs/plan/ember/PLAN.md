@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 31 waves · 80 tasks · widest wave 7 tasks in parallel**
+**6 phases · 32 waves · 80 tasks · widest wave 7 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -190,7 +190,7 @@ Replace the top of Today with the Ember layout: header with ring, five dailies, 
 
 One plus button on every tab that opens a capture sheet: type a sentence, check the chips, save. Covers expense, income, note, reminder, task, habit check-in, solve and mood.
 
-12 tasks across 5 waves.
+12 tasks across 6 waves.
 
 **Exit criteria**
 - an expense can be logged from any tab without visiting Money
@@ -216,11 +216,10 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 | `E3-05` | Wire the capture sheet: editors, panels, submit, undo toast | M | `src/capture/CaptureSheet.jsx`<br>`test/captureFlow.test.js`<br>`test/capturePanels.test.js`<br>`src/capture/panels/panels.test.js`<br>`test/captureEditors.test.js`<br>`src/capture/editors/editors.test.js` | E3-01, E3-02, E3-03, E3-04, E3-09 | node --test test/captureFlow.test.js passes for the pure reducer; saving closes the sheet, shows a toast with Undo, and Undo restores the previous data; a failed save keeps the sheet open with the typed text intact |
 | `E3-06` | Put the plus button in the shell on every tab | S | `src/shell/Shell.jsx`<br>`src/styles/shell.css`<br>`src/shell/TopBar.jsx`<br>`test/shellCss.test.js` | E3-04 | node --test test/shellCss.test.js passes; the Fab is bottom-right above the tab bar below 600px, bottom-right of the page from 600px, and never covers the last list row (the page gets matching bottom padding); it is hidden while a sheet is open |
 
-### E3 · Wave 3 — 3 in parallel
+### E3 · Wave 3 — 2 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E3-07` | Mount capture in the app, add the N shortcut and palette commands | M | `src/App.jsx`<br>`src/shell/commands.js`<br>`src/shell/useShortcuts.js`<br>`test/commands.test.js` | E3-05, E3-06 | node --test test/commands.test.js passes: N opens capture with the screen default; the palette lists New expense, New note, New reminder, New task, Check in a habit, Log mood; N does nothing while typing in an input |
 | `E3-08` | Replace the Money-only add button with the global plus | S | `src/money/MoneyApp.jsx`<br>`src/money/money.css`<br>`src/today/DailiesStrip.jsx` | E3-05 | npm test and npm run build green; the money-fab is gone; + Expense and + Income on Spend open capture prefilled with that type; the Mood dailies cell opens capture on Mood; editing an existing transaction still uses the existing edit sheet |
 | `E3-11` | Move the capture sheet inline styles into capture.css and style the editor and panel hosts | S | `src/capture/CaptureSheet.jsx`<br>`src/capture/capture.css`<br>`test/captureStyles.test.js` | E3-05 | node --test test/captureStyles.test.js passes: CaptureSheet.jsx has no style={{ props left for colour or layout, capture.css defines .capture-chip, .capture-editor and .capture-panel-host with tokens only and a cream-safe fallback; test/captureFlow.test.js still passes unchanged |
 
@@ -228,9 +227,15 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E3-10` | Add end-to-end checks for capture | M | `e2e/capture.spec.js` | E3-07, E3-08 | npx playwright test e2e/capture.spec.js --trace off passes: plus, type "450 coffee with raj", Add expense -> row appears under Today in Money and the spend daily is done; "call mom tomorrow 6pm" creates a reminder; Undo removes it; focus returns to the plus button on close |
+| `E3-07` | Mount capture in the app, add the N shortcut and palette commands | M | `src/App.jsx`<br>`src/shell/commands.js`<br>`src/shell/useShortcuts.js`<br>`test/commands.test.js`<br>`src/money/MoneyContext.jsx`<br>`src/money/MoneyApp.jsx`<br>`src/store.js`<br>`test/syncRouter.test.js` | E3-05, E3-06, E3-08 | node --test test/commands.test.js passes: N opens capture with the screen default; the palette lists New expense, New note, New reminder, New task, Check in a habit, Log mood; N does nothing while typing in an input |
 
 ### E3 · Wave 5 — 1 in parallel
+
+| Task | Title | Size | Writes | Depends on | Acceptance |
+|---|---|---|---|---|---|
+| `E3-10` | Add end-to-end checks for capture | M | `e2e/capture.spec.js` | E3-07, E3-08 | npx playwright test e2e/capture.spec.js --trace off passes: plus, type "450 coffee with raj", Add expense -> row appears under Today in Money and the spend daily is done; "call mom tomorrow 6pm" creates a reminder; Undo removes it; focus returns to the plus button on close |
+
+### E3 · Wave 6 — 1 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|

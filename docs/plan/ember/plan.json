@@ -1063,14 +1063,18 @@
     {
       "id": "E3-07",
       "phase": "E3",
-      "wave": 3,
+      "wave": 4,
       "title": "Mount capture in the app, add the N shortcut and palette commands",
       "size": "M",
       "writes": [
         "src/App.jsx",
         "src/shell/commands.js",
         "src/shell/useShortcuts.js",
-        "test/commands.test.js"
+        "test/commands.test.js",
+        "src/money/MoneyContext.jsx",
+        "src/money/MoneyApp.jsx",
+        "src/store.js",
+        "test/syncRouter.test.js"
       ],
       "reads": [
         "docs/plan/ember/DESIGN.md",
@@ -1079,9 +1083,11 @@
       ],
       "deps": [
         "E3-05",
-        "E3-06"
+        "E3-06",
+        "E3-08"
       ],
-      "acceptance": "node --test test/commands.test.js passes: N opens capture with the screen default; the palette lists New expense, New note, New reminder, New task, Check in a habit, Log mood; N does nothing while typing in an input"
+      "acceptance": "node --test test/commands.test.js passes: N opens capture with the screen default; the palette lists New expense, New note, New reminder, New task, Check in a habit, Log mood; N does nothing while typing in an input",
+      "notes": " E3-07 first attempt found MoneyProvider is mounted only in MoneyApp.jsx, so expenses and dailyLog writers cannot be built at the shell. Approach (as E1-17 did for Life): mount MoneyProvider at the shell in App.jsx, export a useMoneyOptional hook from MoneyContext.jsx and make MoneyApp reuse a provider that is already mounted above it (never two copies of state). Add mutateProgress to store.js (via mutateEmit) for the solve writer, and update the expected store export list in test/syncRouter.test.js (stale guard, add names only). Lazy-load CaptureSheet; keep entry JS under 135 kB. Reconcile the palette wording: New habit check-in."
     },
     {
       "id": "E3-08",
@@ -1107,7 +1113,7 @@
     {
       "id": "E3-10",
       "phase": "E3",
-      "wave": 4,
+      "wave": 5,
       "title": "Add end-to-end checks for capture",
       "size": "M",
       "writes": [
@@ -1127,7 +1133,7 @@
     {
       "id": "E3-GATE",
       "phase": "E3",
-      "wave": 5,
+      "wave": 6,
       "title": "Phase gate: plus button and capture",
       "size": "S",
       "writes": [
