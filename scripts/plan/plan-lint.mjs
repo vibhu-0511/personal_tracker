@@ -103,6 +103,19 @@ export function lintPlan(plan, { maxWidth = 6 } = {}) {
     }
   }
 
+  // dependency cycles (also surface as "not in an earlier wave", but name the cycle)
+  const color = new Map()
+  const walk = (id, stack) => {
+    color.set(id, 1)
+    for (const d of (byId.get(id)?.deps || [])) {
+      if (!byId.has(d)) continue
+      if (color.get(d) === 1) { errors.push(`dependency cycle: ${[...stack.slice(stack.indexOf(d)), id, d].join(' -> ')}`); continue }
+      if (!color.get(d)) walk(d, [...stack, id])
+    }
+    color.set(id, 2)
+  }
+  for (const id of byId.keys()) if (!color.get(id) && isArr(byId.get(id).deps)) walk(id, [])
+
   // parallel safety inside a wave
   const waves = new Map()
   for (const t of tasks) { if (!waves.has(waveKey(t))) waves.set(waveKey(t), []); waves.get(waveKey(t)).push(t) }
