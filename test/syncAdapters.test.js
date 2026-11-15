@@ -47,9 +47,14 @@ const moodRec = (source, hlc, extra = {}) => ({
 })
 
 test('adapter keys equal SYNCED_KEYS in src/store.js (drift fails here)', () => {
-  const keys = storeKeys()
+  // dailyLog is a v1-only synced key: it has no sync v2 adapter (and is not in V2_KEYS).
+  const V1_ONLY = ['dailyLog']
+  const all = storeKeys()
+  assert.equal(all.length, 18)
+  assert.equal(new Set(all).size, 18)
+  for (const k of V1_ONLY) assert.ok(all.includes(k), k)
+  const keys = all.filter((k) => !V1_ONLY.includes(k))
   assert.equal(keys.length, 17)
-  assert.equal(new Set(keys).size, 17)
   assert.deepEqual([...ADAPTER_KEYS].sort(), [...keys].sort())
   assert.deepEqual(Object.keys(fixture()).sort(), [...keys].sort())
   for (const k of keys) assert.equal(adapterFor(k).key, k)

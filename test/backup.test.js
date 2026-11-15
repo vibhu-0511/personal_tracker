@@ -28,25 +28,25 @@ const seeded = () => Object.fromEntries(
   SYNCED_KEYS.map((k, i) => [k, { data: { key: k, n: i, list: [i, 'x', null], nested: { a: true } }, updatedAt: T + i }]),
 )
 
-test('SYNCED_KEYS matches src/store.js and has 17 keys', () => {
-  assert.equal(SYNCED_KEYS.length, 17)
+test('SYNCED_KEYS matches src/store.js and has 18 keys', () => {
+  assert.equal(SYNCED_KEYS.length, 18)
   const src = readFileSync(new URL('../src/store.js', import.meta.url), 'utf8')
   const block = src.match(/export const SYNCED_KEYS = \[([\s\S]*?)\]/)[1]
   const storeKeys = [...block.matchAll(/'([^']+)'/g)].map((m) => m[1])
   assert.deepEqual(SYNCED_KEYS, storeKeys)
 })
 
-test('round trip: export 17 keys, import into empty db, identical wrapped values', async () => {
+test('round trip: export 18 keys, import into empty db, identical wrapped values', async () => {
   const src = fakeDb(seeded())
   const json = await exportBackupJson({ db: src })
   const file = JSON.parse(json)
   assert.equal(file.format, BACKUP_FORMAT)
   assert.equal(file.version, BACKUP_VERSION)
-  assert.equal(Object.keys(file.keys).length, 17)
+  assert.equal(Object.keys(file.keys).length, 18)
 
   const dest = fakeDb()
   const imported = await importBackup(json, { db: dest, now: () => T })
-  assert.equal(imported.length, 17)
+  assert.equal(imported.length, 18)
   for (const key of SYNCED_KEYS) {
     assert.deepEqual(dest.m.get(key).data, src.m.get(key).data, key)
     assert.deepEqual(Object.keys(dest.m.get(key)).sort(), ['data', 'updatedAt'])

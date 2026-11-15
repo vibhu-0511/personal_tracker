@@ -430,8 +430,10 @@ test('store.js keeps every v1 export and signature, SYNCED_KEYS and the untouche
     'settings', 'notes', 'progress', 'expenses', 'budgets', 'goals',
     'examProgress', 'examNotes', 'investProgress', 'watchlist',
     'tasks', 'reminders', 'habits', 'moodLog', 'loans', 'puzzleProgress', 'checklists',
+    'dailyLog',
   ])
-  assert.deepEqual([...list.matchAll(/'(\w+)'/g)].map((m) => m[1]), [...ADAPTER_KEYS])
+  // dailyLog is v1-only: every other synced key has an adapter
+  assert.deepEqual([...list.matchAll(/'(\w+)'/g)].map((m) => m[1]).filter((k) => k !== 'dailyLog'), [...ADAPTER_KEYS])
   assert.equal(src.includes('dsa_mastery'), false)
   // every read and write goes through the router; the v1 engine is only handed to it
   assert.match(src, /const engine = createSyncRouter\(/)
