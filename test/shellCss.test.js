@@ -191,3 +191,37 @@ test('guard: detects missing container queries, focus ring, cream, 44px rule', (
   assert.equal(hasCoarsePointer44('.btn { min-height: 30px }'), false)
   assert.equal(hasCoarsePointer44('@media (pointer: coarse) { .btn { min-height: 44px } }'), true)
 })
+
+// ── Plus button in the shell (E3-06) ──
+
+const SHELL_JSX = readFileSync(fileURLToPath(new URL('../src/shell/Shell.jsx', import.meta.url)), 'utf8')
+
+test('Shell renders one Fab with a label, wired to onCapture with { tab, view }', () => {
+  assert.equal((SHELL_JSX.match(/<Fab\b/g) || []).length, 1)
+  assert.match(SHELL_JSX, /from '\.\.\/ui\/Fab\.jsx'/)
+  assert.match(SHELL_JSX, /<Fab\s+label="[^"]+"/)
+  assert.match(SHELL_JSX, /onCapture\?\.\(\{\s*tab: route\.tab,\s*view: route\.view\s*\}\)/)
+  assert.match(SHELL_JSX, /!captureOpen\s*&&/, 'plus is hidden while a sheet is open')
+})
+
+test('page keeps bottom padding that clears the plus, in every layout', () => {
+  const shell = FILES.find((f) => f.name === 'styles/shell.css').css
+  const rules = parseRules(shell)
+  assert.match(shell, /--fab-clear:\s*84px/)
+  assert.ok(rules.some((r) => r.selector === '.page' && r.atRules.length === 0))
+  assert.match(shell, /\.page\s*\{[^}]*padding:\s*0 16px var\(--fab-clear\)/)
+  assert.match(shell, /@container app \(min-width: 600px\)\s*\{[\s\S]*?\.page\s*\{\s*padding:\s*0 24px calc\(var\(--fab-clear\)/)
+})
+
+test('plus stays clear of the inspector and hides under an open dialog', () => {
+  const shell = FILES.find((f) => f.name === 'styles/shell.css').css
+  assert.match(shell, /\.app-shell\.has-inspector \.ui-fab\s*\{\s*right:\s*calc\(var\(--inspector-w\)/)
+  assert.match(shell, /\.app-root:has\(dialog\[open\]\) \.ui-fab\s*\{\s*display:\s*none/)
+})
+
+test('Fab css offsets from --tabbar-h plus the safe area, at the right edge', () => {
+  const fab = FILES.find((f) => f.name === 'ui/fab.css').css
+  assert.match(fab, /position:\s*fixed/)
+  assert.match(fab, /bottom:\s*calc\(max\(var\(--tabbar-h, 0px\), env\(safe-area-inset-bottom, 0px\)\) \+ 12px\)/)
+  assert.match(fab, /right:\s*16px/)
+})
