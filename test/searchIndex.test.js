@@ -82,3 +82,21 @@ test('searchIndex: matches screens by name and honours the limit', () => {
   assert.equal(searchIndex(idx, 'life', 3).length, 3)
   assert.deepEqual(searchIndex(idx, 'qqqqqq'), [])
 })
+
+test('searchIndex: an open reminder is found by title and navigates to the reminders view', () => {
+  const reminders = [
+    { id: 'r1', title: 'Call the plumber', at: 1, done: false },
+    { id: 'r2', title: 'Renew passport', at: 2, done: true },
+    { id: 'r3', title: '' },
+    null,
+  ]
+  const idx = buildIndex({ tasks, notes, reminders })
+  assert.equal(idx.filter((e) => e.kind === 'reminder').length, 2)
+  const hit = searchIndex(idx, 'plumber')[0]
+  assert.equal(hit.id, 'reminder:r1')
+  assert.equal(hit.kind, 'reminder')
+  assert.equal(hit.subtitle, 'Reminder')
+  assert.equal(hit.path, '/life/reminders')
+  assert.equal(searchIndex(idx, 'passport')[0].subtitle, 'Reminder · done')
+  assert.ok(buildIndex({ reminders: 'x' }).every((e) => e.kind === 'screen'))
+})

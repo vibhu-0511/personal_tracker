@@ -88,9 +88,9 @@ export function screenEntries() {
   return out
 }
 
-// Build a flat list of searchable entries. Tasks use `title`, notes use `body`
+// Build a flat list of searchable entries. Tasks and reminders use `title`, notes use `body`
 // (the shape in src/life/screens/Notes.jsx). Malformed rows are skipped, not thrown.
-export function buildIndex({ tasks = [], notes = [] } = {}) {
+export function buildIndex({ tasks = [], notes = [], reminders = [] } = {}) {
   const entries = screenEntries()
   for (const t of Array.isArray(tasks) ? tasks : []) {
     if (!t || typeof t.title !== 'string' || !t.title.trim()) continue
@@ -101,6 +101,17 @@ export function buildIndex({ tasks = [], notes = [] } = {}) {
       subtitle: t.done ? 'Task · done' : 'Task',
       path: '/life/tasks',
       ref: t.id ?? null,
+    })
+  }
+  for (const r of Array.isArray(reminders) ? reminders : []) {
+    if (!r || typeof r.title !== 'string' || !r.title.trim()) continue
+    entries.push({
+      id: `reminder:${r.id ?? r.title}`,
+      kind: 'reminder',
+      title: r.title,
+      subtitle: r.done ? 'Reminder · done' : 'Reminder',
+      path: '/life/reminders',
+      ref: r.id ?? null,
     })
   }
   for (const n of Array.isArray(notes) ? notes : []) {
