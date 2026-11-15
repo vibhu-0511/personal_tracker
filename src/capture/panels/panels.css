@@ -1,0 +1,32 @@
+/* Capture sheet panels (Habit, Solve, Mood). Tokens only; safe under every theme, cream included. */
+.cap-panel { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.cap-btn {
+  display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: 44px;
+  padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-control);
+  background: var(--surface-raised); color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  transition: border-color 150ms, background 150ms;
+}
+.cap-btn:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+.cap-btn:disabled { cursor: default; }
+.cap-habit-emoji { font-size: 20px; }
+.cap-habit-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.cap-habit-cta { font-size: 13px; color: var(--accent); }
+.cap-solve-btn { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+.cap-solve-title { font-size: 15px; font-weight: 600; }
+.cap-solve-meta { font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.cap-solve-btn[data-done="true"] { border-color: transparent; background: color-mix(in srgb, var(--success) 14%, transparent); }
+.cap-moods { flex-direction: row; gap: var(--space-2); }
+.cap-mood { flex: 1; min-width: 0; flex-direction: column; justify-content: center; gap: var(--space-1); text-align: center; }
+.cap-mood-emoji { font-size: 24px; line-height: 1; }
+.cap-mood-label { font-size: 11px; color: var(--text-secondary); }
+.cap-mood[data-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg, var(--on-accent)); }
+.cap-mood[data-selected="true"] .cap-mood-label { color: inherit; }
+.cap-panel-empty { padding: var(--space-4) 0; }
+@media (pointer: coarse) {
+  .cap-btn { min-height: 44px; }
+  .cap-mood { min-height: 56px; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .cap-btn:hover:not(:disabled) { border-color: var(--text-secondary); }
+}
+@media (prefers-reduced-motion: reduce) { .cap-btn { transition: none; } }
