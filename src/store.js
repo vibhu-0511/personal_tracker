@@ -196,7 +196,7 @@ export async function reconcileAll() {
 }
 
 export async function getSettings() {
-  return { cfHandle: 'step_bro', theme: 'ocean', ...(await getSynced('settings', {})) }
+  return { cfHandle: 'step_bro', theme: 'ember', ...(await getSynced('settings', {})) }
 }
 export async function saveSettings(settings) {
   await saveSynced('settings', settings)
