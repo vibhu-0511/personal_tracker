@@ -1,8 +1,11 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import {
   getExpenses, saveExpenses, getBudgets, saveBudgets, getGoals, saveGoals, getLoans, saveLoans,
+  getDailyLog, saveDailyLog,
 } from '../store.js'
 import { monthRange } from './logic.js'
+import { logStreak as calcLogStreak, monthStrip as calcMonthStrip } from './dayLog.js'
+import { dateKey } from '../life/logic.js'
 import { useHydrate } from '../useHydrate.js'
 import { useLatest } from '../useLatest.js'
 
@@ -24,11 +27,32 @@ function shiftMonth(ts, delta) {
   return d.getTime()
 }
 
+// Pure dailyLog helpers (exported for tests).
+export function withNoSpend(dailyLog, dayKey) {
+  return { ...dailyLog, [dayKey]: { ...(dailyLog || {})[dayKey], noSpend: true } }
+}
+
+// Clears noSpend on every day that received a new transaction in `next`.
+export function clearNoSpendForAdded(dailyLog, prev, next) {
+  const had = new Set(prev)
+  let out = dailyLog || {}
+  for (const e of next) {
+    if (had.has(e)) continue
+    const key = dateKey(new Date(e.date))
+    if (out[key] && out[key].noSpend) {
+      const { noSpend: _drop, ...rest } = out[key]
+      out = { ...out, [key]: rest }
+    }
+  }
+  return out
+}
+
 export function MoneyProvider({ syncTick = 0, children }) {
   const [expenses, setExpenses] = useState([])
   const [budgets, setBudgets] = useState({})
   const [goals, setGoals] = useState([])
   const [loans, setLoans] = useState([])
+  const [dailyLog, setDailyLog] = useState({})
   const [viewMonth, setViewMonth] = useState(startOfThisMonth)
   // null when closed; otherwise { mode: 'add', type } or { mode: 'edit', expense }.
   const [sheetRequest, setSheetRequest] = useState(null)
@@ -39,18 +63,32 @@ export function MoneyProvider({ syncTick = 0, children }) {
   const budgetsRef = useLatest(budgets)
   const goalsRef = useLatest(goals)
   const loansRef = useLatest(loans)
+  const dailyLogRef = useLatest(dailyLog)
 
   const { ready, error } = useHydrate([
     () => getExpenses().then(setExpenses),
     () => getBudgets().then(setBudgets),
     () => getGoals().then(setGoals),
     () => getLoans().then(setLoans),
+    () => getDailyLog().then(setDailyLog),
   ], [syncTick])
 
+  const persistDailyLog = useCallback(async (next) => {
+    dailyLogRef.current = next
+    setDailyLog(next)
+    await saveDailyLog(next)
+  }, [dailyLogRef])
   const persistExpenses = useCallback(async (next) => {
+    const log = dailyLogRef.current
+    const cleared = clearNoSpendForAdded(log, expensesRef.current, next)
     setExpenses(next)
     await saveExpenses(next)
-  }, [])
+    if (cleared !== log) await persistDailyLog(cleared)
+  }, [dailyLogRef, expensesRef, persistDailyLog])
+  const markNoSpend = useCallback(
+    (dayKey) => persistDailyLog(withNoSpend(dailyLogRef.current, dayKey)),
+    [dailyLogRef, persistDailyLog],
+  )
   const persistBudgets = useCallback(async (next) => {
     setBudgets(next)
     await saveBudgets(next)
@@ -88,7 +126,11 @@ export function MoneyProvider({ syncTick = 0, children }) {
     }
   }, [savingRef])
 
+  const streak = useMemo(() => calcLogStreak(expenses, dailyLog), [expenses, dailyLog])
+  const strip = useMemo(() => calcMonthStrip(expenses, dailyLog), [expenses, dailyLog])
+
   const value = useMemo(() => ({
+    dailyLog, logStreak: streak, monthStrip: strip, markNoSpend,
     expenses, budgets, goals, loans,
     expensesRef, budgetsRef, goalsRef, loansRef,
     viewMonth, prevMonth, nextMonth,
@@ -96,6 +138,7 @@ export function MoneyProvider({ syncTick = 0, children }) {
     openAdd, openEdit, closeSheet, sheetRequest,
     saving, runSaving, ready, error,
   }), [
+    dailyLog, streak, strip, markNoSpend,
     expenses, budgets, goals, loans, expensesRef, budgetsRef, goalsRef, loansRef,
     viewMonth, prevMonth, nextMonth,
     persistExpenses, persistBudgets, persistGoals, persistLoans,

@@ -314,6 +314,13 @@ export async function saveLoans(loans) {
   await saveSynced('loans', loans)
 }
 
+export async function getDailyLog() {
+  return await getSynced('dailyLog', {})
+}
+export async function saveDailyLog(log) {
+  await saveSynced('dailyLog', log)
+}
+
 export async function getChecklists() {
   return await getSynced('checklists', [])
 }

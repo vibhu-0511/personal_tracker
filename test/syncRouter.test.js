@@ -419,7 +419,7 @@ test('store.js keeps every v1 export and signature, SYNCED_KEYS and the untouche
     'getReminders()', 'saveReminders(reminders)', 'mutateReminders(fn)',
     'getHabits()', 'saveHabits(habits)',
     'getMoodLog()', 'saveMoodLog(log)',
-    'getLoans()', 'saveLoans(loans)',
+    'getLoans()', 'saveLoans(loans)', 'getDailyLog()', 'saveDailyLog(log)',
     'getChecklists()', 'saveChecklists(checklists)',
     'mutateTasks(fn)', 'mutateHabits(fn)', 'mutateMoodLog(fn)', 'mutateNotes(fn)',
   ])
