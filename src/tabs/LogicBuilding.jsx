@@ -4,6 +4,7 @@ import Puzzles from './Puzzles.jsx'
 import Exams from './Exams.jsx'
 import { EXAMS } from '../logic/examData.js'
 import { loadPuzzles } from '../puzzles.js'
+import { normalizeAll } from '../logic/puzzleProgress.js'
 import { getProgress, getPuzzleProgress, getExamProgress } from '../store.js'
 
 const DsaView = lazy(() => import('./DsaView.jsx'))
@@ -45,7 +46,7 @@ export default function LogicBuilding({ cfHandle, syncTicks = {}, view: viewProp
   useEffect(() => {
     Promise.all([getProgress(), getPuzzleProgress(), getExamProgress()]).then(
       ([progress, puzzleProgress, examProgress]) => {
-        const puzzlesSolved = Object.values(puzzleProgress).filter(Boolean).length
+        const puzzlesSolved = Object.keys(normalizeAll(puzzleProgress)).length
         const examDone = Object.values(examProgress).filter(Boolean).length
         setGlance({
           solvedToday: solvedToday(progress),
