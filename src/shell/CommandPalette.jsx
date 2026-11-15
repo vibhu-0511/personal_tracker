@@ -2,12 +2,17 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { navigate } from '../router.js'
 import { filterCommands, navigationCommands, registry } from './commands.js'
 import { buildIndex, searchIndex } from './searchIndex.js'
+import { useLifeOptional } from '../life/LifeData.jsx'
 
 // Cmd/Ctrl+K palette on a native <dialog> with showModal(), like Sheet.jsx:
 // Escape, focus trap and focus restore come from the browser.
 //   open, onClose  controlled visibility
-//   tasks, notes   optional data for search (the shell passes what it has)
-export default function CommandPalette({ open, onClose, tasks, notes }) {
+//   tasks, notes, reminders  optional data for search (the shell passes what it has);
+//   tasks and reminders fall back to the Life data context when one is mounted
+export default function CommandPalette({ open, onClose, tasks: tasksProp, notes, reminders: remindersProp }) {
+  const life = useLifeOptional()
+  const tasks = tasksProp ?? life?.tasks
+  const reminders = remindersProp ?? life?.reminders
   const ref = useRef(null)
   const inputRef = useRef(null)
   const listRef = useRef(null)
@@ -15,7 +20,7 @@ export default function CommandPalette({ open, onClose, tasks, notes }) {
   const [active, setActive] = useState(0)
 
   const registered = useSyncExternalStore(registry.subscribe, registry.list, registry.list)
-  const index = useMemo(() => buildIndex({ tasks, notes }), [tasks, notes])
+  const index = useMemo(() => buildIndex({ tasks, notes, reminders }), [tasks, notes, reminders])
 
   const rows = useMemo(() => {
     const cmds = filterCommands([...registered, ...navigationCommands()], query).map((c) => ({
