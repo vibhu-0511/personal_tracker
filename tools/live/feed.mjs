@@ -8,6 +8,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readSessionEvents } from './lib/transcript.mjs'
 import { deriveStatuses, readRepo } from './lib/build.mjs'
+import { loadPlanFile } from './lib/plan.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const [out, nArg] = process.argv.slice(2)
@@ -45,7 +46,7 @@ const events = s ? readSessionEvents(s.dir, s.session).slice(-N).map(e => {
   return c
 }) : []
 
-const plan = JSON.parse(fs.readFileSync(path.join(root, 'docs/plan/plan.json'), 'utf8'))
+const plan = loadPlanFile(root).plan
 const repo = await readRepo(root)
 const st = deriveStatuses(plan.tasks.map(t => ({ ...t, o: t.owner || '' })), repo)
 const tasks = {}

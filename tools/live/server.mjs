@@ -7,6 +7,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { normalize } from './lib/graph.mjs'
+import { loadPlanFile } from './lib/plan.mjs'
 import { deriveStatuses, readRepo } from './lib/build.mjs'
 import { play } from './demo.mjs'
 
@@ -23,7 +24,7 @@ fs.mkdirSync(STORE, { recursive: true })
 /* ---------- plan ---------- */
 function loadPlan() {
   try {
-    const p = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/plan/plan.json'), 'utf8'))
+    const p = loadPlanFile(ROOT).plan
     return {
       phases: p.phases.map(x => ({ id: x.id, name: x.name, goal: x.goal })),
       tasks: p.tasks.map(t => ({ id: t.id, p: t.phase, w: t.wave, t: t.title, s: t.size, o: t.owner || '', u: t.urgent ? 1 : 0, d: t.deps || [], wr: t.writes || [], a: t.acceptance })),
