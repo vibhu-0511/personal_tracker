@@ -6,6 +6,9 @@ import {
 import { dateKey, ensureTodayEntry } from './logic.js'
 import { dueCounts, walletTotal as sumWallet } from './selectors.js'
 import { stampUpdated } from './records.js'
+import { snooze, reschedule, complete, isRepeating, normalizeRepeat } from './reminderLogic.js'
+import { showToast } from '../toast.js'
+import { newId } from '../id.js'
 
 // Single writer for the Life arrays (tasks, reminders, habits, moodLog).
 //
@@ -34,6 +37,65 @@ export function withUpdatedAt(change, now) {
     if (Array.isArray(prev) && stamped.length === prev.length && stamped.every((r, i) => r === prev[i])) return prev
     return stamped
   }
+}
+
+// ---- Reminder actions (snooze, reschedule, repeat, complete) ------------------------
+// Pure: (reminders, id, action, ...) -> { next, restore }.
+//   next     the new array (the write wrapper stamps updatedAt on changed records)
+//   restore  (latest) => array: puts the touched reminders back into the *latest* list
+//            (so anything added meanwhile survives) and drops any reminder it spawned.
+// Completing a repeating reminder keeps the finished one (done, marked with `nextId`)
+// and adds exactly one next reminder; a reminder that already has a `nextId` or is done
+// is left alone, so a double tap or a replayed sync cannot create a second one.
+export function reminderAction(list, id, action, arg, now = Date.now()) {
+  const cur = list.find((r) => r.id === id)
+  if (!cur) return { next: list, restore: (latest) => latest }
+  let changed
+  let spawned = null
+  if (action === 'snooze') changed = snooze(cur, arg, now)
+  else if (action === 'reschedule') changed = reschedule(cur, arg)
+  else if (action === 'repeat') {
+    const repeat = normalizeRepeat(arg)
+    const { repeat: _old, ...rest } = cur
+    changed = repeat.type === 'none' ? rest : { ...rest, repeat }
+  } else if (action === 'complete') {
+    if (cur.done || cur.nextId) return { next: list, restore: (latest) => latest }
+    const out = complete(cur, now)
+    if (isRepeating(cur) && !out.done) {
+      const nextId = newId()
+      changed = { ...cur, done: true, nextId }
+      const { snoozedFrom: _s, nextId: _n, ...rest } = out
+      spawned = { ...rest, id: nextId, done: false, repeatedFrom: cur.id }
+    } else changed = out
+  } else throw new Error(`Unknown reminder action: ${action}`)
+  const next = list.map((r) => (r.id === id ? changed : r))
+  if (spawned) next.push(spawned)
+  const restore = (latest) =>
+    latest.filter((r) => !spawned || r.id !== spawned.id).map((r) => (r.id === id ? cur : r))
+  return { next, restore }
+}
+
+const ACTION_LABEL = {
+  snooze: 'Reminder snoozed', reschedule: 'Reminder rescheduled',
+  repeat: 'Repeat changed', complete: 'Reminder completed',
+}
+
+// Run an action against `updateReminders` and offer an undo toast (same toast the
+// existing undo helper uses). Undo goes through updateReminders too, so it is stamped.
+export function runReminderAction(updateReminders, id, action, arg, now = Date.now()) {
+  let restore = null
+  const result = updateReminders((prev) => {
+    const r = reminderAction(prev, id, action, arg, now)
+    if (r.next === prev) return prev
+    restore = r.restore
+    return r.next
+  })
+  Promise.resolve(result).then(() => {
+    if (!restore) return
+    const undo = restore
+    showToast(ACTION_LABEL[action], { undo: () => updateReminders((latest) => undo(latest)) })
+  }).catch(() => {})
+  return result
 }
 
 async function loadAll() {
@@ -162,6 +224,10 @@ export function LifeDataProvider({ syncTick = 0, children }) {
   const value = useMemo(() => ({
     tasks, reminders, habits, moodLog, now, ready, error,
     updateTasks, updateReminders, updateHabits, updateMoodLog,
+    snoozeReminder: (id, preset) => runReminderAction(updateReminders, id, 'snooze', preset),
+    rescheduleReminder: (id, at) => runReminderAction(updateReminders, id, 'reschedule', at),
+    setReminderRepeat: (id, repeat) => runReminderAction(updateReminders, id, 'repeat', repeat),
+    completeReminder: (id) => runReminderAction(updateReminders, id, 'complete'),
     ...dueCounts(tasks, reminders, now),
     walletTotal: sumWallet(habits, now),
   }), [tasks, reminders, habits, moodLog, now, ready, error,
