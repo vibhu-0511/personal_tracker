@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 29 waves · 74 tasks · widest wave 7 tasks in parallel**
+**6 phases · 29 waves · 75 tasks · widest wave 7 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -88,7 +88,7 @@ Make the wave runner work with this plan, add the Ember theme, fonts, icons and 
 
 Add everything the new screens need to know, as tested pure logic: the five dailies, puzzle solve dates, expense logging days, the Today timeline, reminder snooze and repeat, and the capture parser.
 
-15 tasks across 4 waves.
+16 tasks across 4 waves.
 
 **Exit criteria**
 - npm test, lint and build green
@@ -119,11 +119,12 @@ Add everything the new screens need to know, as tested pure logic: the five dail
 | `E1-13` | Include reminders in command palette search | S | `src/shell/searchIndex.js`<br>`test/searchIndex.test.js` | E0-GATE | node --test test/searchIndex.test.js passes with a new case: an open reminder is found by title and navigates to #/life/reminders |
 | `E1-15` | Fix cream theme: visible done glyph and SegDots empty contrast | S | `src/ui/ember-ui.css`<br>`test/emberUiCream.test.js` | E0-GATE | node --test test/emberUiCream.test.js passes: ember-ui.css never uses --success-fg or other ember-only tokens without a fallback that exists under cream; empty SegDots border/fill has >= 3:1 contrast on the cream background; screenshot of gallery under cream shows the done check |
 
-### E1 · Wave 3 — 1 in parallel
+### E1 · Wave 3 — 2 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
 | `E1-12` | Add the useDailies hook that feeds Today | M | `src/today/useDailies.js`<br>`test/useDailiesLoad.test.js` | E1-07, E1-08, E1-10, E1-11 | node --test test/useDailiesLoad.test.js passes for the pure loader (keys read, result shape); the hook re-computes on store events for the keys it reads and exposes actions completeReminder, snooze, reschedule, checkIn, logMood, markNoSpend |
+| `E1-16` | Pass reminders to the command palette search index | S | `src/shell/CommandPalette.jsx`<br>`test/commandPaletteReminders.test.js` | E1-13 | node --test test/commandPaletteReminders.test.js passes: CommandPalette passes the reminders list into buildIndex (static source check or bundled render); npm test and build green |
 
 ### E1 · Wave 4 — 1 in parallel
 

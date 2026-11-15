@@ -1736,6 +1736,25 @@
       ],
       "acceptance": "node --test test/emberUiCream.test.js passes: ember-ui.css never uses --success-fg or other ember-only tokens without a fallback that exists under cream; empty SegDots border/fill has >= 3:1 contrast on the cream background; screenshot of gallery under cream shows the done check",
       "notes": "From E0 gate finding 1 and 2."
+    },
+    {
+      "id": "E1-16",
+      "phase": "E1",
+      "wave": 3,
+      "title": "Pass reminders to the command palette search index",
+      "size": "S",
+      "writes": [
+        "src/shell/CommandPalette.jsx",
+        "test/commandPaletteReminders.test.js"
+      ],
+      "reads": [
+        "src/shell/searchIndex.js"
+      ],
+      "deps": [
+        "E1-13"
+      ],
+      "acceptance": "node --test test/commandPaletteReminders.test.js passes: CommandPalette passes the reminders list into buildIndex (static source check or bundled render); npm test and build green",
+      "notes": "From E1-13 report: palette still calls buildIndex({tasks, notes})."
     }
   ]
 }
