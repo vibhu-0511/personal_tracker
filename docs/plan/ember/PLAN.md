@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 29 waves · 73 tasks · widest wave 6 tasks in parallel**
+**6 phases · 29 waves · 74 tasks · widest wave 7 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -88,7 +88,7 @@ Make the wave runner work with this plan, add the Ember theme, fonts, icons and 
 
 Add everything the new screens need to know, as tested pure logic: the five dailies, puzzle solve dates, expense logging days, the Today timeline, reminder snooze and repeat, and the capture parser.
 
-14 tasks across 4 waves.
+15 tasks across 4 waves.
 
 **Exit criteria**
 - npm test, lint and build green
@@ -107,7 +107,7 @@ Add everything the new screens need to know, as tested pure logic: the five dail
 | `E1-05` | Derive a note title and excerpt from its first line | S | `src/life/noteTitle.js`<br>`test/noteTitle.test.js` | E0-GATE | node --test test/noteTitle.test.js passes: title is the first non-empty line trimmed to 80 chars, excerpt is the rest collapsed to one line; a one-line note has an empty excerpt |
 | `E1-06` | Add the dailyLog synced key (no-spend days, daily puzzle done) | M | `src/store.js`<br>`src/sync/flags.js`<br>`src/sync/appSubscriptions.js`<br>`src/backup/backup.js`<br>`test/dailyLogStore.test.js` | E0-GATE | node --test test/dailyLogStore.test.js test/backup.test.js test/sync.test.js test/appSubscriptions.test.js passes: dailyLog is in SYNCED_KEYS and the flags list, exports and imports in a backup, and a backup made before this change still imports |
 
-### E1 · Wave 2 — 6 in parallel
+### E1 · Wave 2 — 7 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
@@ -117,6 +117,7 @@ Add everything the new screens need to know, as tested pure logic: the five dail
 | `E1-10` | Add reminder actions: snooze, reschedule, repeat, complete | M | `src/life/LifeData.jsx`<br>`test/lifeReminderActions.test.js` | E1-03 | node --test test/lifeReminderActions.test.js test/lifeRecords.test.js passes: each action stamps updatedAt, completing a repeating reminder creates the next one exactly once, and every action is undoable through the existing undo helper |
 | `E1-11` | Expose logged days and a no-spend action from MoneyContext | S | `src/money/MoneyContext.jsx`<br>`test/moneyNoSpend.test.js` | E1-02, E1-06 | node --test test/moneyNoSpend.test.js passes: markNoSpend(dayKey) sets dailyLog[day].noSpend, adding a transaction that day clears it, and the context value includes logStreak and monthStrip |
 | `E1-13` | Include reminders in command palette search | S | `src/shell/searchIndex.js`<br>`test/searchIndex.test.js` | E0-GATE | node --test test/searchIndex.test.js passes with a new case: an open reminder is found by title and navigates to #/life/reminders |
+| `E1-15` | Fix cream theme: visible done glyph and SegDots empty contrast | S | `src/ui/ember-ui.css`<br>`test/emberUiCream.test.js` | E0-GATE | node --test test/emberUiCream.test.js passes: ember-ui.css never uses --success-fg or other ember-only tokens without a fallback that exists under cream; empty SegDots border/fill has >= 3:1 contrast on the cream background; screenshot of gallery under cream shows the done check |
 
 ### E1 · Wave 3 — 1 in parallel
 

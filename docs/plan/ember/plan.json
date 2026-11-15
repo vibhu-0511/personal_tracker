@@ -1711,6 +1711,25 @@
       ],
       "acceptance": "npm test and npm run build green; the simulator build succeeds; every \"no\" in the device check is fixed or accepted by the owner; stop for owner sign-off",
       "gate": true
+    },
+    {
+      "id": "E1-15",
+      "phase": "E1",
+      "wave": 2,
+      "title": "Fix cream theme: visible done glyph and SegDots empty contrast",
+      "size": "S",
+      "writes": [
+        "src/ui/ember-ui.css",
+        "test/emberUiCream.test.js"
+      ],
+      "reads": [
+        "src/styles/ember.css"
+      ],
+      "deps": [
+        "E0-GATE"
+      ],
+      "acceptance": "node --test test/emberUiCream.test.js passes: ember-ui.css never uses --success-fg or other ember-only tokens without a fallback that exists under cream; empty SegDots border/fill has >= 3:1 contrast on the cream background; screenshot of gallery under cream shows the done check",
+      "notes": "From E0 gate finding 1 and 2."
     }
   ]
 }
