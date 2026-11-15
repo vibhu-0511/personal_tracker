@@ -27,6 +27,7 @@ export const KEY_TO_TABS = {
   tasks: ['Life', 'Home'], reminders: ['Life', 'Home'], habits: ['Life', 'Home'],
   moodLog: 'Life', notes: 'Life', checklists: 'Life',
   puzzleProgress: 'Puzzles',
+  dailyLog: ['Home', 'Puzzles'],
 }
 
 export function tabsForKey(key) {

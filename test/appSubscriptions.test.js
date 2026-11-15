@@ -15,6 +15,7 @@ const SYNCED_KEYS = [
   'settings', 'notes', 'progress', 'expenses', 'budgets', 'goals',
   'examProgress', 'examNotes', 'investProgress', 'watchlist',
   'tasks', 'reminders', 'habits', 'moodLog', 'loans', 'puzzleProgress', 'checklists',
+  'dailyLog',
 ]
 const flush = () => new Promise((r) => setImmediate(r))
 const kv = (key, kind = 'UPDATE') => ({ eventType: kind, new: kind === 'DELETE' ? {} : { key }, old: kind === 'DELETE' ? { key } : {} })
@@ -63,6 +64,7 @@ test('tab mapping is the v1 one, ids unchanged', () => {
     tasks: ['Life', 'Home'], reminders: ['Life', 'Home'], habits: ['Life', 'Home'],
     moodLog: 'Life', notes: 'Life', checklists: 'Life',
     puzzleProgress: 'Puzzles',
+    dailyLog: ['Home', 'Puzzles'],
   })
   assert.deepEqual(tabsForKey('tasks'), ['Life', 'Home'])
   assert.deepEqual(tabsForKey('progress'), ['Today'])
@@ -151,6 +153,7 @@ const OLD_KEY_TO_TAB = {
   tasks: ['Life', 'Home'], reminders: ['Life', 'Home'], habits: ['Life', 'Home'],
   moodLog: 'Life', notes: 'Life', checklists: 'Life',
   puzzleProgress: 'Puzzles',
+  dailyLog: ['Home', 'Puzzles'],
 }
 function oldHandler(payload, reconcileKey, out) {
   const key = payload.new?.key || payload.old?.key

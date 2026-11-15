@@ -25,6 +25,7 @@ export const SYNCED_KEYS = [
   'settings', 'notes', 'progress', 'expenses', 'budgets', 'goals',
   'examProgress', 'examNotes', 'investProgress', 'watchlist',
   'tasks', 'reminders', 'habits', 'moodLog', 'loans', 'puzzleProgress', 'checklists',
+  'dailyLog',
 ]
 
 export class BackupError extends Error {
