@@ -1,0 +1,24 @@
+.today-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.today-header-text { min-width: 0; }
+.today-header-line {
+  margin: 0;
+  font: 500 11px/1.4 var(--font-data, ui-monospace, monospace);
+  letter-spacing: .02em;
+  color: var(--accent);
+}
+.today-header-title {
+  margin: 2px 0 0;
+  font: 700 24px/1.1 var(--font-display, var(--font-ui, system-ui));
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+.today-header-count {
+  font: 600 12px/1 var(--font-data, ui-monospace, monospace);
+  color: var(--text);
+}
