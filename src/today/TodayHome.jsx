@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createCelebrator } from './celebrate.js'
 import TodayHeader from './TodayHeader.jsx'
 import DailiesStrip from './DailiesStrip.jsx'
 import NextUp from './NextUp.jsx'
@@ -46,6 +47,15 @@ export default function TodayHome({ syncTick = 0 }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [d.reminders, t.tasks, extras, nowKey],
   )
+
+  // One confetti burst per day when the dailies complete (never on load, never under reduced motion).
+  const celebrateRef = useRef(null)
+  useEffect(() => {
+    if (!d.ready) return
+    if (!celebrateRef.current) celebrateRef.current = createCelebrator()
+    const observe = celebrateRef.current
+    observe(d.dailies.done, d.dailies.total)
+  }, [d.ready, d.dailies.done, d.dailies.total])
 
   const error = t.error || d.error
   if (error) {
