@@ -1,0 +1,69 @@
+/* ember: design direction A. Theme tokens plus type, space, radius and motion scales.
+   Scales live on :root so every theme gets them; colours only under data-accent="ember". */
+
+:root {
+  /* type families */
+  --font-display: "Space Grotesk", var(--font-ui, system-ui), sans-serif;
+  --font-body: Inter, var(--font-ui, system-ui), sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, monospace;
+
+  /* type sizes */
+  --fs-title: 28px;
+  --fs-title-phone: 24px;
+  --fs-lg: 20px;
+  --fs-md: 17px;
+  --fs-body: 15px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+  --fs-label: 11px;
+  --fs-tab: 10px;
+  --label-tracking: 0.08em;
+
+  /* space */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --page-pad: 16px;
+
+  /* radius */
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --radius-chip: 999px;
+  --radius-round: 50%;
+
+  /* motion */
+  --motion-press: 150ms;
+  --motion-sheet: 250ms ease-out;
+}
+
+@media (min-width: 600px) {
+  :root { --page-pad: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-press: 0.01ms;
+    --motion-sheet: 0.01ms linear;
+  }
+}
+
+:root[data-accent="ember"] {
+  --bg: #0a0c10;
+  --surface: #13161d;
+  --surface-raised: #1d212c;
+  --border: #262b37;
+  --text: #eaecf1;
+  --text-secondary: #909aad;
+  --accent: #ff8a3d;
+  --accent-solid: #ff8a3d;
+  --accent-fg: #1d0d02;
+  --accent-dim: rgba(255, 138, 61, 0.12);
+  --note: #6ea8fe;
+  --success: #4ade80;
+  --success-fg: #062611;
+  --danger: #ff8080;
+  --warn: #fbbf24;
+}
