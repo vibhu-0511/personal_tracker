@@ -93,3 +93,8 @@ test('renderPlan emits one table per wave', () => {
   assert.match(md, /### P1 · Wave 1 — 1 in parallel/)
   assert.match(md, /flowchart LR/)
 })
+
+test('a dependency cycle is reported by name', () => {
+  const r = lintPlan(plan1([task('A', 'P0', 1, ['a.js'], ['B']), task('B', 'P0', 2, ['b.js'], ['A'])]))
+  assert.ok(r.errors.some((e) => /dependency cycle: A -> B -> A/.test(e)), r.errors.join('|'))
+})

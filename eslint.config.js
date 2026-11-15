@@ -14,9 +14,11 @@ export default [
       'playwright-report/**',
       'public/**',
       '.live/**',
+      '.agentflow/**',
       '.vercel/**',
       // Script fragment inlined into a page by build.mjs; its globals are intentionally undeclared.
       'tools/live/artifact/adapter.js',
+      'tools/agentflow/artifact/adapter.js',
     ],
   },
   js.configs.recommended,

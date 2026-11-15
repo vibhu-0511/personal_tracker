@@ -10,6 +10,8 @@
     "test": "node --test \"test/*.test.js\"",
     "live": "node tools/live/server.mjs",
     "live:demo": "node tools/live/demo.mjs",
+    "agentflow": "node tools/agentflow/server.mjs",
+    "agentflow:demo": "node tools/agentflow/demo.mjs",
     "lint": "eslint .",
     "test:e2e": "playwright test",
     "build:e2e": "vite build --mode e2e --outDir dist-e2e",
