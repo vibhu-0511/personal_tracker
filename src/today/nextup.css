@@ -1,0 +1,57 @@
+/* Next up + overdue chip (E2-02). Tokens only; no colour literals. */
+.nextup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nextup-overdue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  border: 1px solid var(--danger);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--danger);
+  font-size: 13px;
+}
+.nextup-overdue-text {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nextup-overdue-count {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.nextup-overdue-title { font-weight: 600; }
+.nextup-overdue-btn {
+  flex: none;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--danger);
+  border-radius: 999px;
+  background: none;
+  color: var(--danger);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+.nextup-overdue-btn:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .nextup-overdue-btn:hover { background: var(--surface); }
+}
+@media (pointer: coarse) {
+  .nextup-overdue-btn { min-height: 44px; min-width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nextup-overdue-btn { transition: none; }
+}
