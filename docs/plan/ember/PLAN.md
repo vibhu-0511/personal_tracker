@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 30 waves · 77 tasks · widest wave 7 tasks in parallel**
+**6 phases · 31 waves · 79 tasks · widest wave 7 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -142,7 +142,7 @@ Add everything the new screens need to know, as tested pure logic: the five dail
 
 Replace the top of Today with the Ember layout: header with ring, five dailies, next up, and the timeline, keeping five of the existing tiles below.
 
-9 tasks across 4 waves.
+11 tasks across 5 waves.
 
 **Exit criteria**
 - Today matches the mockup at 390px (differences listed in the gate report)
@@ -173,11 +173,18 @@ Replace the top of Today with the Ember layout: header with ring, five dailies, 
 | `E2-06` | Add end-to-end checks for Today | M | `e2e/today-ember.spec.js`<br>`e2e/matrix/phone.spec.js`<br>`e2e/matrix/ipad-portrait.spec.js`<br>`e2e/matrix/ipad-landscape.spec.js`<br>`e2e/matrix/desktop.spec.js` | E2-05 | npx playwright test e2e/today-ember.spec.js e2e/matrix --trace off passes: with the fixture day the ring reads 3/5, next up is Gym, checking Gym moves next up to Call mom, and there is no horizontal scroll at 390, 834, 1194 and 1440 |
 | `E2-07` | Celebrate once when all dailies are done | S | `src/today/celebrate.js`<br>`src/today/TodayHome.jsx`<br>`test/todayCelebrate.test.js` | E2-05 | node --test test/todayCelebrate.test.js passes: fires once per local day when done reaches total, never on load when already complete, and not at all under prefers-reduced-motion |
 
-### E2 · Wave 4 — 1 in parallel
+### E2 · Wave 4 — 2 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E2-GATE` | Phase gate: Today | S | `docs/plan/ember/reports/E2-gate.md` | E2-06, E2-07 | npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report has Today screenshots at 390, 834 and 1194 next to the mockup and lists every visible difference; stop for owner sign-off |
+| `E2-10` | Fix the Today second column from 900px (container query on its own container) | S | `src/today/today.css` | E2-06 | npx playwright test e2e/today-ember.spec.js e2e/matrix/ipad-landscape.spec.js e2e/matrix/desktop.spec.js --trace off: the second-column and section-order tests pass; npm test and build green |
+| `E2-11` | Timeline note rows use the note body for the title | S | `src/today/timeline.js`<br>`test/timeline.test.js` | E2-06 | node --test test/timeline.test.js passes with a new case: a note stored as {body} gets the first line of body as title; text field still works as fallback; header comment in timeline.js documents body; the e2e test timeline lists today in time order passes |
+
+### E2 · Wave 5 — 1 in parallel
+
+| Task | Title | Size | Writes | Depends on | Acceptance |
+|---|---|---|---|---|---|
+| `E2-GATE` | Phase gate: Today | S | `docs/plan/ember/reports/E2-gate.md` | E2-06, E2-07, E2-10, E2-11 | npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report has Today screenshots at 390, 834 and 1194 next to the mockup and lists every visible difference; stop for owner sign-off |
 
 ## E3 · Plus button and capture
 

@@ -886,7 +886,7 @@
     {
       "id": "E2-GATE",
       "phase": "E2",
-      "wave": 4,
+      "wave": 5,
       "title": "Phase gate: Today",
       "size": "S",
       "writes": [
@@ -897,7 +897,9 @@
       ],
       "deps": [
         "E2-06",
-        "E2-07"
+        "E2-07",
+        "E2-10",
+        "E2-11"
       ],
       "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report has Today screenshots at 390, 834 and 1194 next to the mockup and lists every visible difference; stop for owner sign-off",
       "gate": true
@@ -1804,6 +1806,45 @@
       ],
       "acceptance": "npm run build then npm run size reports entry JS <= 135 kB with scripts/ci/budgets.json UNCHANGED; npm test, npm run test:e2e -- --trace off green; test/entryChunk.test.js asserts the built entry chunk does not contain the reminder-action and capture-parser modules (they load lazily)",
       "notes": "E1 gate: entry JS 136.4 kB vs 135. Find what E0-E1 pulled into the entry (use a Rollup manualChunks / dynamic import of the Life provider internals, capture parser, dailies) without changing behaviour. Do NOT edit budgets.json or the budget test. If another file must change, stop and report it."
+    },
+    {
+      "id": "E2-10",
+      "phase": "E2",
+      "wave": 4,
+      "title": "Fix the Today second column from 900px (container query on its own container)",
+      "size": "S",
+      "writes": [
+        "src/today/today.css"
+      ],
+      "reads": [
+        "src/today/TodayHome.jsx",
+        "e2e/today-ember.spec.js"
+      ],
+      "deps": [
+        "E2-06"
+      ],
+      "acceptance": "npx playwright test e2e/today-ember.spec.js e2e/matrix/ipad-landscape.spec.js e2e/matrix/desktop.spec.js --trace off: the second-column and section-order tests pass; npm test and build green",
+      "notes": "E2-06 found: .today-home is the container (container: th) and cannot be restyled by its own @container query (today.css lines 13 and 29-35). Move the grid rule to a child wrapper selector that TodayHome.jsx already renders, or nest so the query targets a descendant; if TodayHome.jsx must change, stop and report."
+    },
+    {
+      "id": "E2-11",
+      "phase": "E2",
+      "wave": 4,
+      "title": "Timeline note rows use the note body for the title",
+      "size": "S",
+      "writes": [
+        "src/today/timeline.js",
+        "test/timeline.test.js"
+      ],
+      "reads": [
+        "src/life/screens/Notes.jsx",
+        "src/life/noteTitle.js"
+      ],
+      "deps": [
+        "E2-06"
+      ],
+      "acceptance": "node --test test/timeline.test.js passes with a new case: a note stored as {body} gets the first line of body as title; text field still works as fallback; header comment in timeline.js documents body; the e2e test timeline lists today in time order passes",
+      "notes": "E2-06 found: real notes store text in body (Notes.jsx:317) but timeline.js:79 reads n.text, so every note row is titled Note."
     }
   ]
 }

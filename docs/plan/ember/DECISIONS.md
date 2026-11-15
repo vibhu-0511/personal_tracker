@@ -12,3 +12,5 @@ Standing rule from the owner (2026-11-15): note each decision here, do not wait,
 | D6 | Mood daily links to Life growth until capture sheet exists | Repoint in E3 | Open, default taken | E1-07, E3 |
 | D7 | `dailyLog` write race (`markNoSpend` read-then-write) | Add `mutateDailyLog` to the store in E2/E3 if two writers overlap | Open, default taken | E1-11, E1-12 |
 | D8 | Owner-only tasks: E4-U1 (device checklist), E5-U1 (Mac, Apple account, shell), E5-U2 (device test) | Prepare everything, skip these, continue other tasks; E5 native tasks stay queued behind E5-U1 | Waiting on owner | E4 gate, E5 |
+| D9 | E2-06 e2e merged with 11 known failing tests (two real Today bugs, fixed in E2-10 and E2-11 next wave); the merge gate only runs npm test and build | Merge the specs, fix next wave, gate requires e2e green | Taken | E2-06, E2-10, E2-11 |
+| D10 | Page has two h1 "Today" (shell topbar and TodayHeader) | Address in E4 (shell restyle); specs use .today-header-title | Open, default taken | E2-04, E4 |
