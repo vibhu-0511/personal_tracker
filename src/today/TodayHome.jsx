@@ -1,61 +1,109 @@
+import { useEffect, useMemo, useState } from 'react'
+import TodayHeader from './TodayHeader.jsx'
+import DailiesStrip from './DailiesStrip.jsx'
+import NextUp from './NextUp.jsx'
+import Timeline from './Timeline.jsx'
 import StreakTile from './tiles/StreakTile.jsx'
 import WalletTile from './tiles/WalletTile.jsx'
 import PetsTile from './tiles/PetsTile.jsx'
-import CodeTile from './tiles/CodeTile.jsx'
 import WatchTile from './tiles/WatchTile.jsx'
-import TasksTile from './tiles/TasksTile.jsx'
-import SpendTile from './tiles/SpendTile.jsx'
-import MoodTile from './tiles/MoodTile.jsx'
 import TutorTile from './tiles/TutorTile.jsx'
 import { useTodayData } from './useTodayData.js'
+import { useDailies } from './useDailies.js'
+import { buildTimeline } from './timeline.js'
+import { getExpenses, getNotes } from '../store.js'
+import { useStoreKey } from '../useStoreKey.js'
 import './today.css'
 
-// Today home: the bento grid. DOM order is the reading and focus order and must
-// stay streak, wallet, pets, code, watch, tasks, spend, mood, tutor (today.css
-// addresses the first-group tiles by position).
+// Timeline inputs that neither hook exposes: today's expenses and notes. Loaded
+// silently on every store event / sync tick; a failed read leaves them empty.
+function useTimelineExtras(syncTick) {
+  const expensesV = useStoreKey('expenses')
+  const notesV = useStoreKey('notes')
+  const [extras, setExtras] = useState({ expenses: [], notes: [] })
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([getExpenses(), getNotes()])
+      .then(([expenses, notes]) => { if (!cancelled) setExtras({ expenses, notes }) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [syncTick, expensesV, notesV])
+  return extras
+}
+
+// Today home. Order: header, dailies, next up (overdue chip first), timeline, then the
+// kept tiles (Streak, Wallet, Pets, Watch, Tutor). From 900px container width the
+// tiles sit in a second column beside the timeline (today.css).
 // `syncTick` is bumped when a remote change touches data Home shows.
 export default function TodayHome({ syncTick = 0 }) {
   const t = useTodayData({ syncTick })
+  const d = useDailies({ syncTick })
+  const extras = useTimelineExtras(syncTick)
+  const now = Date.now()
+  const nowKey = Math.floor(now / 30_000) // re-derive the timeline with the dailies clock
+  const timeline = useMemo(
+    () => buildTimeline({ reminders: d.reminders, tasks: t.tasks, expenses: extras.expenses, notes: extras.notes }, Date.now()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [d.reminders, t.tasks, extras, nowKey],
+  )
 
-  if (t.error) {
+  const error = t.error || d.error
+  if (error) {
     return (
       <div className="empty-state">
         <div className="empty-icon">⚠️</div>
-        <div className="empty-text">Couldn't load Today: {t.error}</div>
+        <div className="empty-text">Couldn't load Today: {error}</div>
       </div>
     )
   }
 
-  const loading = !t.ready
-  const { toggleTask, checkIn, logMood } = t.actions
+  const loading = !t.ready || !d.ready
+  const { completeReminder, snooze, reschedule } = d.actions
+  const { toggleTask, checkIn } = t.actions
+
+  const onDone = (it) => (it.kind === 'task' ? toggleTask(it.id, true) : completeReminder(it.id))
+  const onSnooze = (it) => { if (it.kind === 'reminder') snooze(it.id, '1h') }
+  const onToggle = (it, next) => {
+    if (it.kind === 'task') toggleTask(it.id, next)
+    else if (next) completeReminder(it.id)
+  }
 
   return (
-    <div className="today-grid" data-sync-tick={syncTick}>
-      <div className="today-grid-cells">
-        <StreakTile loading={loading} current={t.streak.current} best={t.streak.best} href="#/life/habits" />
-        <WalletTile
-          loading={loading}
-          habitCount={t.wallet.habitCount}
-          total={t.wallet.total}
-          left={t.wallet.left}
-          level={t.wallet.level}
-          levelPct={t.wallet.levelPct}
-          href="#/life/growth"
-        />
-        <PetsTile loading={loading} pets={t.pets} onCheckIn={checkIn} moreHref="#/life/habits" />
-        <CodeTile loading={loading} solved={t.code.solved} goal={t.code.goal} href="#/logic/code" />
-        <WatchTile loading={loading} item={t.watch.item} quote={t.watch.quote} />
-        <TasksTile loading={loading} tasks={t.tasks} todayKey={t.todayKey} onToggleTask={toggleTask} />
-        <SpendTile
-          loading={loading}
-          spent={t.spend.spent}
-          totalBudget={t.spend.totalBudget}
-          categories={t.spend.categories}
-          monthLabel={t.spend.monthLabel}
-        />
-        <MoodTile loading={loading} today={t.mood.today} source={t.mood.source} onLog={logMood} />
-        <TutorTile />
+    <div className="today-home" data-sync-tick={syncTick}>
+      <div className="today-home-main">
+        <TodayHeader now={new Date()} streak={t.streak.current} done={d.dailies.done} total={d.dailies.total} />
+        <DailiesStrip items={d.dailies.items} loading={loading} />
+        {!loading && (
+          <NextUp
+            nextUp={timeline.nextUp}
+            overdue={timeline.overdue}
+            now={Date.now()}
+            onDone={onDone}
+            onSnooze={onSnooze}
+            onOverdueReschedule={(it, at) => (it.kind === 'reminder' ? reschedule(it.id, at) : undefined)}
+          />
+        )}
+        {!loading && <Timeline items={timeline.items} onToggle={onToggle} />}
       </div>
+      <aside className="today-home-tiles" aria-label="Today tiles">
+        <div className="today-grid" data-sync-tick={syncTick}>
+          <div className="today-grid-cells">
+            <StreakTile loading={loading} current={t.streak.current} best={t.streak.best} href="#/life/habits" />
+            <WalletTile
+              loading={loading}
+              habitCount={t.wallet.habitCount}
+              total={t.wallet.total}
+              left={t.wallet.left}
+              level={t.wallet.level}
+              levelPct={t.wallet.levelPct}
+              href="#/life/growth"
+            />
+            <PetsTile loading={loading} pets={t.pets} onCheckIn={checkIn} moreHref="#/life/habits" />
+            <WatchTile loading={loading} item={t.watch.item} quote={t.watch.quote} />
+            <TutorTile />
+          </div>
+        </div>
+      </aside>
     </div>
   )
 }
