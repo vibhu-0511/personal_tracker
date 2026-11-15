@@ -1137,7 +1137,8 @@
         "docs/plan/ember/DESIGN.md"
       ],
       "deps": [
-        "E3-10"
+        "E3-10",
+        "E3-11"
       ],
       "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report states the tap count to log an expense on a phone and attaches capture screenshots at 390 and 1194; stop for owner sign-off",
       "gate": true
@@ -1850,6 +1851,27 @@
       ],
       "acceptance": "node --test test/timeline.test.js passes with a new case: a note stored as {body} gets the first line of body as title; text field still works as fallback; header comment in timeline.js documents body; the e2e test timeline lists today in time order passes",
       "notes": "E2-06 found: real notes store text in body (Notes.jsx:317) but timeline.js:79 reads n.text, so every note row is titled Note."
+    },
+    {
+      "id": "E3-11",
+      "phase": "E3",
+      "wave": 3,
+      "title": "Move the capture sheet inline styles into capture.css and style the editor and panel hosts",
+      "size": "S",
+      "writes": [
+        "src/capture/CaptureSheet.jsx",
+        "src/capture/capture.css",
+        "test/captureStyles.test.js"
+      ],
+      "reads": [
+        "src/capture/editors/editors.css",
+        "src/capture/panels/panels.css"
+      ],
+      "deps": [
+        "E3-05"
+      ],
+      "acceptance": "node --test test/captureStyles.test.js passes: CaptureSheet.jsx has no style={{ props left for colour or layout, capture.css defines .capture-chip, .capture-editor and .capture-panel-host with tokens only and a cream-safe fallback; test/captureFlow.test.js still passes unchanged",
+      "notes": "From E3-05 report: .capture-chip uses inline style and there is no CSS for .capture-editor or .capture-panel-host."
     }
   ]
 }
