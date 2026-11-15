@@ -1,0 +1,23 @@
+/* Today timeline list (E2-03). Tokens only; no colour literals. */
+
+.tls-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tls-amount {
+  display: inline-block;
+  min-width: 6ch;
+  text-align: right;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+/* Keep amounts and checks flush to the right edge of every row. */
+.tls-list .tl-trail { justify-self: end; }
+.tls-empty {
+  margin: 0;
+  padding: 16px 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
