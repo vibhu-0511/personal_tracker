@@ -12,13 +12,19 @@
 //              the --tabbar-h override of the rail and sidebar layouts)
 //   actions    top bar actions
 //   title      top bar title; defaults to the active route label
+//
+// The plus button (Fab) lives here so every tab has exactly one. Props:
+//   onCapture(route)  called with { tab, view } when the plus is tapped; the
+//                     app opens the capture sheet (captureContext.openCapture)
+//   captureOpen       true while a sheet is open; the plus is not rendered then
 import { useLayoutEffect, useRef } from 'react'
 import { useRoute } from '../router.js'
 import { ROUTES } from '../routes.js'
 import Nav from './Nav.jsx'
 import TopBar from './TopBar.jsx'
+import Fab from '../ui/Fab.jsx'
 
-export default function Shell({ children, inspector = null, toasts = null, actions = null, title }) {
+export default function Shell({ children, inspector = null, toasts = null, actions = null, title, onCapture, captureOpen = false }) {
   const route = useRoute()
   const pageRef = useRef(null)
 
@@ -36,6 +42,9 @@ export default function Shell({ children, inspector = null, toasts = null, actio
         <main className="page" id="main" ref={pageRef}>{children}</main>
         {hasInspector && (
           <aside className="inspector-slot" aria-label="Inspector">{inspector}</aside>
+        )}
+        {!captureOpen && (
+          <Fab label="New entry" onClick={() => onCapture?.({ tab: route.tab, view: route.view })} />
         )}
         {toasts}
       </div>

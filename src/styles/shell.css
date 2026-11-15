@@ -11,6 +11,7 @@
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
+  --fab-clear: 84px;
 }
 
 /* Phone: top bar, page, bottom tabs. --tabbar-h includes the safe-area inset. */
@@ -36,7 +37,10 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 0 16px 24px;
+  /* Bottom padding clears the plus button (56px + 12px gap + 16px air) so it
+     never covers the last row. On phones the page ends at the tab bar, which
+     already includes the safe-area inset. */
+  padding: 0 16px var(--fab-clear);
 }
 
 /* The inspector is a wide-layout pane; below 1024 R1-08's Sheet replaces it. */
@@ -53,7 +57,7 @@
       "nav top"
       "nav page";
   }
-  .page { padding: 0 24px 32px; }
+  .page { padding: 0 24px calc(var(--fab-clear) + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* Sidebar: 220px nav column; the inspector (when provided) is a right column. */
@@ -67,6 +71,8 @@
       "nav top top"
       "nav page inspector";
   }
+  /* Keep the plus clear of the inspector column. */
+  .app-shell.has-inspector .ui-fab { right: calc(var(--inspector-w) + 24px); }
   .inspector-slot {
     grid-area: inspector;
     display: block;
@@ -113,3 +119,7 @@
   }
   .topbar-brand { display: none; } /* the rail carries the brand */
 }
+
+/* The plus is hidden while any modal sheet is open (Shell also drops it via
+   the captureOpen prop). */
+.app-root:has(dialog[open]) .ui-fab { display: none; }
