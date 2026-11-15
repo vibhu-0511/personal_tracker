@@ -284,7 +284,6 @@ export default function CaptureSheet({ open, onClose, defaultType = 'expense', o
                 className="capture-chip"
                 data-tone={c.tone || 'default'}
                 data-chip={c.key}
-                style={{ font: 'inherit', fontSize: 13, cursor: 'pointer' }}
                 aria-expanded={editor === EDITOR_FOR[c.key]}
                 onClick={() => dispatch({ type: 'openEditor', key: c.key })}
               >
