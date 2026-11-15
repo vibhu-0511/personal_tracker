@@ -213,7 +213,7 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E3-05` | Wire the capture sheet: editors, panels, submit, undo toast | M | `src/capture/CaptureSheet.jsx`<br>`test/captureFlow.test.js` | E3-01, E3-02, E3-03, E3-04, E3-09 | node --test test/captureFlow.test.js passes for the pure reducer; saving closes the sheet, shows a toast with Undo, and Undo restores the previous data; a failed save keeps the sheet open with the typed text intact |
+| `E3-05` | Wire the capture sheet: editors, panels, submit, undo toast | M | `src/capture/CaptureSheet.jsx`<br>`test/captureFlow.test.js`<br>`test/capturePanels.test.js`<br>`src/capture/panels/panels.test.js` | E3-01, E3-02, E3-03, E3-04, E3-09 | node --test test/captureFlow.test.js passes for the pure reducer; saving closes the sheet, shows a toast with Undo, and Undo restores the previous data; a failed save keeps the sheet open with the typed text intact |
 | `E3-06` | Put the plus button in the shell on every tab | S | `src/shell/Shell.jsx`<br>`src/styles/shell.css`<br>`src/shell/TopBar.jsx`<br>`test/shellCss.test.js` | E3-04 | node --test test/shellCss.test.js passes; the Fab is bottom-right above the tab bar below 600px, bottom-right of the page from 600px, and never covers the last list row (the page gets matching bottom padding); it is hidden while a sheet is open |
 
 ### E3 · Wave 3 — 2 in parallel

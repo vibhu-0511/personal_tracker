@@ -16,3 +16,4 @@ Standing rule from the owner (2026-11-15): note each decision here, do not wait,
 | D10 | Page has two h1 "Today" (shell topbar and TodayHeader) | Address in E4 (shell restyle); specs use .today-header-title | Open, default taken | E2-04, E4 |
 | D11 | Timeline time labels wrap to two lines in the 50px column | Widen to ~64px or drop the AM/PM line break in a later polish task (E4 restyle) | Open, default taken | E0-09, E2-03 |
 | D12 | One merge gate (E2-10) went red once and passed on retry | Treat as a flaky test; look for it if it recurs | Open, default taken | tooling |
+| D13 | Solve panel "Solved a problem" writes a synthetic `quick-<ts>` id into the Code `progress` map | Accept for now (counts toward the Code daily); revisit if the Logic screens list unknown ids | Open, default taken | E3-09, E1-07 |
