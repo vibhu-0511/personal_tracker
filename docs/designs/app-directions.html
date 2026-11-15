@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Forge App Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Sora:wght@600;700&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: a review page. Brief on top, one direction at a time (switcher), each with a rationale row,
+   four phone screens (Today, Add, Life, Money) and a widget wall; comparison and open decisions close it. */
+:root{--pg:#f3f4f6;--card:#fff;--ink:#15171c;--mut:#596070;--line:#dcdfe6;--acc:#b0400e;--acc-bg:#fdeadc;
+  --ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--hd:"Space Grotesk","Instrument Sans",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pg:#0d0f13;--card:#161920;--ink:#eceef2;--mut:#9aa3b5;--line:#2a2e39;--acc:#ff9a57;--acc-bg:#2b1c12;color-scheme:dark}}
+:root[data-theme="dark"]{--pg:#0d0f13;--card:#161920;--ink:#eceef2;--mut:#9aa3b5;--line:#2a2e39;--acc:#ff9a57;--acc-bg:#2b1c12;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--pg);color:var(--ink);font:15px/1.55 var(--ui)}
+.wrap{max-width:1340px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+.wrap>*{min-width:0}
+h1,h2,h3,p,ul,ol,figure{margin:0}
+h1{font:700 clamp(26px,4vw,38px)/1.1 var(--hd);letter-spacing:-.02em;text-wrap:balance;max-width:24ch}
+h2{font:700 22px/1.2 var(--hd);letter-spacing:-.01em}
+h3{font:700 12px/1.3 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.lede{max-width:65ch;color:var(--mut);font-size:16px}
+header{display:grid;gap:10px}
+.facts,.brief{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.fact,.brief>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.fact b{font-size:14px}.fact span,.brief p,.brief li{color:var(--mut);font-size:14px}
+.brief strong{color:var(--ink)}.brief ul{padding-left:18px;display:grid;gap:6px}
+.switch{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;gap:6px;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:16px}
+.switch button{flex:1;min-width:0;border:0;border-radius:11px;padding:9px 6px;background:none;color:var(--mut);font:600 14px var(--ui);cursor:pointer;display:grid;gap:1px}
+.switch small{font-weight:500;font-size:12px}
+@media (max-width:640px){.switch small{display:none}.switch button{font-size:13px}}
+.switch button[aria-selected="true"]{background:var(--ink);color:var(--pg)}
+.switch button:focus-visible,.ck:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.dir{display:grid;gap:22px}.dir>*{min-width:0}
+.scroll{overflow-x:auto;margin-inline:-4px}
+.phones{display:flex;gap:22px;padding:6px 4px 14px;width:max-content}
+.phones figure{display:grid;gap:10px;width:300px;align-content:start}
+.phones figcaption{font-size:13px;color:var(--mut)}.phones figcaption b{color:var(--ink);display:block;font-size:14px}
+.note{font-size:13px;color:var(--mut);max-width:75ch}
+table{border-collapse:collapse;width:100%;min-width:860px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+thead th{font:700 15px var(--hd)}tbody th{color:var(--mut);font-weight:600;width:150px}
+.tbl{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.pick{background:var(--acc-bg);border-radius:14px;padding:16px 18px;max-width:80ch}.pick b{color:var(--acc)}
+ol.ask{padding-left:20px;display:grid;gap:8px;max-width:80ch}
+
+/* ---------- device + shared mock parts (each direction sets its own tokens) ---------- */
+.phone{width:300px;height:636px;padding:8px;border-radius:40px;background:#08090b;box-shadow:0 0 0 1px var(--line),0 18px 40px -20px rgba(0,0,0,.5)}
+.screen{position:relative;height:100%;border-radius:32px;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);color:var(--tx);font:12px/1.4 var(--body)}
+.screen::before{content:"";position:absolute;top:8px;left:50%;width:76px;height:20px;margin-left:-38px;border-radius:12px;background:#000;z-index:5}
+.sb{flex:none;height:36px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 26px 3px;font-weight:600;font-size:11px}
+.bat{display:inline-block;width:20px;height:9px;border:1.3px solid currentColor;border-radius:3px;position:relative}
+.bat::after{content:"";position:absolute;inset:1px 5px 1px 1px;background:currentColor;border-radius:1px}
+.bd{flex:1;min-height:0;overflow:hidden;padding:8px 16px 0;display:flex;flex-direction:column;gap:10px}
+.tb{flex:none;display:flex;align-items:center;padding:6px 6px 20px;position:relative;border-top:1px solid var(--bd);background:var(--bg)}
+.tb::after{content:"";position:absolute;bottom:6px;left:50%;width:96px;height:4px;margin-left:-48px;border-radius:4px;background:var(--tx);opacity:.3}
+.tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:8.5px;font-weight:600;color:var(--mu)}
+.tab.on{color:var(--ac)}.tab .i{width:17px;height:17px}
+.fabf{position:absolute;right:14px;bottom:72px;width:46px;height:46px;border-radius:50%;background:var(--ac);color:var(--acfg);display:grid;place-items:center;box-shadow:0 8px 20px -6px rgba(0,0,0,.6);z-index:4}
+.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ck{flex:none;width:20px;height:20px;border-radius:50%;border:1.6px solid var(--mu);background:none;padding:0;cursor:pointer;display:grid;place-items:center}
+.ck::after{content:"";width:5px;height:9px;border:solid var(--okfg);border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg);opacity:0}
+.done>.ck{background:var(--ok);border-color:var(--ok)}.done>.ck::after{opacity:1}
+.done .t{text-decoration:line-through;color:var(--mu)}
+.r{display:flex;align-items:center;gap:10px;min-height:38px}
+.g{flex:1;min-width:0}
+.t{font-weight:600;font-size:12.5px}.m{font-size:10.5px;color:var(--mu)}
+.sec{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);display:flex;justify-content:space-between}
+.el{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.c2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.row{display:flex;align-items:center;gap:8px}.sp{justify-content:space-between}.wr{flex-wrap:wrap;gap:6px}
+.btn{display:inline-block;border-radius:10px;padding:7px 12px;font-weight:600;font-size:11.5px;background:var(--ac);color:var(--acfg);text-align:center}
+.btn.gh{background:var(--sf2);color:var(--tx)}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:99px;padding:4px 9px;font-size:10.5px;font-weight:600;background:var(--sf2);color:var(--tx);white-space:nowrap;flex:none}
+.chip .i{width:12px;height:12px}
+.chip.on{background:var(--ac);color:var(--acfg)}
+.sn{display:flex;gap:6px;overflow:hidden;flex:none}
+.bad{color:var(--bad)}
+.amt{font-weight:700;font-variant-numeric:tabular-nums;font-size:12px;flex:none}
+.em{width:26px;height:26px;border-radius:8px;background:var(--sf2);display:grid;place-items:center;font-size:13px;flex:none}
+.bar{height:5px;border-radius:5px;background:var(--sf2);overflow:hidden}.bar>i{display:block;height:100%;background:var(--ac);border-radius:5px}
+.dots{display:flex;gap:3px}.dots i{flex:1;height:9px;border-radius:2px;background:var(--sf2)}.dots i.f{background:var(--ac)}
+.caret{display:inline-block;width:1.5px;height:1.1em;background:var(--ac);vertical-align:-2px;margin-left:1px;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.caret{animation:none}}
+.dim{flex:1;min-height:0;background:var(--scrim);padding:10px 16px;opacity:.9}
+.sheet{flex:none;background:var(--sf);border-radius:22px 22px 0 0;margin-top:-18px;padding:8px 16px 12px;display:grid;gap:10px;position:relative}
+.sheet::before{content:"";justify-self:center;width:34px;height:4px;border-radius:4px;background:var(--bd)}
+.kb{flex:none;background:var(--kbg);padding:6px 3px 16px;display:grid;gap:5px}
+.kb div{display:flex;justify-content:center;gap:3px}
+.kb b{flex:0 0 24px;height:28px;border-radius:5px;background:var(--key);display:grid;place-items:center;font-weight:500;font-size:12px}
+.kb b.w{flex:0 0 150px;font-size:10px}.kb b.f{flex:0 0 52px;font-size:10px}
+.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.kp b{height:36px;border-radius:12px;background:var(--sf2);display:grid;place-items:center;font:600 16px var(--disp)}
+
+/* ---------- widgets ---------- */
+.wall{border-radius:28px;padding:22px;display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;background:var(--wp)}
+.wall figure{display:grid;gap:8px;justify-items:start;max-width:100%}
+.wall figcaption{background:rgba(0,0,0,.5);color:#fff;border-radius:99px;padding:2px 10px;font-size:11.5px;font-weight:500;font-family:var(--ui)}
+.wg{border-radius:24px;padding:14px;background:var(--sf);color:var(--tx);font:12px/1.35 var(--body);display:flex;flex-direction:column;gap:6px;overflow:hidden;box-shadow:0 10px 26px -14px rgba(0,0,0,.5);max-width:100%}
+.ws{width:140px;height:140px}.wm{width:296px;height:140px}.wl{width:296px;height:310px}
+.wg .r{min-height:30px}
+.lock{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px;border-radius:22px;background:rgba(10,12,16,.55);color:#fff;font:11px/1.3 var(--ui)}
+.lock>div{background:rgba(255,255,255,.16)}
+.lr{width:146px;height:60px;border-radius:14px;padding:9px 11px;display:grid;align-content:center}
+.lr b{font-size:12.5px}.lc{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;text-align:center;font-weight:700;font-size:17px;line-height:1}
+.lc small{display:block;font-size:8.5px;font-weight:600;letter-spacing:.04em}
+.li{border-radius:99px;padding:5px 12px;font-weight:600}
+
+/* ---------- A · Ember: dark, time-first, built from Forge's current tokens ---------- */
+.A{--bg:#0a0c10;--sf:#13161d;--sf2:#1d212c;--bd:#262b37;--tx:#eaecf1;--mu:#909aad;--ac:#ff8a3d;--acfg:#1d0d02;--n:#6ea8fe;--bad:#ff8080;--ok:#4ade80;--okfg:#062611;
+  --scrim:#050608;--kbg:#1a1c22;--key:#3a3d47;--wp:linear-gradient(160deg,#1b2233,#3a2030 60%,#7a3a1c);
+  --body:Inter,system-ui,sans-serif;--disp:"Space Grotesk",Inter,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+.A .h1{font:700 24px/1.1 var(--disp);letter-spacing:-.02em}
+.A .mono{font-family:var(--mono);font-size:10px;letter-spacing:.02em}
+.A .fl{color:var(--ac)}
+.A .box{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:12px;display:grid;gap:7px}
+.A .big{font:700 17px/1.2 var(--disp)}
+.A .dl{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.A .dl span{border-radius:10px;border:1px solid var(--bd);padding:6px 2px;text-align:center;font:500 9.5px var(--mono);color:var(--mu);display:grid;gap:2px}
+.A .dl b{font:600 9.5px var(--body);color:var(--tx)}
+.A .dl .ok{background:rgba(74,222,128,.12);border-color:transparent;color:var(--ok)}
+.A .tl .r{align-items:stretch;min-height:38px;gap:8px}
+.A .tm{width:50px;text-align:right;color:var(--mu);padding-top:2px;flex:none}
+.A .rail{width:11px;position:relative;flex:none}
+.A .rail::before{content:"";position:absolute;left:4.5px;top:0;bottom:0;width:1.5px;background:var(--bd)}
+.A .rail::after{content:"";position:absolute;left:1px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--bg);border:1.5px solid var(--mu)}
+.A .nt .rail::after{border-radius:2px;border-color:var(--n)}
+.A .now .rail::after{background:var(--ac);border-color:var(--ac)}
+.A .now .tm,.A .now .g{color:var(--ac);font-weight:600}
+.A .tl .ck{margin-top:-2px}
+.A .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--mu)}
+.A .nrow{padding:7px 0;border-top:1px solid var(--bd);display:grid;gap:3px}
+.A .type{font:500 16px/1.3 var(--disp)}
+.A .ring{width:36px;height:36px;flex:none}
+
+/* ---------- B · Pinboard: light, tile-first, colour carries meaning ---------- */
+.B{--bg:#f0eff5;--sf:#fff;--sf2:#e5e3ee;--bd:#dcd9e6;--tx:#17151f;--mu:#5c596b;--ac:#17151f;--acfg:#fff;--bad:#b3261e;--ok:#17151f;--okfg:#fff;
+  --peach:#ffd8c6;--mint:#cdeedb;--butter:#ffe89c;--lilac:#e0d6ff;--sky:#cbe4ff;
+  --scrim:#b9b6c6;--kbg:#d5d3de;--key:#fff;--wp:linear-gradient(160deg,#b9c6ff,#e7c9f2 55%,#ffd9c2);
+  --body:"DM Sans",system-ui,sans-serif;--disp:"Bricolage Grotesque","DM Sans",sans-serif}
+.B .h1{font:800 28px/1 var(--disp);letter-spacing:-.03em}
+.B .card{border-radius:18px;padding:11px;background:var(--sf);display:grid;gap:5px;align-content:start}
+.B .card.r{display:flex}
+.B .nt{font:600 13.5px/1.2 var(--disp)}
+.B .cols{display:flex;gap:8px;align-items:stretch}
+.B .cols>div{flex:1;min-width:0}
+.B .tnum{font:800 20px/1 var(--disp);letter-spacing:-.02em}
+.B .tnum small{font:700 9.5px var(--body);letter-spacing:.04em;margin-left:2px}
+.B .btn,.B .chip{border-radius:99px}
+.B .tb{border-top:0}
+.B .fab{flex:0 0 42px;height:42px;border-radius:50%;background:var(--tx);color:#fff;display:grid;place-items:center;margin-top:-18px}
+.B .dl{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center;font-size:9.5px;font-weight:600}
+.B .dl span{display:grid;justify-items:center;gap:3px}
+.B .dl i{width:30px;height:30px;border-radius:50%;border:2px dashed var(--bd);display:grid;place-items:center;font:800 10px var(--disp);font-style:normal}
+.B .dl .ok i{border:0;background:var(--tx);color:#fff}
+.B .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.B .tiles span{border-radius:16px;padding:11px 2px;display:grid;justify-items:center;gap:5px;font-weight:700;font-size:10px;text-align:center}
+.B .bar>i{background:var(--tx)}
+
+/* ---------- C · Quiet: light, text-first, no cards ---------- */
+.C{--bg:#edf0ec;--sf:#f8faf7;--sf2:#dde4dc;--bd:#d0d7d0;--tx:#1b2420;--mu:#55615b;--ac:#1c6650;--acfg:#fff;--bad:#a13d26;--ok:#1c6650;--okfg:#fff;
+  --scrim:#c4ccc4;--kbg:#d3d9d2;--key:#f8faf7;--wp:linear-gradient(160deg,#8fa898,#c5d0c1 55%,#e3ddc9);
+  --body:"Instrument Sans",system-ui,sans-serif;--disp:Newsreader,Georgia,serif}
+.C .bd{padding-inline:20px}
+.C .h1{font:600 26px/1.1 var(--disp);letter-spacing:-.01em;margin-top:4px}
+.C .say{font:400 19px/1.25 var(--disp);letter-spacing:-.01em;text-wrap:balance}
+.C .say em{font-style:normal;color:var(--ac)}
+.C .r{border-bottom:1px solid var(--bd);min-height:36px}
+.C .hd{padding-bottom:4px;border-bottom:1px solid var(--tx)}
+.C .tm{font-variant-numeric:tabular-nums;color:var(--mu);font-size:11px;flex:none}
+.C .nt{font:600 14px/1.2 var(--disp)}
+.C .nrow{padding:7px 0;border-bottom:1px solid var(--bd);display:grid;gap:2px}
+.C .sn{gap:14px;font-size:12px;color:var(--mu);font-weight:500}.C .sn .on{color:var(--tx);font-weight:700;box-shadow:0 2px 0 var(--ac)}
+.C .cap{flex:none;margin:0 16px 8px;display:flex;gap:8px;align-items:center;border-radius:99px;padding:9px 14px;background:var(--sf);border:1px solid var(--bd);color:var(--mu);font-size:11px}
+.C .cap .i{color:var(--ac);width:16px;height:16px}
+.C .type{font:400 18px/1.3 var(--disp)}
+.C .type u,.C .eg u{text-decoration-color:var(--ac);text-decoration-thickness:2px;text-underline-offset:3px}
+.C .wg .r{min-height:31px}
+.C .em{background:none;width:20px}
+
+/* ---------- D · Rings: deep navy, score-first, one colour per part of life ---------- */
+.D{--bg:#0f1422;--sf:#182033;--sf2:#232d47;--bd:#2c3857;--tx:#f1f3f9;--mu:#9ba7c2;--ac:#f1f3f9;--acfg:#0f1422;--bad:#ff8f8f;--ok:#5fd38d;--okfg:#062611;
+  --life:#5fd38d;--logic:#a999ff;--money:#ffc14d;
+  --scrim:#070a12;--kbg:#182033;--key:#34405f;--wp:linear-gradient(160deg,#141c33,#2a2550 55%,#4a3a6a);
+  --body:Inter,system-ui,sans-serif;--disp:Sora,Inter,sans-serif}
+.D .h1{font:700 22px/1.1 var(--disp);letter-spacing:-.02em}
+.D .num{font:700 40px/1 var(--disp);letter-spacing:-.03em}
+.D .num small{font-size:16px;color:var(--mu)}
+.D .card{background:var(--sf);border-radius:18px;padding:12px;display:grid;gap:6px}
+.D .card.r{display:flex}
+.D .lg{display:grid;gap:5px;font-size:11px}
+.D .lg span{display:flex;gap:6px;align-items:center}
+.D .lg i,.D .tag{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.D .wk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:9px;color:var(--mu);font-weight:600}
+.D .wk i{display:block;height:22px;border-radius:8px;background:var(--sf2);margin-bottom:3px}
+.D .wk .f i{background:var(--life)}.D .wk .h i{background:linear-gradient(to top,var(--life) 60%,var(--sf2) 60%)}
+.D .tb{border:0;gap:8px;padding:6px 12px 20px}
+.D .caps{flex:1;display:flex;justify-content:space-between;background:var(--sf2);border-radius:99px;padding:5px}
+.D .caps .tab{flex:none;flex-direction:row;gap:4px;padding:7px 5px;border-radius:99px;font-size:10px}
+.D .caps .tab>span{display:none}
+.D .caps .tab.on{background:var(--tx);color:var(--bg);padding-inline:9px}.D .caps .tab.on>span{display:inline}
+.D .plus{flex:0 0 44px;height:44px;border-radius:50%;background:var(--money);color:#2a1c00;display:grid;place-items:center}
+.D .sn .on{background:var(--tx);color:var(--bg)}
+.D .bar>i{background:var(--money)}.D .dots i.f{background:var(--money)}
+.D .rings{flex:none}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></symbol>
+<symbol id="leaf" viewBox="0 0 24 24"><path d="M5 19c0-9 5-14 14-14 0 9-5 14-14 14zM5 19l8-8"/></symbol>
+<symbol id="code" viewBox="0 0 24 24"><path d="m9 8-4 4 4 4M15 8l4 4-4 4"/></symbol>
+<symbol id="wallet" viewBox="0 0 24 24"><path d="M4 7h14a2 2 0 0 1 2 2v9H4zM4 7V6a1 1 0 0 1 1-1h11M16 13h1.5"/></symbol>
+<symbol id="chart" viewBox="0 0 24 24"><path d="m4 18 5-6 4 3 7-9M15 6h5v5"/></symbol>
+<symbol id="spark" viewBox="0 0 24 24"><path d="m12 4 1.8 5.2L19 11l-5.2 1.8L12 18l-1.8-5.2L5 11l5.2-1.8z"/></symbol>
+<symbol id="bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 1 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/></symbol>
+<symbol id="note" viewBox="0 0 24 24"><path d="M6 4h9l4 4v12H6zM14 4v5h5M9 13h6M9 16.5h4"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 2"/></symbol>
+<symbol id="pin" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3zM12 13v7"/></symbol>
+<symbol id="cal" viewBox="0 0 24 24"><path d="M5 6h14v14H5zM5 10h14M9 4v4M15 4v4"/></symbol>
+<symbol id="tick" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></symbol>
+<symbol id="face" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9 14.5a4 4 0 0 0 6 0M9.5 10h.01M14.5 10h.01"/></symbol>
+<symbol id="up" viewBox="0 0 24 24"><path d="M12 19V6M6.5 11.5 12 6l5.5 5.5"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Forge · design review · round 2 · 15 Nov 2026</div>
+  <h1>Four directions for the whole app</h1>
+  <p class="lede">Round 2 covers all of Forge, not only notes and reminders. Every direction keeps the six tabs, adds one plus button that can add anything, and answers the daily question on Today: did I log my expenses, solve my problems and do my habits? All content is sample data. The check circles work.</p>
+</header>
+
+<section class="facts" aria-label="What the research found">
+  <div class="fact"><b>Kept from the current app</b><span>Six tabs in the same order: Today, Life, Logic, Money, Invest, Agents. Life and Money keep their sections. Pets, streak, ₹ wallet and level stay.</span></div>
+  <div class="fact"><b>New: the dailies</b><span>The app has no single view of "what did I do today". Each design adds five dailies: habits, expenses logged, mood, code solved, daily puzzle.</span></div>
+  <div class="fact"><b>New: one plus button</b><span>Today the only add button is on Money. Each design shows a different way for one plus to add an expense, note, reminder, task, habit check-in or solve.</span></div>
+  <div class="fact"><b>Widgets</b><span>Each design has small, medium, large and lock-screen widgets. They need the iPhone app shell; the web app cannot have them.</span></div>
+</section>
+
+<div class="switch" role="tablist" aria-label="Design direction">
+  <button role="tab" id="t-ember" aria-controls="p-ember" aria-selected="true">A · Ember<small>the day as a timeline</small></button>
+  <button role="tab" id="t-pinboard" aria-controls="p-pinboard" aria-selected="false">B · Pinboard<small>the day as tiles</small></button>
+  <button role="tab" id="t-quiet" aria-controls="p-quiet" aria-selected="false">C · Quiet<small>the day as a page</small></button>
+  <button role="tab" id="t-rings" aria-controls="p-rings" aria-selected="false">D · Rings<small>the day as a score</small></button>
+</div>
+
+<!-- ======================= A · EMBER ======================= -->
+<section class="dir A" id="p-ember" role="tabpanel" aria-labelledby="t-ember">
+  <div class="brief">
+    <div><h2>A · Ember</h2><p><strong>Your day on one time rail.</strong> Reminders, expenses and notes all land on the same timeline, with five daily checks across the top. It keeps Forge's dark look and uses the flame colour only for what needs you now.</p></div>
+    <div><h3>Plus button</h3><p><strong>Floats above the tab bar.</strong> Opens one text field: type "450 coffee with raj" and it becomes chips you can check. Type chips switch between expense, note, reminder and the rest.</p><h3>Trade-off</h3><p>The densest design. Typing an amount is slower than a keypad.</p></div>
+    <div><h3>Principles at work</h3><ul>
+      <li><strong>Isolation effect:</strong> only "next up" and overdue get the flame colour.</li>
+      <li><strong>Recognition over recall:</strong> what you type becomes chips before saving.</li>
+      <li><strong>Fitts's law:</strong> the plus sits in right-thumb reach on every tab.</li>
+      <li><strong>Goal gradient:</strong> the 3 of 5 ring fills through the day.</li></ul></div>
+  </div>
+  <h3>Screens</h3>
+  <div class="scroll"><div class="phones">
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd">
+        <div class="row sp"><div><div class="mono fl">SUN 15 NOV · 12-DAY STREAK</div><div class="h1">Today</div></div>
+          <svg class="ring" viewBox="0 0 34 34" role="img" aria-label="3 of 5 dailies done"><circle cx="17" cy="17" r="13" fill="none" stroke="#262b37" stroke-width="4"/><circle cx="17" cy="17" r="13" fill="none" stroke="#ff8a3d" stroke-width="4" stroke-linecap="round" stroke-dasharray="49 81.7" transform="rotate(-90 17 17)"/><text x="17" y="20.5" text-anchor="middle" font-size="9" font-weight="700" fill="#eaecf1" font-family="Inter,sans-serif">3/5</text></svg></div>
+        <div class="dl"><span class="ok"><b>Habits</b>3/3</span><span class="ok"><b>Spend</b>₹640</span><span class="ok"><b>Mood</b>Good</span><span><b>Code</b>1/3</span><span><b>Puzzle</b>Open</span></div>
+        <div class="box"><div class="mono fl">NEXT UP · IN 42 MIN</div><div class="big">Gym, leg day</div><div class="row"><span class="btn">Done</span><span class="btn gh">Snooze 1h</span><span class="m" style="margin-left:auto">5:00 PM</span></div></div>
+        <div class="tl">
+          <div class="r done"><span class="tm mono">9:00 AM</span><span class="rail"></span><span class="g t">Pay credit card bill</span><button class="ck" aria-label="Mark done"></button></div>
+          <div class="r nt"><span class="tm mono">11:20 AM</span><span class="rail"></span><span class="g"><span class="t el">Binary lifting: LCA in O(log n)</span><span class="m">Note · #dsa</span></span></div>
+          <div class="r nt"><span class="tm mono">1:10 PM</span><span class="rail"></span><span class="g"><span class="t">☕ Coffee</span><br><span class="m">Expense · with Raj</span></span><span class="amt">₹180</span></div>
+          <div class="r now"><span class="tm mono">4:18 PM</span><span class="rail"></span><span class="g m">Now</span></div>
+          <div class="r"><span class="tm mono">5:00 PM</span><span class="rail"></span><span class="g t">Gym, leg day</span><button class="ck" aria-label="Mark done"></button></div>
+          <div class="r"><span class="tm mono">6:00 PM</span><span class="rail"></span><span class="g t">Call mom</span><button class="ck" aria-label="Mark done"></button></div>
+          <div class="r"><span class="tm mono">8:05 PM</span><span class="rail"></span><span class="g t el">Codeforces Round (Div. 2)</span></div>
+        </div>
+      </div><div class="tb" data-on="0"></div></div></div>
+      <figcaption><b>Today</b>Five dailies on top: green means done. Below, everything you did and will do, in time order.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="dim"><div class="mono" style="color:var(--mu)">SUN 15 NOV</div><div class="h1" style="color:var(--mu)">Today</div></div>
+      <div class="sheet">
+        <div class="sn"><span class="chip on">Expense</span><span class="chip">Note</span><span class="chip">Reminder</span><span class="chip">Task</span><span class="chip">Habit</span><span class="chip">Solve</span></div>
+        <div class="type">450 coffee with raj<span class="caret"></span></div>
+        <div class="row wr"><span class="chip">₹450</span><span class="chip">☕ Coffee</span><span class="chip"><svg class="i"><use href="#cal"/></svg>Today</span><span class="chip">With Raj</span></div>
+        <div class="row sp"><span class="m">Tap a chip to change it</span><span class="btn">Add expense</span></div>
+      </div><div class="kb"></div></div></div>
+      <figcaption><b>Plus: type it</b>One field for every type. The app shows what it understood as chips before you save.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd">
+        <div class="row sp"><div class="h1">Life</div><span class="mono" style="color:var(--mu)">₹4,820 · LV 7</span></div>
+        <div class="sn"><span class="chip">Tasks 4</span><span class="chip on">Reminders 3</span><span class="chip">Notes 14</span><span class="chip">Habits</span><span class="chip">Growth</span></div>
+        <div><div class="sec bad"><span>Overdue</span><span>1</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g"><span class="t">Renew car insurance</span><br><span class="m mono bad">Fri 13 Nov</span></span><span class="chip">Today 7 PM</span></div></div>
+        <div><div class="sec"><span>Today</span><span>3 left</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g"><span class="t">Gym, leg day</span><br><span class="m mono">5:00 PM · in 42 min</span></span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g"><span class="t">Call mom</span><br><span class="m mono">6:00 PM</span></span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g"><span class="t">Codeforces Round (Div. 2)</span><br><span class="m mono">8:05 PM</span></span></div>
+          <div class="r done"><button class="ck" aria-label="Mark done"></button><span class="g"><span class="t">Pay credit card bill</span><br><span class="m mono">9:00 AM</span></span></div></div>
+        <div><div class="sec" style="margin-bottom:6px"><span>Pinned notes</span><span>See all</span></div>
+          <div class="nrow"><div class="row"><i class="dot" style="background:#6ea8fe"></i><span class="t g el">Binary lifting: LCA in O(log n)</span></div><div class="m el">up[v][j] = up[up[v][j-1]][j-1]. Build in n log n.</div></div>
+          <div class="nrow"><div class="row"><i class="dot" style="background:#c084fc"></i><span class="t g el">Books for this quarter</span></div><div class="m el">Designing Data-Intensive Applications, The Psych…</div></div></div>
+      </div><div class="tb" data-on="1"></div></div></div>
+      <figcaption><b>Life</b>Same five sections as today. Overdue offers a one-tap new time.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd">
+        <div class="row sp"><div class="h1">Money</div><span class="mono" style="color:var(--mu)">NOVEMBER 2026</span></div>
+        <div class="sn"><span class="chip on">Spend</span><span class="chip">Budgets</span><span class="chip">Goals</span><span class="chip">Loans</span></div>
+        <div class="box"><div class="row sp"><span class="big" style="font-size:22px">₹18,450</span><span class="m">of ₹30,000</span></div><div class="bar"><i style="width:62%"></i></div><div class="m">₹11,550 left · 62% of budget used</div></div>
+        <div><div class="sec" style="margin-bottom:5px"><span>Logged 9 days in a row</span><span>13 of 15</span></div><div class="dots"><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div></div>
+        <div><div class="sec"><span>Today</span><span>₹640 spent</span></div>
+          <div class="r"><span class="em">☕</span><span class="g"><span class="t">Coffee</span><br><span class="m mono">1:10 PM · with Raj</span></span><span class="amt">₹180</span></div>
+          <div class="r"><span class="em">🛒</span><span class="g"><span class="t">Groceries</span><br><span class="m mono">11:40 AM</span></span><span class="amt">₹320</span></div>
+          <div class="r"><span class="em">🚗</span><span class="g"><span class="t">Transport</span><br><span class="m mono">9:20 AM · auto</span></span><span class="amt">₹140</span></div></div>
+        <div><div class="sec"><span>Yesterday</span><span>₹1,250 spent</span></div>
+          <div class="r"><span class="em">🍔</span><span class="g"><span class="t">Food</span><br><span class="m mono">8:45 PM · dinner</span></span><span class="amt">₹890</span></div>
+          <div class="r"><span class="em">🔄</span><span class="g"><span class="t">Subs</span><br><span class="m mono">10:00 AM</span></span><span class="amt">₹360</span></div></div>
+      </div><div class="tb" data-on="3"></div></div></div>
+      <figcaption><b>Money</b>The row of squares shows which days this month you logged. Gaps are the days you missed.</figcaption></figure>
+  </div></div>
+  <h3>Widgets</h3>
+  <div class="wall">
+    <figure><div class="wg ws"><div class="row sp"><span class="mono fl">DAILIES</span><span class="mono">3/5</span></div><div class="dots" style="gap:4px"><i class="f" style="background:var(--ok)"></i><i class="f" style="background:var(--ok)"></i><i class="f" style="background:var(--ok)"></i><i></i><i></i></div><div style="margin-top:auto" class="m">Next · 5:00 PM</div><div style="font:700 15px/1.15 var(--disp)">Gym, leg day</div></div><figcaption>Small · dailies and next up</figcaption></figure>
+    <figure><div class="wg wm" style="flex-direction:row;gap:12px">
+      <div style="display:grid;align-content:space-between;width:84px;flex:none"><div><div class="mono fl">SUN 15</div><div style="font:700 24px/1 var(--disp)">3<small style="font-size:11px;color:var(--mu)">/5 done</small></div></div><div class="row" style="gap:5px"><span class="btn" style="padding:6px 0;flex:1">+ ₹</span><span class="btn gh" style="padding:6px 0;flex:1">+ Note</span></div></div>
+      <div class="g"><div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el">Gym, leg day</span><span class="m mono">5:00</span></div><div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el">Call mom</span><span class="m mono">6:00</span></div><div class="r"><span class="g m el">Still open: code 1/3, puzzle</span></div></div></div><figcaption>Medium · tick reminders, add an expense or note</figcaption></figure>
+    <figure><div class="wg wl"><div class="row sp"><div><div class="mono fl">SUN 15 NOV · 12-DAY STREAK</div><div style="font:700 17px/1.1 var(--disp)">Today</div></div><span class="btn" style="padding:6px 10px">+</span></div>
+      <div class="dl"><span class="ok"><b>Habits</b>3/3</span><span class="ok"><b>Spend</b>₹640</span><span class="ok"><b>Mood</b>Good</span><span><b>Code</b>1/3</span><span><b>Puzzle</b>Open</span></div>
+      <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el bad">Renew car insurance</span><span class="m mono bad">Fri</span></div>
+      <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el">Gym, leg day</span><span class="m mono">5:00 PM</span></div>
+      <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el">Call mom</span><span class="m mono">6:00 PM</span></div>
+      <div style="margin-top:auto;border-top:1px solid var(--bd);padding-top:8px"><div class="row sp"><span class="m">November spend</span><span class="amt">₹18,450 <span class="m">/ ₹30,000</span></span></div><div class="bar" style="margin-top:6px"><i style="width:62%"></i></div></div></div><figcaption>Large · dailies, reminders and month spend</figcaption></figure>
+    <figure><div class="lock"><div class="lr"><span>Next · in 42 min</span><b>Gym, leg day</b></div><div class="lc"><span>3/5<small>DAILIES</small></span></div><div class="li">₹640 today · code 1/3</div></div><figcaption>Lock screen · rectangle, circle, inline</figcaption></figure>
+  </div>
+</section>
+
+<!-- ======================= B · PINBOARD ======================= -->
+<section class="dir B" id="p-pinboard" role="tabpanel" aria-labelledby="t-pinboard" hidden>
+  <div class="brief">
+    <div><h2>B · Pinboard</h2><p><strong>Your day as coloured tiles.</strong> It grows the current Today tiles into a light, friendly board: one tile per part of your day, with the dailies as five circles on top. Each colour belongs to one kind of thing.</p></div>
+    <div><h3>Plus button</h3><p><strong>Raised in the middle of the tab bar.</strong> Opens a grid of eight big tiles: expense, income, note, reminder, task, habit, solve, mood. "Repeat last" sits on top for one-tap logging.</p><h3>Trade-off</h3><p>Seven items in the bar is tight. The grid costs one extra tap every time.</p></div>
+    <div><h3>Principles at work</h3><ul>
+      <li><strong>Similarity:</strong> one colour per kind: yellow time, lilac money, blue logic, green notes.</li>
+      <li><strong>Hick's law:</strong> eight clear choices, grouped in two rows, beat a long menu.</li>
+      <li><strong>Spatial memory:</strong> tiles keep their place, so your thumb learns them.</li>
+      <li><strong>Familiar patterns:</strong> centre plus, as in apps you already use.</li></ul></div>
+  </div>
+  <h3>Screens</h3>
+  <div class="scroll"><div class="phones">
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd" style="gap:8px">
+        <div class="row sp"><div><div class="h1">Sunday</div><div class="m" style="margin-top:3px">15 November</div></div><div class="row" style="gap:5px"><span class="chip" style="background:var(--sf)">🔥 12</span><span class="chip" style="background:var(--sf)">Lv 7</span></div></div>
+        <div class="card"><div class="sec"><span>Dailies</span><span>3 of 5 done</span></div><div class="dl"><span class="ok"><i>✓</i>Habits</span><span class="ok"><i>✓</i>Spend</span><span class="ok"><i>✓</i>Mood</span><span><i>1/3</i>Code</span><span><i>?</i>Puzzle</span></div></div>
+        <div class="cols"><div class="card" style="background:var(--butter)"><div class="sec"><span>Next</span></div><div class="tnum">5:00<small>PM</small></div><div class="r" style="min-height:22px"><span class="g t">Gym, leg day</span><button class="ck" aria-label="Mark done"></button></div></div>
+          <div class="card" style="background:var(--lilac)"><div class="sec"><span>Spent today</span></div><div class="tnum">₹640</div><div class="m">3 entries · 9-day run</div></div></div>
+        <div class="cols"><div class="card" style="background:var(--sky)"><div class="sec"><span>Code</span></div><div class="tnum">1<small>/ 3</small></div><div class="m">Solve 2 more today</div></div>
+          <div class="card" style="background:var(--peach)"><div class="sec"><span>Daily puzzle</span></div><div class="nt">Not solved yet</div><div><span class="btn" style="padding:5px 12px">Open</span></div></div></div>
+        <div class="card r" style="padding:8px 11px"><span class="em" style="background:none;font-size:20px">🐶</span><span class="g"><span class="t">Bruno is happy</span><br><span class="m">Exercise · 12-day streak · ₹200 today</span></span></div>
+        <div class="card" style="background:var(--mint)"><div class="row sp"><span class="nt">Binary lifting</span><svg class="i" style="width:13px"><use href="#pin"/></svg></div><div class="m el">up[v][j] = up[up[v][j-1]][j-1]. Build in n log n.</div></div>
+      </div><div class="tb" data-on="0"></div></div></div>
+      <figcaption><b>Today</b>Five circles answer "did I do it?". Each tile is one part of the day and opens its tab.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="dim" style="flex:0 0 150px"><div class="h1" style="color:var(--mu)">Sunday</div></div>
+      <div class="sheet" style="flex:1;align-content:start;gap:12px">
+        <div class="nt" style="font-size:18px">Add to Forge</div>
+        <div class="card r" style="background:var(--bg);padding:9px 11px"><span class="em" style="background:var(--sf)">☕</span><span class="g"><span class="t">Repeat last: Coffee ₹180</span><br><span class="m">Logs it for today in one tap</span></span><span class="btn" style="padding:6px 12px">Log</span></div>
+        <div><div class="sec" style="margin-bottom:6px"><span>Money</span></div><div class="tiles"><span style="background:var(--lilac);grid-column:span 2"><svg class="i"><use href="#wallet"/></svg>Expense</span><span style="background:var(--lilac);grid-column:span 2"><svg class="i"><use href="#up"/></svg>Income</span></div></div>
+        <div><div class="sec" style="margin-bottom:6px"><span>Life</span></div><div class="tiles"><span style="background:var(--mint)"><svg class="i"><use href="#note"/></svg>Note</span><span style="background:var(--butter)"><svg class="i"><use href="#bell"/></svg>Reminder</span><span style="background:var(--butter)"><svg class="i"><use href="#tick"/></svg>Task</span><span style="background:var(--peach)"><svg class="i"><use href="#leaf"/></svg>Habit</span></div></div>
+        <div><div class="sec" style="margin-bottom:6px"><span>Logic and mood</span></div><div class="tiles"><span style="background:var(--sky);grid-column:span 2"><svg class="i"><use href="#code"/></svg>Log a solve</span><span style="background:var(--peach);grid-column:span 2"><svg class="i"><use href="#face"/></svg>Mood</span></div></div>
+        <div class="m" style="text-align:center">Hold the plus to jump straight to Expense</div>
+      </div></div></div>
+      <figcaption><b>Plus: pick a tile</b>Everything you can add, grouped by tab. The top row repeats your last expense.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd" style="gap:8px">
+        <div class="h1">Life</div>
+        <div class="sn"><span class="chip">Tasks 4</span><span class="chip on">Reminders 3</span><span class="chip">Notes 14</span><span class="chip">Habits</span><span class="chip">Growth</span></div>
+        <div class="card r" style="background:var(--peach);padding:8px 11px"><span class="g"><span class="t">Renew car insurance</span><br><span class="m" style="color:var(--bad);font-weight:700">Overdue since Friday</span></span><span class="btn" style="padding:6px 10px">Today 7 PM</span></div>
+        <div class="card r" style="padding:9px 12px"><div class="tnum" style="width:58px;flex:none">5:00<small>PM</small></div><span class="g"><span class="t">Gym, leg day</span><br><span class="m">in 42 min</span></span><button class="ck" aria-label="Mark done"></button></div>
+        <div class="card r" style="padding:9px 12px"><div class="tnum" style="width:58px;flex:none">6:00<small>PM</small></div><span class="g"><span class="t">Call mom</span><br><span class="m">tonight</span></span><button class="ck" aria-label="Mark done"></button></div>
+        <div class="card r" style="padding:9px 12px"><div class="tnum" style="width:58px;flex:none">8:05<small>PM</small></div><span class="g"><span class="t el">Codeforces Round (Div. 2)</span><span class="m">tonight</span></span><button class="ck" aria-label="Mark done"></button></div>
+        <div class="sec" style="margin-top:4px"><span>Pinned notes</span><span>See all</span></div>
+        <div class="cols"><div class="card" style="background:var(--mint)"><div class="nt">Binary lifting</div><div class="m c2">Build in n log n, then lift the deeper node first.</div><div class="m"><b>#dsa</b> · 2 inside</div></div>
+          <div class="card" style="background:var(--mint)"><div class="nt">Books for this quarter</div><div class="m c2">DDIA, The Psychology of Money, Thinking in Bets</div><div class="m"><b>#reading</b></div></div></div>
+      </div><div class="tb" data-on="1"></div></div></div>
+      <figcaption><b>Life</b>Reminders are white cards with large times. Notes are cards in your chosen colour.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd" style="gap:8px">
+        <div class="row sp"><div class="h1">Money</div><span class="m">November 2026</span></div>
+        <div class="sn"><span class="chip on">Spend</span><span class="chip">Budgets</span><span class="chip">Goals</span><span class="chip">Loans</span></div>
+        <div class="card" style="background:var(--lilac)"><div class="row sp"><span class="tnum" style="font-size:26px">₹18,450</span><span class="m">of ₹30,000</span></div><div class="bar" style="background:rgba(255,255,255,.6)"><i style="width:62%"></i></div><div class="m">₹11,550 left this month</div></div>
+        <div class="card"><div class="sec"><span>Logged 9 days in a row</span><span>13 of 15</span></div><div class="dots"><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div></div>
+        <div class="card" style="gap:0"><div class="sec"><span>Today</span><span>₹640 spent</span></div>
+          <div class="r"><span class="em">☕</span><span class="g"><span class="t">Coffee</span><br><span class="m">1:10 PM · with Raj</span></span><span class="amt">₹180</span></div>
+          <div class="r"><span class="em">🛒</span><span class="g"><span class="t">Groceries</span><br><span class="m">11:40 AM</span></span><span class="amt">₹320</span></div>
+          <div class="r"><span class="em">🚗</span><span class="g"><span class="t">Transport</span><br><span class="m">9:20 AM · auto</span></span><span class="amt">₹140</span></div></div>
+        <div class="sec"><span>Top categories</span></div>
+        <div class="cols"><div class="card"><span style="font-size:16px">🍔</span><div class="t">₹5,200</div><div class="m">Food</div></div><div class="card"><span style="font-size:16px">🛒</span><div class="t">₹4,100</div><div class="m">Groceries</div></div><div class="card"><span style="font-size:16px">🚗</span><div class="t">₹2,650</div><div class="m">Transport</div></div></div>
+      </div><div class="tb" data-on="3"></div></div></div>
+      <figcaption><b>Money</b>Month total on top, your logging run next, then today's entries.</figcaption></figure>
+  </div></div>
+  <h3>Widgets</h3>
+  <div class="wall">
+    <figure><div class="wg ws" style="background:var(--butter)"><div class="sec"><span>Next</span><span>3/5</span></div><div class="tnum" style="font-size:28px;margin-top:auto">5:00<small>PM</small></div><div class="t">Gym, leg day</div></div><figcaption>Small · next reminder</figcaption></figure>
+    <figure><div class="wg wm"><div class="sec"><span>Dailies · Sun 15</span><span>3 of 5 done</span></div><div class="dl"><span class="ok"><i>✓</i>Habits</span><span class="ok"><i>✓</i>Spend</span><span class="ok"><i>✓</i>Mood</span><span><i>1/3</i>Code</span><span><i>?</i>Puzzle</span></div><div class="row" style="margin-top:auto;gap:6px"><span class="btn" style="flex:1;padding:6px 0">+ Expense</span><span class="btn gh" style="flex:1;padding:6px 0">+ Note</span></div></div><figcaption>Medium · the five dailies and two add buttons</figcaption></figure>
+    <figure><div class="wg wl" style="padding:10px;gap:8px;background:var(--bg)">
+      <div class="card"><div class="sec"><span>Dailies</span><span>3 of 5</span></div><div class="dl"><span class="ok"><i>✓</i>Habits</span><span class="ok"><i>✓</i>Spend</span><span class="ok"><i>✓</i>Mood</span><span><i>1/3</i>Code</span><span><i>?</i>Puzzle</span></div></div>
+      <div class="cols" style="flex:1"><div class="card" style="background:var(--butter)"><div class="sec"><span>Next</span></div><div class="tnum">5:00<small>PM</small></div><div class="t">Gym, leg day</div><div class="m">then Call mom, 6:00</div></div><div class="card" style="background:var(--lilac)"><div class="sec"><span>Spent today</span></div><div class="tnum">₹640</div><div class="m">₹18,450 this month</div><div class="bar" style="background:rgba(255,255,255,.6)"><i style="width:62%"></i></div></div></div>
+      <div class="tiles"><span style="background:var(--lilac);padding:8px 2px"><svg class="i" style="width:15px"><use href="#wallet"/></svg></span><span style="background:var(--mint);padding:8px 2px"><svg class="i" style="width:15px"><use href="#note"/></svg></span><span style="background:var(--butter);padding:8px 2px"><svg class="i" style="width:15px"><use href="#bell"/></svg></span><span style="background:var(--sky);padding:8px 2px"><svg class="i" style="width:15px"><use href="#code"/></svg></span></div></div><figcaption>Large · a small Today board with four add buttons</figcaption></figure>
+    <figure><div class="lock"><div class="lr"><span>5:00 PM</span><b>Gym, leg day</b></div><div class="lc"><svg class="i" style="width:24px;height:24px"><use href="#plus"/></svg></div><div class="li">3 of 5 dailies · ₹640</div></div><figcaption>Lock screen · next, quick add, count</figcaption></figure>
+  </div>
+</section>
+
+<!-- ======================= C · QUIET ======================= -->
+<section class="dir C" id="p-quiet" role="tabpanel" aria-labelledby="t-quiet" hidden>
+  <div class="brief">
+    <div><h2>C · Quiet</h2><p><strong>Your day reads like a page.</strong> One sentence tells you where the day stands. Below it, plain lists with thin rules and no cards. Numbers and titles use a reading typeface. The calmest of the four.</p></div>
+    <div><h3>Plus button</h3><p><strong>A capture line that is always there,</strong> above the tab bar on every tab. Type anything. "450 coffee" becomes an expense, "call mom 6pm" a reminder, plain text a note. No type to pick.</p><h3>Trade-off</h3><p>You must trust the app to sort correctly. Less colour, so missed dailies shout less.</p></div>
+    <div><h3>Principles at work</h3><ul>
+      <li><strong>Reduction:</strong> type size and weight do the work of boxes and colour.</li>
+      <li><strong>Tesler's law:</strong> the app takes on the sorting, so you only type.</li>
+      <li><strong>Visibility:</strong> capture is always on screen, never behind a button.</li>
+      <li><strong>Serial position:</strong> the summary comes first, where it is remembered.</li></ul></div>
+  </div>
+  <h3>Screens</h3>
+  <div class="scroll"><div class="phones">
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd">
+        <div class="sec" style="margin-top:4px"><span>Sunday 15 November</span><span>Day 12</span></div>
+        <div class="say">Three of five dailies done. <em>Two problems and the puzzle</em> are left.</div>
+        <div><div class="sec hd"><span>Dailies</span></div>
+          <div class="r done"><button class="ck" aria-label="Mark done"></button><span class="g t">Habits</span><span class="tm">3 of 3</span></div>
+          <div class="r done"><button class="ck" aria-label="Mark done"></button><span class="g t">Expenses logged</span><span class="tm">₹640</span></div>
+          <div class="r done"><button class="ck" aria-label="Mark done"></button><span class="g t">Mood</span><span class="tm">Good</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Code</span><span class="tm">1 of 3</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Daily puzzle</span><span class="tm">Open</span></div></div>
+        <div><div class="sec hd"><span>Reminders</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Gym, leg day</span><span class="tm">5:00 PM</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Call mom</span><span class="tm">6:00 PM</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el">Codeforces Round (Div. 2)</span><span class="tm">8:05 PM</span></div></div>
+      </div><div class="tb" data-on="0"></div></div></div>
+      <figcaption><b>Today</b>A sentence instead of a dashboard, then the five dailies as a checklist.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="dim" style="padding-inline:20px"><div class="sec" style="margin-top:4px"><span>Sunday 15 November</span></div><div class="say" style="color:var(--mu);margin-top:10px">Three of five dailies done.</div></div>
+      <div class="sheet" style="padding-inline:20px">
+        <div class="type"><u>450</u> <u>coffee</u> with raj<span class="caret"></span></div>
+        <div class="row sp"><span class="g"><span class="t" style="color:var(--ac)">Expense · ₹450 · ☕ Coffee · today</span><br><span class="m"><u>Save as a note instead</u></span></span><span class="btn" style="border-radius:50%;padding:8px;line-height:0"><svg class="i" style="width:16px;height:16px"><use href="#up"/></svg></span></div>
+        <div class="m eg" style="border-top:1px solid var(--bd);padding-top:8px;display:grid;gap:3px"><span><u>call mom 6pm</u> becomes a reminder</span><span><u>solved cf 1328E</u> counts toward code</span><span>anything else becomes a note</span></div>
+      </div><div class="kb"></div></div></div>
+      <figcaption><b>Plus: just type</b>A number makes an expense, a time makes a reminder. One tap changes its mind.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd">
+        <div class="h1">Life</div>
+        <div class="sn"><span>Tasks</span><span class="on">Reminders</span><span>Notes</span><span>Habits</span><span>Growth</span></div>
+        <div><div class="sec bad hd" style="border-color:var(--bad)"><span>Overdue</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Renew car insurance</span><span class="tm bad">Fri</span></div></div>
+        <div><div class="sec hd"><span>Today, Sun 15</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Gym, leg day</span><span class="tm">5:00 PM</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Call mom</span><span class="tm">6:00 PM</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el">Codeforces Round (Div. 2)</span><span class="tm">8:05 PM</span></div>
+          <div class="r done"><button class="ck" aria-label="Mark done"></button><span class="g t">Pay credit card bill</span><span class="tm">9:00 AM</span></div></div>
+        <div><div class="sec hd"><span>Pinned notes</span></div>
+          <div class="nrow"><div class="nt">Binary lifting: LCA in O(log n)</div><div class="m el">up[v][j] = up[up[v][j-1]][j-1]. Build in n log n, then…</div></div>
+          <div class="nrow"><div class="nt">Books for this quarter</div><div class="m el">Designing Data-Intensive Applications, The Psychology…</div></div></div>
+      </div><div class="tb" data-on="1"></div></div></div>
+      <figcaption><b>Life</b>Reads like a contents page. Swipe a row for Later or Done.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd">
+        <div class="h1">Money</div>
+        <div class="sn"><span class="on">Spend</span><span>Budgets</span><span>Goals</span><span>Loans</span></div>
+        <div class="say" style="font-size:17px">You have spent <em>₹18,450 of ₹30,000</em> this month, ₹640 of it today.</div>
+        <div><div class="sec" style="margin-bottom:5px"><span>Logged 9 days in a row</span><span>13 of 15</span></div><div class="dots"><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div></div>
+        <div><div class="sec hd"><span>Today</span><span>₹640</span></div>
+          <div class="r"><span class="em">☕</span><span class="g t">Coffee <span class="m">with Raj</span></span><span class="amt">₹180</span></div>
+          <div class="r"><span class="em">🛒</span><span class="g t">Groceries</span><span class="amt">₹320</span></div>
+          <div class="r"><span class="em">🚗</span><span class="g t">Transport <span class="m">auto</span></span><span class="amt">₹140</span></div></div>
+        <div><div class="sec hd"><span>This month by category</span></div>
+          <div class="r"><span class="em">🍔</span><span class="g t">Food</span><span class="tm">28%</span><span class="amt">₹5,200</span></div>
+          <div class="r"><span class="em">🛒</span><span class="g t">Groceries</span><span class="tm">22%</span><span class="amt">₹4,100</span></div></div>
+      </div><div class="tb" data-on="3"></div></div></div>
+      <figcaption><b>Money</b>The month in one sentence. The logging run shows the two days you missed.</figcaption></figure>
+  </div></div>
+  <h3>Widgets</h3>
+  <div class="wall">
+    <figure><div class="wg ws"><div class="sec"><span>Sun 15</span><span>3/5</span></div><div style="font:400 16px/1.2 var(--disp);margin-top:auto">Two left: <span style="color:var(--ac)">code and the puzzle.</span></div></div><figcaption>Small · the summary sentence</figcaption></figure>
+    <figure><div class="wg wm" style="gap:0"><div class="sec hd"><span>Dailies, Sun 15</span><span>3 of 5</span></div>
+      <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Code</span><span class="tm">1 of 3</span></div><div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Daily puzzle</span><span class="tm">Open</span></div><div class="r" style="border:0"><button class="ck" aria-label="Mark done"></button><span class="g t el">Gym, leg day</span><span class="tm">5:00 PM</span></div></div><figcaption>Medium · what is still open</figcaption></figure>
+    <figure><div class="wg wl" style="gap:8px"><div class="sec"><span>Sunday 15 November</span><span>Day 12</span></div><div style="font:400 18px/1.2 var(--disp)">Three of five dailies done. <span style="color:var(--ac)">Two problems and the puzzle</span> are left.</div>
+      <div><div class="r" style="border-top:1px solid var(--tx)"><button class="ck" aria-label="Mark done"></button><span class="g t el">Gym, leg day</span><span class="tm">5:00 PM</span></div><div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el">Call mom</span><span class="tm">6:00 PM</span></div></div>
+      <div style="margin-top:auto" class="row sp"><span class="m">Spent today ₹640 · month ₹18,450</span><span class="btn" style="border-radius:99px;padding:5px 12px">+ Add</span></div></div><figcaption>Large · sentence, reminders and spend</figcaption></figure>
+    <figure><div class="lock"><div class="lr"><b>Gym, leg day</b><span>5:00 PM · then Call mom</span></div><div class="lc"><span>3/5<small>DAILIES</small></span></div><div class="li">Two left: code, puzzle</div></div><figcaption>Lock screen · rectangle, circle, inline</figcaption></figure>
+  </div>
+</section>
+
+<!-- ======================= D · RINGS ======================= -->
+<section class="dir D" id="p-rings" role="tabpanel" aria-labelledby="t-rings" hidden>
+  <div class="brief">
+    <div><h2>D · Rings</h2><p><strong>Your day as a score you close.</strong> Three rings, one per part of life: green for Life, violet for Logic, amber for Money. Today shows the rings, your week, and only what is still open. Built around the question you asked: did I do it today?</p></div>
+    <div><h3>Plus button</h3><p><strong>Detached, beside a compact tab bar.</strong> It opens the right thing for where you are: a number keypad for an expense by default, with other types one tap away. An expense takes three taps: plus, amount, category.</p><h3>Trade-off</h3><p>Inactive tabs show icons only. A score can feel like pressure on a bad day.</p></div>
+    <div><h3>Principles at work</h3><ul>
+      <li><strong>Goal gradient:</strong> a nearly closed ring pulls you to finish.</li>
+      <li><strong>Zeigarnik effect:</strong> Today lists only what is open, so it shrinks as you go.</li>
+      <li><strong>Doherty threshold:</strong> the keypad opens instantly, with no system keyboard.</li>
+      <li><strong>Smart defaults:</strong> today's date and your most-used categories come first.</li></ul></div>
+  </div>
+  <h3>Screens</h3>
+  <div class="scroll"><div class="phones">
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd">
+        <div class="row sp"><div class="h1">Today</div><span class="m">Sun 15 Nov</span></div>
+        <div class="card r" style="gap:14px">
+          <svg class="rings" width="104" height="104" viewBox="0 0 104 104" role="img" aria-label="Life closed, Logic one quarter, Money closed"><g fill="none" stroke-width="9" stroke-linecap="round" transform="rotate(-90 52 52)"><circle cx="52" cy="52" r="44" stroke="#232d47"/><circle cx="52" cy="52" r="44" stroke="#5fd38d"/><circle cx="52" cy="52" r="32" stroke="#232d47"/><circle cx="52" cy="52" r="32" stroke="#a999ff" stroke-dasharray="50 201"/><circle cx="52" cy="52" r="20" stroke="#232d47"/><circle cx="52" cy="52" r="20" stroke="#ffc14d"/></g></svg>
+          <div class="g" style="display:grid;gap:8px"><div class="num">3<small>/5</small></div><div class="lg"><span><i style="background:var(--life)"></i>Life · 3/3 + mood</span><span><i style="background:var(--logic)"></i>Logic · 1/3 + puzzle</span><span><i style="background:var(--money)"></i>Money · ₹640</span></div></div></div>
+        <div><div class="sec" style="margin-bottom:6px"><span>12-day streak</span><span>Best 21</span></div><div class="wk"><span class="f"><i></i>M</span><span class="f"><i></i>T</span><span class="f"><i></i>W</span><span class="f"><i></i>T</span><span class="f"><i></i>F</span><span class="f"><i></i>S</span><span class="h"><i></i>S</span></div></div>
+        <div class="sec"><span>Still open</span><span>2 dailies · 3 reminders</span></div>
+        <div class="card r"><i class="tag" style="background:var(--logic)"></i><span class="g"><span class="t">Solve 2 more problems</span><br><span class="m">Code · 1 of 3 today</span></span><span class="btn gh">Open</span></div>
+        <div class="card r"><i class="tag" style="background:var(--logic)"></i><span class="g"><span class="t">Daily puzzle</span><br><span class="m">Lichess · rating 1540</span></span><span class="btn gh">Open</span></div>
+        <div class="card r"><i class="tag" style="background:var(--life)"></i><span class="g"><span class="t">Gym, leg day</span><br><span class="m">5:00 PM · in 42 min</span></span><button class="ck" aria-label="Mark done"></button></div>
+      </div><div class="tb" data-on="0"></div></div></div>
+      <figcaption><b>Today</b>Rings for the three parts of the day, the week's streak, then only what is left to do.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="dim" style="flex:0 0 46px"><div class="h1" style="color:var(--mu)">Today</div></div>
+      <div class="sheet" style="flex:1;align-content:start;gap:11px">
+        <div class="sn"><span class="chip on" style="background:var(--money);color:#2a1c00">Expense</span><span class="chip">Note</span><span class="chip">Reminder</span><span class="chip">Task</span><span class="chip">More</span></div>
+        <div style="text-align:center"><div class="num" style="font-size:44px"><small>₹</small>450</div><div class="m">Today · tap to change date</div></div>
+        <div class="row wr" style="justify-content:center"><span class="chip on" style="background:var(--tx);color:var(--bg)">☕ Coffee</span><span class="chip">🛒 Groceries</span><span class="chip">🚗 Transport</span><span class="chip">🍔 Food</span><span class="chip">📱 Bills</span><span class="chip">All 12</span></div>
+        <div class="row" style="gap:6px"><span class="chip" style="flex:1;justify-content:center;padding:7px">Add note</span><span class="chip" style="flex:1;justify-content:center;padding:7px">With Raj</span></div>
+        <div class="kp"><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b><b>.</b><b>0</b><b>⌫</b></div>
+        <span class="btn" style="padding:12px;font-size:13px;border-radius:14px;background:var(--money);color:#2a1c00">Save expense</span>
+      </div></div></div>
+      <figcaption><b>Plus: amount first</b>A keypad, not a form. Categories are sorted by what you use most.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd">
+        <div class="row sp"><div class="h1">Life</div><span class="chip" style="color:var(--life)">Ring closed</span></div>
+        <div class="sn"><span class="chip">Tasks 4</span><span class="chip on">Reminders 3</span><span class="chip">Notes 14</span><span class="chip">Habits</span><span class="chip">Growth</span></div>
+        <div class="card" style="gap:0"><div class="sec bad"><span>Overdue</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g"><span class="t">Renew car insurance</span><br><span class="m bad">Fri 13 Nov</span></span><span class="chip">Today 7 PM</span></div></div>
+        <div class="card" style="gap:0"><div class="sec"><span>Today</span><span>3 left</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Gym, leg day</span><span class="m">5:00 PM</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t">Call mom</span><span class="m">6:00 PM</span></div>
+          <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el">Codeforces Round (Div. 2)</span><span class="m">8:05 PM</span></div>
+          <div class="r done"><button class="ck" aria-label="Mark done"></button><span class="g t">Pay credit card bill</span><span class="m">9:00 AM</span></div></div>
+        <div class="sec"><span>Pinned notes</span><span>See all</span></div>
+        <div class="card"><div class="t el">Binary lifting: LCA in O(log n)</div><div class="m el">up[v][j] = up[up[v][j-1]][j-1]. Build in n log n.</div></div>
+        <div class="card"><div class="t el">Books for this quarter</div><div class="m el">Designing Data-Intensive Applications, The Psych…</div></div>
+      </div><div class="tb" data-on="1"></div></div></div>
+      <figcaption><b>Life</b>Each tab wears its ring colour. The chip on top says whether today's ring is closed.</figcaption></figure>
+
+    <figure><div class="phone"><div class="screen"><div class="sb"></div>
+      <div class="bd">
+        <div class="row sp"><div class="h1">Money</div><span class="chip" style="color:var(--money)">Logged today</span></div>
+        <div class="sn"><span class="chip on">Spend</span><span class="chip">Budgets</span><span class="chip">Goals</span><span class="chip">Loans</span></div>
+        <div class="row sp" style="align-items:flex-end"><div><div class="m">Spent today</div><div class="num"><small>₹</small>640</div></div><div style="text-align:right"><div class="m">November</div><div class="t" style="font-size:15px">₹18,450 <span class="m">/ ₹30,000</span></div></div></div>
+        <div class="bar"><i style="width:62%"></i></div>
+        <div class="card"><div class="sec"><span>Logged 9 days in a row</span><span>13 of 15</span></div><div class="dots"><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div></div>
+        <div class="card" style="gap:0"><div class="sec"><span>Today</span><span>3 entries</span></div>
+          <div class="r"><span class="em">☕</span><span class="g"><span class="t">Coffee</span><br><span class="m">1:10 PM · with Raj</span></span><span class="amt">₹180</span></div>
+          <div class="r"><span class="em">🛒</span><span class="g"><span class="t">Groceries</span><br><span class="m">11:40 AM</span></span><span class="amt">₹320</span></div>
+          <div class="r"><span class="em">🚗</span><span class="g"><span class="t">Transport</span><br><span class="m">9:20 AM · auto</span></span><span class="amt">₹140</span></div></div>
+        <div class="card" style="gap:0"><div class="sec"><span>Yesterday</span><span>₹1,250</span></div>
+          <div class="r"><span class="em">🍔</span><span class="g t">Food</span><span class="amt">₹890</span></div></div>
+      </div><div class="tb" data-on="3"></div></div></div>
+      <figcaption><b>Money</b>Today's number is the biggest thing on screen. The chip confirms you logged.</figcaption></figure>
+  </div></div>
+  <h3>Widgets</h3>
+  <div class="wall">
+    <figure><div class="wg ws" style="align-items:center;justify-content:center;gap:4px"><svg width="84" height="84" viewBox="0 0 104 104" aria-hidden="true"><g fill="none" stroke-width="9" stroke-linecap="round" transform="rotate(-90 52 52)"><circle cx="52" cy="52" r="44" stroke="#5fd38d"/><circle cx="52" cy="52" r="32" stroke="#232d47"/><circle cx="52" cy="52" r="32" stroke="#a999ff" stroke-dasharray="50 201"/><circle cx="52" cy="52" r="20" stroke="#ffc14d"/></g></svg><div class="t">3 of 5 · day 12</div></div><figcaption>Small · the rings</figcaption></figure>
+    <figure><div class="wg wm" style="flex-direction:row;gap:12px;align-items:center"><svg width="100" height="100" viewBox="0 0 104 104" aria-hidden="true" style="flex:none"><g fill="none" stroke-width="9" stroke-linecap="round" transform="rotate(-90 52 52)"><circle cx="52" cy="52" r="44" stroke="#5fd38d"/><circle cx="52" cy="52" r="32" stroke="#232d47"/><circle cx="52" cy="52" r="32" stroke="#a999ff" stroke-dasharray="50 201"/><circle cx="52" cy="52" r="20" stroke="#ffc14d"/></g></svg>
+      <div class="g" style="display:grid;gap:8px"><div class="lg"><span><i style="background:var(--life)"></i>Life closed</span><span><i style="background:var(--logic)"></i>Code 1/3 · puzzle open</span><span><i style="background:var(--money)"></i>₹640 logged</span></div><div class="row" style="gap:6px"><span class="btn" style="flex:1;padding:6px 0;background:var(--money);color:#2a1c00">+ ₹</span><span class="btn gh" style="flex:1;padding:6px 0">+ Note</span></div></div></div><figcaption>Medium · rings, what each means, two add buttons</figcaption></figure>
+    <figure><div class="wg wl"><div class="row sp"><span class="t" style="font:700 16px var(--disp)">Today</span><span class="m">Sun 15 · day 12</span></div>
+      <div class="row" style="gap:12px"><svg width="76" height="76" viewBox="0 0 104 104" aria-hidden="true" style="flex:none"><g fill="none" stroke-width="9" stroke-linecap="round" transform="rotate(-90 52 52)"><circle cx="52" cy="52" r="44" stroke="#5fd38d"/><circle cx="52" cy="52" r="32" stroke="#232d47"/><circle cx="52" cy="52" r="32" stroke="#a999ff" stroke-dasharray="50 201"/><circle cx="52" cy="52" r="20" stroke="#ffc14d"/></g></svg><div><div class="num" style="font-size:30px">3<small>/5</small></div><div class="m">Spent today ₹640</div></div></div>
+      <div class="sec" style="margin-top:4px"><span>Still open</span></div>
+      <div class="r"><i class="tag" style="background:var(--logic)"></i><span class="g t el">Solve 2 more problems</span><span class="m">1/3</span></div>
+      <div class="r"><i class="tag" style="background:var(--logic)"></i><span class="g t el">Daily puzzle</span><span class="m">Open</span></div>
+      <div class="r"><button class="ck" aria-label="Mark done"></button><span class="g t el">Gym, leg day</span><span class="m">5:00 PM</span></div>
+      <div class="row" style="gap:6px;margin-top:auto"><span class="btn" style="flex:1;padding:7px 0;background:var(--money);color:#2a1c00">+ Expense</span><span class="btn gh" style="flex:1;padding:7px 0">+ Note</span><span class="btn gh" style="flex:1;padding:7px 0">+ Reminder</span></div></div><figcaption>Large · rings, open items, three add buttons</figcaption></figure>
+    <figure><div class="lock"><div class="lr"><span>Still open · 2</span><b>Code 1/3, puzzle</b></div><div class="lc"><span>3/5<small>DAY 12</small></span></div><div class="li">₹640 today · Gym 5:00 PM</div></div><figcaption>Lock screen · rectangle, circle, inline</figcaption></figure>
+  </div>
+</section>
+
+<p class="note">Only Today, the plus, Life and Money are drawn for each direction. Logic, Invest and Agents will follow the same pattern as the direction you pick. Widget check circles work without opening the app; every other tap opens the exact item.</p>
+
+<section style="display:grid;gap:12px">
+  <h2>Side by side</h2>
+  <div class="tbl"><table>
+    <thead><tr><th></th><th>A · Ember</th><th>B · Pinboard</th><th>C · Quiet</th><th>D · Rings</th></tr></thead>
+    <tbody>
+      <tr><th>Today answers</th><td>What is next?</td><td>How is each part of my day?</td><td>Where does my day stand?</td><td>Did I do it today?</td></tr>
+      <tr><th>Dailies shown as</th><td>Five cells</td><td>Five circles</td><td>A checklist</td><td>Three rings</td></tr>
+      <tr><th>Plus button</th><td>Floating, type a sentence</td><td>Centre of bar, tile grid</td><td>Always-on capture line</td><td>Detached, amount keypad</td></tr>
+      <tr><th>Taps to log ₹450 coffee</th><td>2 plus typing</td><td>4</td><td>1 plus typing</td><td>3 plus the amount</td></tr>
+      <tr><th>Six tabs</th><td>All labelled</td><td>All labelled, plus in the middle</td><td>All labelled</td><td>Icons, label on the active tab</td></tr>
+      <tr><th>Look</th><td>Dark, current Forge colours</td><td>Light, pastel tiles</td><td>Light, text only</td><td>Deep navy, three ring colours</td></tr>
+      <tr><th>Fit with PR #4 code</th><td>Closest</td><td>Close: extends the Today tiles</td><td>Middle: new type styles</td><td>Middle: new rings and keypad</td></tr>
+      <tr><th>Main risk</th><td>Busy screen</td><td>Crowded tab bar</td><td>Wrong guesses when sorting</td><td>Icon-only tabs</td></tr>
+    </tbody></table></div>
+  <p class="pick"><b>My recommendation:</b> D · Rings. Your goal is to see each day whether you logged expenses, solved problems and did your habits, and D is the only direction built around that one question. Its keypad is also the fastest way to log an expense. If icon-only tabs worry you, keep D and use A's labelled tab bar with the floating plus.</p>
+</section>
+
+<section style="display:grid;gap:12px">
+  <h2>What I need from you</h2>
+  <ol class="ask">
+    <li><strong>Pick a direction</strong>, or a mix (for example "D, with A's tab bar").</li>
+    <li><strong>Confirm the five dailies:</strong> habits, expenses logged, mood, code (3 a day), daily puzzle. Tell me if reminders or tasks should count too.</li>
+    <li><strong>Two dailies need new tracking.</strong> The app does not record the day a puzzle was solved or whether expenses were logged today. Both are small additions.</li>
+    <li><strong>Plus default:</strong> should a tap open Expense first (as in D), or always show every type (as in B)?</li>
+    <li><strong>Widgets need the iPhone app shell,</strong> which needs a Mac with Xcode and an Apple Developer account. Everything else can ship in the web app first.</li>
+  </ol>
+</section>
+</div>
+
+<script>
+(function(){
+  var names=['ember','pinboard','quiet','rings'];
+  function show(n){
+    if(names.indexOf(n)<0) n='ember';
+    names.forEach(function(x){
+      document.getElementById('p-'+x).hidden = x!==n;
+      document.getElementById('t-'+x).setAttribute('aria-selected', String(x===n));
+    });
+  }
+  names.forEach(function(x){
+    document.getElementById('t-'+x).addEventListener('click',function(){ show(x); try{ location.hash=x; }catch(e){} });
+  });
+  window.addEventListener('hashchange',function(){ show(location.hash.slice(1)); });
+  show(location.hash.slice(1));
+
+  document.addEventListener('click',function(e){
+    var c=e.target.closest('.ck'); if(!c) return;
+    var on=c.parentElement.classList.toggle('done');
+    c.setAttribute('aria-pressed',String(on));
+  });
+
+  function ic(n){return '<svg class="i"><use href="#'+n+'"/></svg>';}
+  document.querySelectorAll('.sb').forEach(function(s){ s.innerHTML='<span>4:18</span><span class="row" style="gap:5px">5G <i class="bat"></i></span>'; });
+  var T=[['Today','sun'],['Life','leaf'],['Logic','code'],['Money','wallet'],['Invest','chart'],['Agents','spark']];
+  document.querySelectorAll('.tb').forEach(function(tb){
+    var on=+tb.getAttribute('data-on'), c=tb.closest('.dir').classList;
+    var tabs=T.map(function(t,i){return '<span class="tab'+(i===on?' on':'')+'">'+ic(t[1])+'<span>'+t[0]+'</span></span>';});
+    if(c.contains('B')) tabs.splice(3,0,'<span class="fab">'+ic('plus')+'</span>');
+    tb.innerHTML = c.contains('D') ? '<div class="caps">'+tabs.join('')+'</div><span class="plus">'+ic('plus')+'</span>' : tabs.join('');
+    if(c.contains('A')) tb.insertAdjacentHTML('beforebegin','<span class="fabf">'+ic('plus')+'</span>');
+    if(c.contains('C')) tb.insertAdjacentHTML('beforebegin','<div class="cap">'+ic('plus')+'<span>Type anything: 450 coffee</span></div>');
+  });
+  var rows=['qwertyuiop','asdfghjkl','zxcvbnm'];
+  document.querySelectorAll('.kb').forEach(function(k){
+    k.setAttribute('aria-hidden','true');
+    k.innerHTML=rows.map(function(r){return '<div>'+r.split('').map(function(ch){return '<b>'+ch+'</b>';}).join('')+'</div>';}).join('')+'<div><b class="f">123</b><b class="w">space</b><b class="f">return</b></div>';
+  });
+})();
+</script>
+</body>
+</html>
