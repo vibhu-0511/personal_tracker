@@ -1,12 +1,10 @@
-/* MoneyApp shell (R4-09, R4-22): frame, inspector column, FAB, and the detail/list
+/* MoneyApp shell (R4-09, R4-22): frame, inspector column and the detail/list
    styles shared by Goals, Loans and Budgets. Spend styles live in screens/spend.css.
    Layout switches on the `app` container (shell.css) for the page frame and on the
    local `money` container for columns inside the main area, never on the viewport,
    so the main area reflows when the inspector column takes its width. */
 
 .money-app {
-  /* FAB sits above the bottom tab bar (--tabbar-h is 0 on rail and sidebar layouts). */
-  --fab-offset: calc(max(var(--tabbar-h, 0px), env(safe-area-inset-bottom, 0px)) + 12px);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
@@ -32,44 +30,6 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
   }
-}
-
-/* ── FAB ── */
-.money-fab {
-  position: fixed;
-  bottom: var(--fab-offset);
-  right: 16px;
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: var(--accent-solid);
-  color: #fff;
-  font: inherit;
-  font-size: 28px;
-  font-weight: 300;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 20px color-mix(in srgb, var(--accent-solid) 40%, transparent);
-  z-index: 50;
-  transition: transform 0.2s, box-shadow 0.2s;
-  -webkit-tap-highlight-color: transparent;
-}
-.money-fab:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 3px; }
-@media (hover: hover) and (pointer: fine) {
-  .money-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px color-mix(in srgb, var(--accent-solid) 50%, transparent); }
-}
-.money-fab:active { transform: scale(0.95); }
-@container app (min-width: 600px) {
-  .money-fab { right: 24px; }
-}
-/* Sidebar layouts add transactions from the Spend summary buttons. */
-@container app (min-width: 1024px) {
-  .money-fab { display: none; }
 }
 
 /* ── Detail (inspector pane or Sheet) ── */
