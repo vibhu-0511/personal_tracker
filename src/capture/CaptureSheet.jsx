@@ -35,7 +35,8 @@ const PLACEHOLDERS = {
   task: 'What needs doing?',
 }
 
-export function primaryLabel(type) {
+export function primaryLabel(type, txnType) {
+  if (type === 'expense' && txnType === 'income') return 'Add income'
   if (type === 'solve') return 'Log solve'
   if (type === 'mood') return 'Log mood'
   if (type === 'habit') return 'Check in habit'
@@ -77,6 +78,7 @@ export function draftChips(draft, now = new Date()) {
 }
 
 export function canSubmit(draft) {
+  if (draft.type === 'expense' && draft.txnType === 'income') return draft.amount != null
   if (draft.type === 'expense') return draft.amount != null && Boolean(draft.category)
   if (PANEL_TYPES.includes(draft.type)) return false // panels submit themselves
   return draft.title.trim().length > 0
@@ -103,13 +105,15 @@ export function editableChips(draft, now = new Date()) {
 }
 
 // Pure state for the open sheet. `overrides` hold values picked in editors; they win over the parser.
-export function initialSheetState(type = 'expense', text = '') {
-  return { type, text, overrides: {}, editor: null, error: '', busy: false }
+// `txnType: 'income'` (from the Money + Income button) preselects income on the expense type.
+export function initialSheetState(type = 'expense', text = '', txnType) {
+  const overrides = type === 'expense' && txnType === 'income' ? { txnType: 'income' } : {}
+  return { type, text, overrides, editor: null, error: '', busy: false }
 }
 
 export function sheetReducer(state, action) {
   switch (action.type) {
-    case 'open': return initialSheetState(action.captureType, action.text || '')
+    case 'open': return initialSheetState(action.captureType, action.text || '', action.txnType)
     case 'setType': return state.type === action.captureType ? state : { ...state, type: action.captureType, editor: null, error: '' }
     case 'setText': return { ...state, text: action.text, error: '' }
     case 'openEditor': return { ...state, editor: EDITOR_FOR[action.key] || null }
@@ -128,6 +132,7 @@ export function effectiveDraft(text, now, state) {
 }
 
 export function savedMessage(draft) {
+  if (draft.type === 'expense' && draft.txnType === 'income') return 'Income added'
   if (draft.type === 'habit') return 'Habit checked in'
   if (draft.type === 'solve') return draft.puzzle ? 'Puzzle marked done' : 'Solve logged'
   if (draft.type === 'mood') return 'Mood logged'
@@ -148,7 +153,7 @@ export async function finishCapture(draft, onSubmit) {
   }
 }
 
-export default function CaptureSheet({ open, onClose, defaultType = 'expense', onSubmit, data = {}, returnFocusRef }) {
+export default function CaptureSheet({ open, onClose, defaultType = 'expense', txnType, onSubmit, data = {}, returnFocusRef }) {
   const startType = TYPES.includes(defaultType) ? defaultType : 'expense'
   const [state, dispatch] = useReducer(sheetReducer, startType, (t) => initialSheetState(t))
   const { type, text, error, busy, editor, overrides } = state
@@ -158,8 +163,8 @@ export default function CaptureSheet({ open, onClose, defaultType = 'expense', o
 
   // Each opening starts fresh on the default type.
   useEffect(() => {
-    if (open) dispatch({ type: 'open', captureType: startType })
-  }, [open, startType])
+    if (open) dispatch({ type: 'open', captureType: startType, txnType })
+  }, [open, startType, txnType])
 
   useEffect(() => {
     if (!open) return
@@ -306,7 +311,7 @@ export default function CaptureSheet({ open, onClose, defaultType = 'expense', o
           <span className="capture-hint">{hasPanel ? 'Tap an option to log it' : 'Tap a chip to change it'}</span>
           {!hasPanel && (
             <button type="submit" className="capture-primary" disabled={!ready}>
-              {primaryLabel(type)}
+              {primaryLabel(type, draft.txnType)}
             </button>
           )}
         </div>

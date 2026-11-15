@@ -422,6 +422,7 @@ test('store.js keeps every v1 export and signature, SYNCED_KEYS and the untouche
     'getLoans()', 'saveLoans(loans)', 'getDailyLog()', 'saveDailyLog(log)',
     'getChecklists()', 'saveChecklists(checklists)',
     'mutateTasks(fn)', 'mutateHabits(fn)', 'mutateMoodLog(fn)', 'mutateNotes(fn)',
+    'mutateProgress(fn)',
   ])
   const consts = [...src.matchAll(/^export const (\w+)/gm)].map((m) => m[1])
   assert.deepEqual(consts, ['onSyncStatusChange', 'reconcileKey', 'flush', 'claimOwner', 'SYNCED_KEYS'])

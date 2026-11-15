@@ -4,6 +4,8 @@ import {
   createRegistry, filterCommands, matchShortcut, isTypingTarget, navigationCommands,
 } from '../src/shell/commands.js'
 import { TAB_IDS } from '../src/routes.js'
+import { readFileSync } from 'node:fs'
+import { captureCommands, CAPTURE_COMMANDS, registry } from '../src/shell/commands.js'
 
 const key = (k, extra = {}) => ({ key: k, target: { tagName: 'BODY' }, ...extra })
 
@@ -170,4 +172,67 @@ test('isTypingTarget', () => {
   assert.equal(isTypingTarget({ tagName: 'DIV' }), false)
   assert.equal(isTypingTarget({ tagName: 'INPUT' }), true)
   assert.equal(isTypingTarget({ tagName: 'DIV', isContentEditable: true }), true)
+})
+
+// --- capture: palette commands, N shortcut, forge:open-capture listener ---------------
+const read = (f) => readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8')
+
+test('captureCommands: the palette lists the seven capture commands and each opens its type', () => {
+  const opened = []
+  const cmds = captureCommands((o) => opened.push(o))
+  assert.deepEqual(cmds.map((c) => c.label), [
+    'New expense', 'New note', 'New reminder', 'New task', 'New habit check-in', 'Log a solve', 'Log mood',
+  ])
+  assert.equal(CAPTURE_COMMANDS.length, cmds.length)
+  cmds.forEach((c) => c.run())
+  assert.deepEqual(opened, [
+    { type: 'expense' }, { type: 'note' }, { type: 'reminder' }, { type: 'task' },
+    { type: 'habit' }, { type: 'solve' }, { type: 'mood' },
+  ])
+  assert.equal(new Set(cmds.map((c) => c.id)).size, cmds.length)
+  // they register and rank like any other command
+  const r = createRegistry()
+  cmds.forEach((c) => r.register(c))
+  assert.equal(filterCommands(r.list(), 'new exp')[0].label, 'New expense')
+  assert.equal(registry.has('capture:expense'), false) // nothing registered globally by import
+})
+
+test('useShortcuts: N runs onCapture unless a tab owns "new"; typing and dialogs are guarded', () => {
+  const src = read('shell/useShortcuts.js')
+  assert.match(src, /onCapture/)
+  assert.match(src, /action\.id === 'new'/)
+  assert.match(src, /captureRef\.current\(\)/)
+  assert.match(src, /dialog\[open\]/) // modal guard stays
+  assert.match(src, /onOpenPalette/)
+  // N maps to the 'new' command and never fires while typing
+  assert.deepEqual(matchShortcut(key('n')), { type: 'command', id: 'new' })
+  assert.equal(matchShortcut({ key: 'n', target: { tagName: 'INPUT' } }), null)
+  assert.equal(matchShortcut({ key: 'n', target: { tagName: 'TEXTAREA' } }), null)
+})
+
+test('App: forge:open-capture listener cancels the event and opens capture with its type', () => {
+  const app = read('App.jsx')
+  assert.match(app, /addEventListener\('forge:open-capture'/)
+  assert.match(app, /removeEventListener\('forge:open-capture'/)
+  const handler = app.slice(app.indexOf('const onOpenCapture'), app.indexOf("addEventListener('forge:open-capture'"))
+  assert.match(handler, /e\.preventDefault\(\)/)
+  assert.match(handler, /type: d\.type/)
+  assert.match(handler, /txnType/)
+  assert.match(app, /useShortcuts\(\{[^}]*onCapture/)
+  assert.match(app, /captureCommands\(/)
+  assert.match(app, /<MoneyProvider/)
+  assert.match(app, /lazy\(\(\) => import\('\.\/money\/MoneyApp\.jsx'\)\.then\(\(m\) => \(\{ default: m\.CaptureHost/)
+})
+
+test('MoneyApp reuses a provider mounted above it; MoneyContext exports useMoneyOptional', () => {
+  assert.match(read('money/MoneyContext.jsx'), /export function useMoneyOptional/)
+  const app = read('money/MoneyApp.jsx')
+  assert.match(app, /useMoneyOptional\(\)/)
+  assert.match(app, /if \(outer\) return body/)
+})
+
+test('CaptureSheet: income preselect via txnType', () => {
+  const sheet = read('capture/CaptureSheet.jsx')
+  assert.match(sheet, /txnType === 'income'/)
+  assert.match(read('money/MoneyApp.jsx'), /export function CaptureHost/)
 })
