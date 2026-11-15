@@ -1,1715 +1,1716 @@
 {
- "meta": {
-  "title": "Forge Ember build plan",
-  "decision": "Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.",
-  "generated": "Hand-authored; validate with node scripts/plan/plan-lint.mjs docs/plan/ember/plan.json",
-  "brief": {
-   "context": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/plan/ember/KICKOFF.md",
-    "docs/designs/app-directions.html"
-   ],
-   "rules": "Defaults E1-E10 in docs/plan/ember/PLAN.md apply unless docs/adr/0005-ember-direction.md says otherwise. Use tokens, never colour literals. Do not touch supabase/ or sync v2 flags."
+  "meta": {
+    "title": "Forge Ember build plan",
+    "decision": "Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.",
+    "generated": "Hand-authored; validate with node scripts/plan/plan-lint.mjs docs/plan/ember/plan.json",
+    "brief": {
+      "context": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/plan/ember/KICKOFF.md",
+        "docs/designs/app-directions.html"
+      ],
+      "rules": "Defaults E1-E10 in docs/plan/ember/PLAN.md apply unless docs/adr/0005-ember-direction.md says otherwise. Use tokens, never colour literals. Do not touch supabase/ or sync v2 flags."
+    },
+    "openDecisions": [
+      {
+        "id": "E1",
+        "question": "Which five things count as dailies?",
+        "default": "Habits (all checked in), expenses logged, mood logged, code solved (goal 3), daily puzzle. Reminders and tasks do not count. Changeable in Settings.",
+        "affects": "E1-07, E4-11"
+      },
+      {
+        "id": "E2",
+        "question": "What does a tap on plus open?",
+        "default": "The capture sheet on the type that fits the screen (Expense on Money, Reminder on Reminders, Note on Notes, Solve on Logic), otherwise the last type used. All types are one chip away.",
+        "affects": "E3-04"
+      },
+      {
+        "id": "E3",
+        "question": "What happens to the nine Today tiles?",
+        "default": "Tasks, Code, Spend and Mood tiles are replaced by the dailies and timeline. Streak, Wallet, Pets, Watch and Tutor stay below the timeline.",
+        "affects": "E2-05"
+      },
+      {
+        "id": "E4",
+        "question": "Does Ember replace the current themes?",
+        "default": "No. Ember becomes the default for new installs; the seven existing themes stay selectable and your saved theme is kept.",
+        "affects": "E0-07"
+      },
+      {
+        "id": "E5",
+        "question": "Fonts: load Space Grotesk, Inter and JetBrains Mono, or stay on system fonts?",
+        "default": "Self-host the three families (latin subset, under 160 kB) so the app works offline and matches the mockup.",
+        "affects": "E0-04"
+      },
+      {
+        "id": "E6",
+        "question": "Icons: keep emoji in the tab bar?",
+        "default": "Tabs and controls use line icons. Category emoji and pets stay emoji.",
+        "affects": "E0-05, E0-12"
+      },
+      {
+        "id": "E7",
+        "question": "Which new reminder features are in scope?",
+        "default": "Snooze (1 hour, tonight 8 PM, tomorrow 9 AM), repeat (daily, weekly on chosen days, monthly) and one-tap reschedule for overdue items. Real alerts (push) stay in the main plan.",
+        "affects": "E1-03, E4-02"
+      },
+      {
+        "id": "E8",
+        "question": "Does a day with no spending count as logged?",
+        "default": "Yes, if you tap \"Nothing spent today\". Otherwise a day counts only when it has at least one entry.",
+        "affects": "E1-02, E4-04"
+      },
+      {
+        "id": "E9",
+        "question": "What counts as the daily puzzle?",
+        "default": "Any puzzle from the bank solved today, or the Lichess daily marked solved.",
+        "affects": "E1-01, E1-09"
+      },
+      {
+        "id": "E10",
+        "question": "Widgets: build them now or after the web app ships?",
+        "default": "After. Phase E5 starts only when you confirm a Mac with Xcode, an Apple Developer account and the iPhone shell from the main plan.",
+        "affects": "E5"
+      }
+    ]
   },
-  "openDecisions": [
-   {
-    "id": "E1",
-    "question": "Which five things count as dailies?",
-    "default": "Habits (all checked in), expenses logged, mood logged, code solved (goal 3), daily puzzle. Reminders and tasks do not count. Changeable in Settings.",
-    "affects": "E1-07, E4-11"
-   },
-   {
-    "id": "E2",
-    "question": "What does a tap on plus open?",
-    "default": "The capture sheet on the type that fits the screen (Expense on Money, Reminder on Reminders, Note on Notes, Solve on Logic), otherwise the last type used. All types are one chip away.",
-    "affects": "E3-04"
-   },
-   {
-    "id": "E3",
-    "question": "What happens to the nine Today tiles?",
-    "default": "Tasks, Code, Spend and Mood tiles are replaced by the dailies and timeline. Streak, Wallet, Pets, Watch and Tutor stay below the timeline.",
-    "affects": "E2-05"
-   },
-   {
-    "id": "E4",
-    "question": "Does Ember replace the current themes?",
-    "default": "No. Ember becomes the default for new installs; the seven existing themes stay selectable and your saved theme is kept.",
-    "affects": "E0-07"
-   },
-   {
-    "id": "E5",
-    "question": "Fonts: load Space Grotesk, Inter and JetBrains Mono, or stay on system fonts?",
-    "default": "Self-host the three families (latin subset, under 160 kB) so the app works offline and matches the mockup.",
-    "affects": "E0-04"
-   },
-   {
-    "id": "E6",
-    "question": "Icons: keep emoji in the tab bar?",
-    "default": "Tabs and controls use line icons. Category emoji and pets stay emoji.",
-    "affects": "E0-05, E0-12"
-   },
-   {
-    "id": "E7",
-    "question": "Which new reminder features are in scope?",
-    "default": "Snooze (1 hour, tonight 8 PM, tomorrow 9 AM), repeat (daily, weekly on chosen days, monthly) and one-tap reschedule for overdue items. Real alerts (push) stay in the main plan.",
-    "affects": "E1-03, E4-02"
-   },
-   {
-    "id": "E8",
-    "question": "Does a day with no spending count as logged?",
-    "default": "Yes, if you tap \"Nothing spent today\". Otherwise a day counts only when it has at least one entry.",
-    "affects": "E1-02, E4-04"
-   },
-   {
-    "id": "E9",
-    "question": "What counts as the daily puzzle?",
-    "default": "Any puzzle from the bank solved today, or the Lichess daily marked solved.",
-    "affects": "E1-01, E1-09"
-   },
-   {
-    "id": "E10",
-    "question": "Widgets: build them now or after the web app ships?",
-    "default": "After. Phase E5 starts only when you confirm a Mac with Xcode, an Apple Developer account and the iPhone shell from the main plan.",
-    "affects": "E5"
-   }
+  "phases": [
+    {
+      "id": "E0",
+      "name": "Foundations",
+      "goal": "Make the wave runner work with this plan, add the Ember theme, fonts, icons and the new primitives, and switch the tab bar to line icons. No screen changes yet.",
+      "exit": [
+        "npm test, lint, build, size and e2e green",
+        "Ember is the default theme for a new install; a saved theme is untouched",
+        "gallery.html shows every new primitive under ember and cream",
+        "six labelled tabs with line icons fit at 390px",
+        "tools/live/wave.mjs runs against docs/plan/ember/plan.json"
+      ]
+    },
+    {
+      "id": "E1",
+      "name": "Data and logic",
+      "goal": "Add everything the new screens need to know, as tested pure logic: the five dailies, puzzle solve dates, expense logging days, the Today timeline, reminder snooze and repeat, and the capture parser.",
+      "exit": [
+        "npm test, lint and build green",
+        "the fixture day computes 3 of 5 dailies",
+        "old backups and old puzzle progress still load",
+        "sync v2 flags remain off and no SQL was touched"
+      ]
+    },
+    {
+      "id": "E2",
+      "name": "Today",
+      "goal": "Replace the top of Today with the Ember layout: header with ring, five dailies, next up, and the timeline, keeping five of the existing tiles below.",
+      "exit": [
+        "Today matches the mockup at 390px (differences listed in the gate report)",
+        "checking the next-up reminder advances it",
+        "no horizontal scroll at 390, 834, 1194, 1440",
+        "owner sign-off"
+      ]
+    },
+    {
+      "id": "E3",
+      "name": "Plus button and capture",
+      "goal": "One plus button on every tab that opens a capture sheet: type a sentence, check the chips, save. Covers expense, income, note, reminder, task, habit check-in, solve and mood.",
+      "exit": [
+        "an expense can be logged from any tab without visiting Money",
+        "N and the command palette open capture",
+        "every save can be undone",
+        "the Money-only add button is gone",
+        "owner sign-off"
+      ]
+    },
+    {
+      "id": "E4",
+      "name": "Screens in the Ember look",
+      "goal": "Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, including reminders with snooze and repeat, notes with titles, and the expense logging strip.",
+      "exit": [
+        "all sub-views pass the device matrix",
+        "text contrast >= 4.5:1 on the ember theme",
+        "owner device checklist complete",
+        "the web app is shippable"
+      ]
+    },
+    {
+      "id": "E5",
+      "name": "Widgets (iPhone)",
+      "goal": "Small, medium, large and lock-screen widgets fed by a snapshot from the app, with tick-off from the widget. Needs the iPhone app shell, a Mac and an Apple Developer account.",
+      "exit": [
+        "widgets show current data after a change in the app",
+        "ticking a reminder in a widget is reflected in the app",
+        "owner used them on a real phone for two days"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "E0-01",
+      "phase": "E0",
+      "wave": 1,
+      "title": "Make the wave runner and live graph work with any plan file",
+      "size": "M",
+      "writes": [
+        "tools/live/**",
+        "test/waveRunner.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/plan/WORKFLOW.md",
+        "docs/plan/ember/KICKOFF.md"
+      ],
+      "deps": [],
+      "acceptance": "FORGE_PLAN=docs/plan/ember/plan.json node tools/live/wave.mjs status prints counts for E0..E5; with FORGE_PLAN unset it still reads docs/plan/plan.json; node --test test/waveRunner.test.js passes; grep -c \"session_01T1mhHa\" tools/live/wave.mjs prints 0",
+      "notes": "Plan path from FORGE_PLAN env or --plan. Brief text (context files, default decisions, commit trailers) comes from plan.meta.brief and FORGE_TRAILERS, not hard-coded strings. Merge re-lints the same plan file."
+    },
+    {
+      "id": "E0-02",
+      "phase": "E0",
+      "wave": 1,
+      "title": "Record the Ember decision and defaults E1-E10 as an ADR",
+      "size": "S",
+      "writes": [
+        "docs/adr/0005-ember-direction.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/adr/0001-hybrid-shell-and-today.md",
+        "docs/plan/ember/plan.json",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [],
+      "acceptance": "test -f docs/adr/0005-ember-direction.md && grep -c \"^| E\" docs/adr/0005-ember-direction.md prints 10; status line says Accepted for the direction and Default assumed for each open decision"
+    },
+    {
+      "id": "E0-03",
+      "phase": "E0",
+      "wave": 1,
+      "title": "Add the Ember theme tokens plus type, spacing and motion scales",
+      "size": "M",
+      "writes": [
+        "src/styles/ember.css",
+        "test/emberTokens.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/styles/tokens.css",
+        "src/styles.css"
+      ],
+      "deps": [],
+      "acceptance": "node --test test/emberTokens.test.js passes: every token in DESIGN.md section 2 is defined under :root[data-accent=\"ember\"]; text, secondary and accent on bg and on surface are >= 4.5:1; accent-fg on accent >= 4.5:1",
+      "notes": "One new file. Do not edit tokens.css or styles.css. Scales (type, space, motion) are defined on :root so every theme gets them."
+    },
+    {
+      "id": "E0-04",
+      "phase": "E0",
+      "wave": 1,
+      "title": "Self-host Space Grotesk, Inter and JetBrains Mono (latin subset)",
+      "size": "M",
+      "writes": [
+        "package.json",
+        "package-lock.json",
+        "src/styles/fonts.css",
+        "test/fonts.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "vite.config.js",
+        "vite-plugins/cspMeta.js",
+        "scripts/ci/budgets.json"
+      ],
+      "deps": [],
+      "acceptance": "npm run build emits woff2 files only for the weights in DESIGN.md section 2; their total size is under 160 kB; fonts.css uses font-display: swap; node --test test/fonts.test.js passes; no request to fonts.googleapis.com anywhere in dist",
+      "notes": "Use @fontsource-variable packages pinned to exact versions. This task may run npm install. CSP stays font-src self."
+    },
+    {
+      "id": "E0-05",
+      "phase": "E0",
+      "wave": 1,
+      "title": "Add an SVG line-icon set and Icon component",
+      "size": "S",
+      "writes": [
+        "src/ui/Icon.jsx",
+        "src/ui/icons.js",
+        "test/icons.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [],
+      "acceptance": "node --test test/icons.test.js passes: icons.js exports the 20 names listed in DESIGN.md section 3.1, each a 24x24 path string; Icon renders aria-hidden unless a label prop is given",
+      "notes": "Copy the path data from the <symbol> elements in the mockup. Category and pet emoji stay emoji."
+    },
+    {
+      "id": "E0-06",
+      "phase": "E0",
+      "wave": 1,
+      "title": "Add the fixed sample day used by the mockups as an e2e fixture",
+      "size": "S",
+      "writes": [
+        "e2e/fixtures/ember-day.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "e2e/fixtures/data.js",
+        "e2e/fixtures/hermetic.js",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [],
+      "acceptance": "node -e \"import('./e2e/fixtures/ember-day.js').then(m=>{if(!m.NOW||m.reminders.length<5||m.expenses.length<5)process.exit(1)})\" exits 0; NOW is Sun 15 Nov 2026 16:18 local"
+    },
+    {
+      "id": "E0-07",
+      "phase": "E0",
+      "wave": 2,
+      "title": "Register Ember as a theme and make it the default for new installs",
+      "size": "M",
+      "writes": [
+        "src/App.jsx",
+        "src/store.js",
+        "src/main.jsx",
+        "index.html",
+        "test/emberTheme.test.js",
+        "vite.config.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/styles/ember.css",
+        "src/styles/fonts.css"
+      ],
+      "deps": [
+        "E0-03",
+        "E0-04"
+      ],
+      "acceptance": "node --test test/emberTheme.test.js passes: THEMES has ember first with chrome #0a0c10; getSettings() with no saved theme returns ember; a saved theme (for example ocean) is returned unchanged; npm run build green; workbox globPatterns in vite.config.js include woff2 so the fonts are precached",
+      "notes": "Existing users keep the theme they saved. Only the fallback default changes. Must also import src/styles/fonts.css and src/styles/ember.css (E0-03/E0-04 left them unimported)."
+    },
+    {
+      "id": "E0-08",
+      "phase": "E0",
+      "wave": 2,
+      "title": "Build DailyCell and SegDots primitives",
+      "size": "S",
+      "writes": [
+        "src/ui/DailyCell.jsx",
+        "src/ui/SegDots.jsx",
+        "src/ui/ember-ui.css",
+        "test/segDots.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/ui/ui.css",
+        "src/ui/Ring.jsx",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E0-03"
+      ],
+      "acceptance": "node --test test/segDots.test.js passes (filled/empty mapping, aria-label \"13 of 15 days logged\"); DailyCell has done and open states that differ by more than colour (a check glyph when done)"
+    },
+    {
+      "id": "E0-09",
+      "phase": "E0",
+      "wave": 2,
+      "title": "Build TimelineRow and NextUpCard primitives",
+      "size": "M",
+      "writes": [
+        "src/ui/TimelineRow.jsx",
+        "src/ui/NextUpCard.jsx",
+        "src/ui/timeline.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/ui/Row.jsx",
+        "src/ui/Check.jsx",
+        "src/ui/ui.css",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E0-03",
+        "E0-05"
+      ],
+      "acceptance": "npm run build green; TimelineRow supports kinds reminder, note, expense, now and done; touch targets are >= 44px under (pointer: coarse); no colour literal in timeline.css outside var()"
+    },
+    {
+      "id": "E0-10",
+      "phase": "E0",
+      "wave": 2,
+      "title": "Build the Fab primitive and add count badges to SubNav",
+      "size": "S",
+      "writes": [
+        "src/ui/Fab.jsx",
+        "src/ui/fab.css",
+        "src/ui/SubNav.jsx",
+        "src/ui/subnav.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/styles/overlays.css",
+        "src/styles/shell.css"
+      ],
+      "deps": [
+        "E0-03",
+        "E0-05"
+      ],
+      "acceptance": "npm run build green; Fab is a 56px button with aria-label, sits above var(--tabbar-h) plus the bottom safe area; SubNav items accept an optional count and existing SubNav callers render unchanged"
+    },
+    {
+      "id": "E0-11",
+      "phase": "E0",
+      "wave": 3,
+      "title": "Show the new primitives in the component gallery",
+      "size": "S",
+      "writes": [
+        "src/ui/Gallery.jsx"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "gallery.html",
+        "src/ui/gallery-main.jsx"
+      ],
+      "deps": [
+        "E0-08",
+        "E0-09",
+        "E0-10"
+      ],
+      "acceptance": "npm run build green; gallery.html shows DailyCell (done, open), SegDots, TimelineRow (5 kinds), NextUpCard, Fab and Icon grid under the ember theme and under cream"
+    },
+    {
+      "id": "E0-12",
+      "phase": "E0",
+      "wave": 3,
+      "title": "Switch the six tab icons from emoji to line icons",
+      "size": "S",
+      "writes": [
+        "src/shell/Nav.jsx",
+        "src/styles/nav.css",
+        "test/navIcons.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/routes.js",
+        "test/shellCss.test.js"
+      ],
+      "deps": [
+        "E0-05",
+        "E0-07"
+      ],
+      "acceptance": "node --test test/navIcons.test.js passes (six items, order today, life, logic, money, invest, agents, each with an Icon name); npx playwright test e2e/matrix/phone.spec.js --trace off passes with six labelled tabs at 390px"
+    },
+    {
+      "id": "E0-GATE",
+      "phase": "E0",
+      "wave": 4,
+      "title": "Phase gate: foundations",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/reports/E0-gate.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md"
+      ],
+      "deps": [
+        "E0-01",
+        "E0-02",
+        "E0-06",
+        "E0-11",
+        "E0-12"
+      ],
+      "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off all green; report lists each exit criterion with pass or fail and a screenshot of gallery.html under ember; stop for owner sign-off",
+      "gate": true
+    },
+    {
+      "id": "E1-01",
+      "phase": "E1",
+      "wave": 1,
+      "title": "Record the day a puzzle was solved",
+      "size": "S",
+      "writes": [
+        "src/logic/puzzleProgress.js",
+        "test/puzzleProgress.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/tabs/Puzzles.jsx",
+        "src/logic/stats.js"
+      ],
+      "deps": [
+        "E0-GATE"
+      ],
+      "acceptance": "node --test test/puzzleProgress.test.js passes: normalize(true) gives {solved:true, at:null}; markSolved(id, now) stores at; solvedOn(progress, dayKey) counts only dated solves; old boolean data round-trips without loss"
+    },
+    {
+      "id": "E1-02",
+      "phase": "E1",
+      "wave": 1,
+      "title": "Work out which days expenses were logged, and the logging run",
+      "size": "S",
+      "writes": [
+        "src/money/dayLog.js",
+        "test/moneyDayLog.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/money/logic.js",
+        "src/life/logic.js"
+      ],
+      "deps": [
+        "E0-GATE"
+      ],
+      "acceptance": "node --test test/moneyDayLog.test.js passes: loggedDays counts a day with any transaction or a no-spend mark; logStreak ends at today or yesterday; monthStrip(now) returns one boolean per day up to today; local-midnight edges covered"
+    },
+    {
+      "id": "E1-03",
+      "phase": "E1",
+      "wave": 1,
+      "title": "Add snooze, repeat and reschedule rules for reminders",
+      "size": "M",
+      "writes": [
+        "src/life/reminderLogic.js",
+        "test/reminderLogic.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/screens/Reminders.jsx",
+        "src/life/logic.js"
+      ],
+      "deps": [
+        "E0-GATE"
+      ],
+      "acceptance": "node --test test/reminderLogic.test.js passes: snooze presets (1 hour, tonight 8 PM, tomorrow 9 AM); repeat none, daily, weekly on chosen weekdays, monthly; completing a repeating reminder returns the next occurrence; month-end and DST cases covered",
+      "notes": "Pure functions only. New optional fields on a reminder: repeat, snoozedFrom. Old reminders without them stay valid."
+    },
+    {
+      "id": "E1-04",
+      "phase": "E1",
+      "wave": 1,
+      "title": "Write the capture parser: one sentence to a typed draft",
+      "size": "M",
+      "writes": [
+        "src/capture/parse.js",
+        "test/captureParse.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/logic.js",
+        "src/money/categories.js"
+      ],
+      "deps": [
+        "E0-GATE"
+      ],
+      "acceptance": "node --test test/captureParse.test.js passes at least 30 cases, including \"450 coffee with raj\" -> expense 450 coffee person Raj today; \"call mom tomorrow 6pm\" -> reminder; \"gym tomorrow 5pm\" with type task -> task; \"solved cf 1328E\" -> solve; plain text -> note; each result lists the tokens it used",
+      "notes": "Reuse parseQuick for dates and times. A forced type (from the chip row) overrides inference. Never guess a category with no keyword match: leave it empty."
+    },
+    {
+      "id": "E1-05",
+      "phase": "E1",
+      "wave": 1,
+      "title": "Derive a note title and excerpt from its first line",
+      "size": "S",
+      "writes": [
+        "src/life/noteTitle.js",
+        "test/noteTitle.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/notesTree.js"
+      ],
+      "deps": [
+        "E0-GATE"
+      ],
+      "acceptance": "node --test test/noteTitle.test.js passes: title is the first non-empty line trimmed to 80 chars, excerpt is the rest collapsed to one line; a one-line note has an empty excerpt"
+    },
+    {
+      "id": "E1-06",
+      "phase": "E1",
+      "wave": 1,
+      "title": "Add the dailyLog synced key (no-spend days, daily puzzle done)",
+      "size": "M",
+      "writes": [
+        "src/store.js",
+        "src/sync/flags.js",
+        "src/sync/appSubscriptions.js",
+        "src/backup/backup.js",
+        "test/dailyLogStore.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/sync/engine.js",
+        "src/life/records.js"
+      ],
+      "deps": [
+        "E0-GATE"
+      ],
+      "acceptance": "node --test test/dailyLogStore.test.js test/backup.test.js test/sync.test.js test/appSubscriptions.test.js passes: dailyLog is in SYNCED_KEYS and the flags list, exports and imports in a backup, and a backup made before this change still imports",
+      "notes": "Shape: { \"YYYY-MM-DD\": { noSpend?: true, puzzle?: true } }. Sync v1 only. Do not touch supabase/ or any v2 SQL."
+    },
+    {
+      "id": "E1-07",
+      "phase": "E1",
+      "wave": 2,
+      "title": "Compute the five dailies from stored data",
+      "size": "M",
+      "writes": [
+        "src/today/dailies.js",
+        "test/dailies.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/logic/stats.js",
+        "src/life/selectors.js",
+        "src/money/dayLog.js",
+        "src/logic/puzzleProgress.js",
+        "e2e/fixtures/ember-day.js"
+      ],
+      "deps": [
+        "E1-01",
+        "E1-02",
+        "E1-06"
+      ],
+      "acceptance": "node --test test/dailies.test.js passes: returns habits, spend, mood, code, puzzle in that order, each with label, value text, done flag and href; with the fixture day it gives 3 of 5 done; zero habits means the habits daily is not counted"
+    },
+    {
+      "id": "E1-08",
+      "phase": "E1",
+      "wave": 2,
+      "title": "Build the Today timeline and pick the next-up item",
+      "size": "M",
+      "writes": [
+        "src/today/timeline.js",
+        "test/timeline.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/reminderLogic.js",
+        "src/life/noteTitle.js",
+        "src/life/selectors.js"
+      ],
+      "deps": [
+        "E1-03",
+        "E1-05"
+      ],
+      "acceptance": "node --test test/timeline.test.js passes: merges today's reminders, timed tasks, expenses and notes in time order with one now marker; nextUp is the earliest open reminder or timed task after now; overdue items are returned separately, oldest first"
+    },
+    {
+      "id": "E1-09",
+      "phase": "E1",
+      "wave": 2,
+      "title": "Make the Puzzles screen store solve dates and the Lichess daily mark",
+      "size": "M",
+      "writes": [
+        "src/tabs/Puzzles.jsx",
+        "src/tabs/LogicBuilding.jsx"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/logic/puzzleProgress.js",
+        "src/store.js"
+      ],
+      "deps": [
+        "E1-01",
+        "E1-06"
+      ],
+      "acceptance": "npm test and npm run build green; marking a bank puzzle solved writes a dated entry; the Lichess card has a Mark solved control that sets dailyLog[today].puzzle; the Puzzles solved count still reads 0..145 with old boolean data"
+    },
+    {
+      "id": "E1-10",
+      "phase": "E1",
+      "wave": 2,
+      "title": "Add reminder actions: snooze, reschedule, repeat, complete",
+      "size": "M",
+      "writes": [
+        "src/life/LifeData.jsx",
+        "test/lifeReminderActions.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/reminderLogic.js",
+        "src/life/records.js",
+        "src/undo.js"
+      ],
+      "deps": [
+        "E1-03"
+      ],
+      "acceptance": "node --test test/lifeReminderActions.test.js test/lifeRecords.test.js passes: each action stamps updatedAt, completing a repeating reminder creates the next one exactly once, and every action is undoable through the existing undo helper"
+    },
+    {
+      "id": "E1-11",
+      "phase": "E1",
+      "wave": 2,
+      "title": "Expose logged days and a no-spend action from MoneyContext",
+      "size": "S",
+      "writes": [
+        "src/money/MoneyContext.jsx",
+        "test/moneyNoSpend.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/money/dayLog.js",
+        "src/store.js"
+      ],
+      "deps": [
+        "E1-02",
+        "E1-06"
+      ],
+      "acceptance": "node --test test/moneyNoSpend.test.js passes: markNoSpend(dayKey) sets dailyLog[day].noSpend, adding a transaction that day clears it, and the context value includes logStreak and monthStrip"
+    },
+    {
+      "id": "E1-13",
+      "phase": "E1",
+      "wave": 2,
+      "title": "Include reminders in command palette search",
+      "size": "S",
+      "writes": [
+        "src/shell/searchIndex.js",
+        "test/searchIndex.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/shell/commands.js"
+      ],
+      "deps": [
+        "E0-GATE"
+      ],
+      "acceptance": "node --test test/searchIndex.test.js passes with a new case: an open reminder is found by title and navigates to #/life/reminders"
+    },
+    {
+      "id": "E1-12",
+      "phase": "E1",
+      "wave": 3,
+      "title": "Add the useDailies hook that feeds Today",
+      "size": "M",
+      "writes": [
+        "src/today/useDailies.js",
+        "test/useDailiesLoad.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/today/useTodayData.js",
+        "src/storeEvents.js",
+        "src/useSynced.js"
+      ],
+      "deps": [
+        "E1-07",
+        "E1-08",
+        "E1-10",
+        "E1-11"
+      ],
+      "acceptance": "node --test test/useDailiesLoad.test.js passes for the pure loader (keys read, result shape); the hook re-computes on store events for the keys it reads and exposes actions completeReminder, snooze, reschedule, checkIn, logMood, markNoSpend"
+    },
+    {
+      "id": "E1-GATE",
+      "phase": "E1",
+      "wave": 4,
+      "title": "Phase gate: data and logic",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/reports/E1-gate.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md"
+      ],
+      "deps": [
+        "E1-04",
+        "E1-09",
+        "E1-12",
+        "E1-13"
+      ],
+      "acceptance": "npm test, npm run lint and npm run build green; report gives the new test count, confirms a pre-change backup file imports, and confirms sync v2 flags are still all off; stop for owner sign-off",
+      "gate": true
+    },
+    {
+      "id": "E2-01",
+      "phase": "E2",
+      "wave": 1,
+      "title": "Build the dailies strip",
+      "size": "S",
+      "writes": [
+        "src/today/DailiesStrip.jsx",
+        "src/today/dailies.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/ui/DailyCell.jsx",
+        "src/today/dailies.js",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E1-GATE"
+      ],
+      "acceptance": "npm run build green; five cells in one row at 390px with no wrap; each is a link to its screen; done cells show the done style and a check; loading state shows five skeleton cells"
+    },
+    {
+      "id": "E2-02",
+      "phase": "E2",
+      "wave": 1,
+      "title": "Build the next-up card with Done, Snooze and the overdue chip",
+      "size": "M",
+      "writes": [
+        "src/today/NextUp.jsx",
+        "src/today/nextup.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/ui/NextUpCard.jsx",
+        "src/today/timeline.js",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E1-GATE"
+      ],
+      "acceptance": "npm run build green; shows title, time and \"in N min\"; Done and Snooze 1h call the passed handlers; an overdue chip above it shows the count and oldest title and offers Today 7 PM; empty state reads \"Nothing left on the clock.\""
+    },
+    {
+      "id": "E2-03",
+      "phase": "E2",
+      "wave": 1,
+      "title": "Build the Today timeline list",
+      "size": "M",
+      "writes": [
+        "src/today/Timeline.jsx",
+        "src/today/timeline-screen.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/ui/TimelineRow.jsx",
+        "src/today/timeline.js",
+        "src/money/format.js",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E1-GATE"
+      ],
+      "acceptance": "npm run build green; renders rows from timeline.js with times in the device 12h or 24h format; reminders have a working check; expense rows show the amount right-aligned in tabular figures; the now row is announced as \"Now\" to screen readers"
+    },
+    {
+      "id": "E2-04",
+      "phase": "E2",
+      "wave": 1,
+      "title": "Build the Today header: date, streak and the dailies ring",
+      "size": "S",
+      "writes": [
+        "src/today/TodayHeader.jsx",
+        "src/today/today-header.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/ui/Ring.jsx",
+        "src/today/useProgressSummary.js",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E1-GATE"
+      ],
+      "acceptance": "npm run build green; shows \"SUN 15 NOV · 12-DAY STREAK\" style line, the title Today and a ring with done/total and an aria-label such as \"3 of 5 dailies done\"; with no streak the streak part is omitted"
+    },
+    {
+      "id": "E2-05",
+      "phase": "E2",
+      "wave": 2,
+      "title": "Compose the new Today home",
+      "size": "M",
+      "writes": [
+        "src/today/TodayHome.jsx",
+        "src/today/today.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/today/useDailies.js",
+        "src/today/useTodayData.js",
+        "src/today/tiles/tiles-a.css",
+        "src/today/tiles/tiles-b.css"
+      ],
+      "deps": [
+        "E2-01",
+        "E2-02",
+        "E2-03",
+        "E2-04"
+      ],
+      "acceptance": "npm test and npm run build green; order is header, dailies, next up, timeline, then the kept tiles (Streak, Wallet, Pets, Watch, Tutor); Tasks, Code, Spend and Mood tiles are no longer mounted; from 900px container width the kept tiles sit in a second column; the error state still renders",
+      "notes": "Tile component files stay in the repo. Mood is logged from its dailies cell (opens the capture sheet in E3; until then it links to #/life/growth)."
+    },
+    {
+      "id": "E2-06",
+      "phase": "E2",
+      "wave": 3,
+      "title": "Add end-to-end checks for Today",
+      "size": "M",
+      "writes": [
+        "e2e/today-ember.spec.js",
+        "e2e/matrix/phone.spec.js",
+        "e2e/matrix/ipad-portrait.spec.js",
+        "e2e/matrix/ipad-landscape.spec.js",
+        "e2e/matrix/desktop.spec.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "e2e/fixtures/ember-day.js",
+        "e2e/helpers/layout.js"
+      ],
+      "deps": [
+        "E2-05"
+      ],
+      "acceptance": "npx playwright test e2e/today-ember.spec.js e2e/matrix --trace off passes: with the fixture day the ring reads 3/5, next up is Gym, checking Gym moves next up to Call mom, and there is no horizontal scroll at 390, 834, 1194 and 1440"
+    },
+    {
+      "id": "E2-07",
+      "phase": "E2",
+      "wave": 3,
+      "title": "Celebrate once when all dailies are done",
+      "size": "S",
+      "writes": [
+        "src/today/celebrate.js",
+        "src/today/TodayHome.jsx",
+        "test/todayCelebrate.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/confetti.js"
+      ],
+      "deps": [
+        "E2-05"
+      ],
+      "acceptance": "node --test test/todayCelebrate.test.js passes: fires once per local day when done reaches total, never on load when already complete, and not at all under prefers-reduced-motion"
+    },
+    {
+      "id": "E2-GATE",
+      "phase": "E2",
+      "wave": 4,
+      "title": "Phase gate: Today",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/reports/E2-gate.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md"
+      ],
+      "deps": [
+        "E2-06",
+        "E2-07"
+      ],
+      "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report has Today screenshots at 390, 834 and 1194 next to the mockup and lists every visible difference; stop for owner sign-off",
+      "gate": true
+    },
+    {
+      "id": "E3-01",
+      "phase": "E3",
+      "wave": 1,
+      "title": "Build the capture sheet frame: type chips, text field, parsed chips",
+      "size": "M",
+      "writes": [
+        "src/capture/CaptureSheet.jsx",
+        "src/capture/capture.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/Sheet.jsx",
+        "src/capture/parse.js",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E2-GATE"
+      ],
+      "acceptance": "npm run build green; chips Expense, Note, Reminder, Task, Habit, Solve, Mood scroll sideways at 390px; typing shows parsed chips live; the primary button label names the type (\"Add expense\"); focus starts in the field and Esc closes"
+    },
+    {
+      "id": "E3-02",
+      "phase": "E3",
+      "wave": 1,
+      "title": "Map a parsed draft to store changes for every type",
+      "size": "M",
+      "writes": [
+        "src/capture/submit.js",
+        "test/captureSubmit.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/money/MoneyContext.jsx",
+        "src/life/LifeData.jsx",
+        "src/store.js",
+        "src/logic/puzzleProgress.js"
+      ],
+      "deps": [
+        "E2-GATE"
+      ],
+      "acceptance": "node --test test/captureSubmit.test.js passes: expense, income, note, reminder, task, habit check-in, solve and mood each produce the same record shape the existing screens create; an expense with no category is rejected with the message \"Pick a category\"; every submit returns an undo function"
+    },
+    {
+      "id": "E3-03",
+      "phase": "E3",
+      "wave": 1,
+      "title": "Build the chip editors: amount, category, when, repeat, person",
+      "size": "M",
+      "writes": [
+        "src/capture/editors/**"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/money/categories.js",
+        "src/life/reminderLogic.js",
+        "src/money/AddTxnSheet.jsx"
+      ],
+      "deps": [
+        "E2-GATE"
+      ],
+      "acceptance": "npm run build green; CategoryPicker shows the 12 categories sorted by recent use; WhenPicker offers Tonight 8 PM, Tomorrow 9 AM, Sat 10 AM and Pick a time; every control is reachable by keyboard and is >= 44px on touch"
+    },
+    {
+      "id": "E3-04",
+      "phase": "E3",
+      "wave": 1,
+      "title": "Add capture state: open, prefill, and the default type per screen",
+      "size": "S",
+      "writes": [
+        "src/capture/captureContext.js",
+        "test/captureDefaults.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/routes.js",
+        "src/router.js"
+      ],
+      "deps": [
+        "E2-GATE"
+      ],
+      "acceptance": "node --test test/captureDefaults.test.js passes: default type is expense on money, reminder on life/reminders, note on life/notes, task on life/tasks, solve on logic, otherwise the last used type (stored locally), falling back to expense"
+    },
+    {
+      "id": "E3-09",
+      "phase": "E3",
+      "wave": 1,
+      "title": "Build the non-text panels: habit check-in, mood, solve",
+      "size": "M",
+      "writes": [
+        "src/capture/panels/**"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/screens/Habits.jsx",
+        "src/life/logic.js",
+        "src/tabs/CodeView.jsx"
+      ],
+      "deps": [
+        "E2-GATE"
+      ],
+      "acceptance": "npm run build green; Habit lists habits not yet checked in today with one-tap check-in; Mood shows the five existing moods; Solve offers \"Solved a problem\" (adds to code today) and \"Daily puzzle done\"; each panel shows a clear empty state"
+    },
+    {
+      "id": "E3-05",
+      "phase": "E3",
+      "wave": 2,
+      "title": "Wire the capture sheet: editors, panels, submit, undo toast",
+      "size": "M",
+      "writes": [
+        "src/capture/CaptureSheet.jsx",
+        "test/captureFlow.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/capture/submit.js",
+        "src/capture/captureContext.js",
+        "src/toast.js"
+      ],
+      "deps": [
+        "E3-01",
+        "E3-02",
+        "E3-03",
+        "E3-04",
+        "E3-09"
+      ],
+      "acceptance": "node --test test/captureFlow.test.js passes for the pure reducer; saving closes the sheet, shows a toast with Undo, and Undo restores the previous data; a failed save keeps the sheet open with the typed text intact"
+    },
+    {
+      "id": "E3-06",
+      "phase": "E3",
+      "wave": 2,
+      "title": "Put the plus button in the shell on every tab",
+      "size": "S",
+      "writes": [
+        "src/shell/Shell.jsx",
+        "src/styles/shell.css",
+        "src/shell/TopBar.jsx",
+        "test/shellCss.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/ui/Fab.jsx",
+        "src/styles/overlays.css",
+        "src/styles/nav.css"
+      ],
+      "deps": [
+        "E3-04"
+      ],
+      "acceptance": "node --test test/shellCss.test.js passes; the Fab is bottom-right above the tab bar below 600px, bottom-right of the page from 600px, and never covers the last list row (the page gets matching bottom padding); it is hidden while a sheet is open"
+    },
+    {
+      "id": "E3-07",
+      "phase": "E3",
+      "wave": 3,
+      "title": "Mount capture in the app, add the N shortcut and palette commands",
+      "size": "M",
+      "writes": [
+        "src/App.jsx",
+        "src/shell/commands.js",
+        "src/shell/useShortcuts.js",
+        "test/commands.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/capture/captureContext.js",
+        "src/capture/CaptureSheet.jsx"
+      ],
+      "deps": [
+        "E3-05",
+        "E3-06"
+      ],
+      "acceptance": "node --test test/commands.test.js passes: N opens capture with the screen default; the palette lists New expense, New note, New reminder, New task, Check in a habit, Log mood; N does nothing while typing in an input"
+    },
+    {
+      "id": "E3-08",
+      "phase": "E3",
+      "wave": 3,
+      "title": "Replace the Money-only add button with the global plus",
+      "size": "S",
+      "writes": [
+        "src/money/MoneyApp.jsx",
+        "src/money/money.css",
+        "src/today/DailiesStrip.jsx"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/money/AddTxnSheet.jsx",
+        "src/capture/captureContext.js"
+      ],
+      "deps": [
+        "E3-05"
+      ],
+      "acceptance": "npm test and npm run build green; the money-fab is gone; + Expense and + Income on Spend open capture prefilled with that type; the Mood dailies cell opens capture on Mood; editing an existing transaction still uses the existing edit sheet"
+    },
+    {
+      "id": "E3-10",
+      "phase": "E3",
+      "wave": 4,
+      "title": "Add end-to-end checks for capture",
+      "size": "M",
+      "writes": [
+        "e2e/capture.spec.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "e2e/fixtures/ember-day.js",
+        "e2e/helpers/layout.js"
+      ],
+      "deps": [
+        "E3-07",
+        "E3-08"
+      ],
+      "acceptance": "npx playwright test e2e/capture.spec.js --trace off passes: plus, type \"450 coffee with raj\", Add expense -> row appears under Today in Money and the spend daily is done; \"call mom tomorrow 6pm\" creates a reminder; Undo removes it; focus returns to the plus button on close"
+    },
+    {
+      "id": "E3-GATE",
+      "phase": "E3",
+      "wave": 5,
+      "title": "Phase gate: plus button and capture",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/reports/E3-gate.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md"
+      ],
+      "deps": [
+        "E3-10"
+      ],
+      "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report states the tap count to log an expense on a phone and attaches capture screenshots at 390 and 1194; stop for owner sign-off",
+      "gate": true
+    },
+    {
+      "id": "E4-01",
+      "phase": "E4",
+      "wave": 1,
+      "title": "Restyle the Life frame: header line and section chips with counts",
+      "size": "S",
+      "writes": [
+        "src/tabs/Life.jsx",
+        "src/life/life.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/views.js",
+        "src/ui/SubNav.jsx",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "npm test and npm run build green; chips read Tasks N, Reminders N, Notes N, Habits, Growth and keep their routes; the header shows wallet and level in the mono style; no horizontal scroll at 390px"
+    },
+    {
+      "id": "E4-02",
+      "phase": "E4",
+      "wave": 1,
+      "title": "Rebuild Reminders: sections, week strip, reschedule, snooze, repeat",
+      "size": "M",
+      "writes": [
+        "src/life/screens/Reminders.jsx",
+        "src/life/screens/ReminderInspector.jsx",
+        "src/life/reminders.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/LifeData.jsx",
+        "src/life/reminderLogic.js",
+        "src/life/icsClient.js",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "npm test and npm run build green; sections Overdue, Today, Tomorrow, Later, Done; an overdue row offers Today 7 PM; the inspector edits title, time and repeat and offers the three snooze presets; Add to Calendar and Undo on delete still work"
+    },
+    {
+      "id": "E4-03",
+      "phase": "E4",
+      "wave": 1,
+      "title": "Rebuild Notes: title and excerpt rows, Pinned and Recent, tag chips",
+      "size": "M",
+      "writes": [
+        "src/life/screens/Notes.jsx",
+        "src/life/screens/NoteInspector.jsx",
+        "src/life/notes.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/noteTitle.js",
+        "src/life/notesTree.js",
+        "src/dnd/Dnd.jsx",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "npm test and npm run build green; rows show colour dot, title, two-line excerpt, tags, sub-note count and date; tag chips filter in one tap; nesting, pin, colour, drag and drop, cascade delete and Undo behave as before (existing notesTree tests pass)",
+      "notes": "Large file (541 lines). Restyle and restructure the list only; do not change the data model. Split out a NoteRow file if it helps."
+    },
+    {
+      "id": "E4-04",
+      "phase": "E4",
+      "wave": 1,
+      "title": "Rebuild Money Spend: month card, logging strip, day groups",
+      "size": "M",
+      "writes": [
+        "src/money/screens/SpendScreen.jsx",
+        "src/money/screens/SpendSummary.jsx",
+        "src/money/screens/TxnList.jsx",
+        "src/money/screens/spend.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/money/MoneyContext.jsx",
+        "src/ui/SegDots.jsx",
+        "src/money/logic.js",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "npm test and npm run build green; the top card shows month spend, budget, a bar and \"left\"; under it \"Logged N days in a row\" with one square per day of the month so far; a \"Nothing spent today\" button appears only when today has no entries; category bars and the 3-month trend remain below the day list"
+    },
+    {
+      "id": "E4-05",
+      "phase": "E4",
+      "wave": 1,
+      "title": "Restyle Logic: solved-today ring, daily puzzle status, code streak",
+      "size": "M",
+      "writes": [
+        "src/tabs/LogicBuilding.jsx",
+        "src/tabs/Puzzles.jsx",
+        "src/logic/logic.css",
+        "src/logic/puzzles.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/logic/stats.js",
+        "src/logic/puzzleProgress.js"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "npm test and npm run build green; the header shows Solved today n/goal as a ring, \"Daily puzzle: open\" or \"solved\", and the code streak; section chips Code, Puzzles, Exams, DSA keep their routes",
+      "notes": "Not drawn in the mockup. Follow DESIGN.md section 5.6."
+    },
+    {
+      "id": "E4-06",
+      "phase": "E4",
+      "wave": 1,
+      "title": "Restyle Tasks, Habits and Growth",
+      "size": "M",
+      "writes": [
+        "src/life/screens/Tasks.jsx",
+        "src/life/screens/TaskInspector.jsx",
+        "src/life/screens/Habits.jsx",
+        "src/life/screens/HabitInspector.jsx",
+        "src/life/screens/Growth.jsx",
+        "src/life/screens/GrowthInspector.jsx",
+        "src/life/wellbeing.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/LifeData.jsx",
+        "src/life/selectors.js"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "npm test and npm run build green; task sections and quadrant chips use the ember row style; the habit card keeps pet, streak, health, earnings and Check in; the task inspector gains a time-of-day field for dueAt; drag and drop still works"
+    },
+    {
+      "id": "E4-07",
+      "phase": "E4",
+      "wave": 2,
+      "title": "Restyle Budgets, Goals and Loans",
+      "size": "M",
+      "writes": [
+        "src/money/screens/BudgetsScreen.jsx",
+        "src/money/screens/GoalsScreen.jsx",
+        "src/money/screens/GoalFormSheet.jsx",
+        "src/money/screens/LoansScreen.jsx",
+        "src/money/screens/LoanFormSheet.jsx",
+        "src/money/screens/LoanPersonCard.jsx",
+        "src/money/money.css",
+        "src/money/AddTxnSheet.jsx"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/money/screens/spend.css"
+      ],
+      "deps": [
+        "E4-04"
+      ],
+      "acceptance": "npm test and npm run build green; all four Money sections share the chip row and card style; budget warnings at 80% and 100% keep their text; no behaviour change (moneyLogic and loanBalance tests pass)"
+    },
+    {
+      "id": "E4-08",
+      "phase": "E4",
+      "wave": 2,
+      "title": "Restyle Invest: Learn, Research, Watchlist",
+      "size": "S",
+      "writes": [
+        "src/invest/screens/**",
+        "src/invest/invest.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "npm test and npm run build green; the disclaimer bar stays visible; watchlist rows use tabular figures and the ember row style; no behaviour change (investLogic tests pass)",
+      "notes": "Not drawn in the mockup. Follow DESIGN.md section 5.7."
+    },
+    {
+      "id": "E4-09",
+      "phase": "E4",
+      "wave": 2,
+      "title": "Restyle Agents",
+      "size": "S",
+      "writes": [
+        "src/tabs/Agents.jsx",
+        "src/agents/agents.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "npm test and npm run build green; topic chips and the More tools menu use the chip style; chat bubbles use surface tokens; streaming, Stop and Retry behave as before (agentStreamClient tests pass)",
+      "notes": "Not drawn in the mockup. Follow DESIGN.md section 5.8."
+    },
+    {
+      "id": "E4-10",
+      "phase": "E4",
+      "wave": 2,
+      "title": "Restyle Code, Exams and the DSA frame",
+      "size": "M",
+      "writes": [
+        "src/tabs/CodeView.jsx",
+        "src/tabs/Exams.jsx",
+        "src/tabs/DsaView.jsx",
+        "src/logic/code.css",
+        "src/logic/exams.css",
+        "src/logic/dsa.css"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/logic/logic.css"
+      ],
+      "deps": [
+        "E4-05"
+      ],
+      "acceptance": "npm test and npm run build green; problem rows show rating and tags in the mono style; exam percentages never exceed 100; keyboard j, k, x, s still work in Code"
+    },
+    {
+      "id": "E4-11",
+      "phase": "E4",
+      "wave": 2,
+      "title": "Move Settings to its own panel and add the dailies settings",
+      "size": "M",
+      "writes": [
+        "src/App.jsx",
+        "src/settings/SettingsPanel.jsx",
+        "src/settings/settings.css",
+        "src/today/dailies.js",
+        "test/dailies.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/backup/BackupPanel.jsx"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "node --test test/dailies.test.js passes with new cases: settings.dailyCodeGoal (1 to 10, default 3) and settings.dailies (which of the five count) change the result; the panel has Codeforces handle, Theme, Daily code goal, Dailies and Backup"
+    },
+    {
+      "id": "E4-12",
+      "phase": "E4",
+      "wave": 2,
+      "title": "Replace hard-coded colours in the legacy stylesheet with tokens",
+      "size": "M",
+      "writes": [
+        "src/styles.css",
+        "test/legacyColours.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/styles/tokens.css",
+        "src/styles/ember.css"
+      ],
+      "deps": [
+        "E3-GATE"
+      ],
+      "acceptance": "node --test test/legacyColours.test.js passes: no hex or rgb literal remains in src/styles.css outside the token blocks at the top; npm run build green; the cream and sky themes still render (existing e2e smoke passes)"
+    },
+    {
+      "id": "E4-13",
+      "phase": "E4",
+      "wave": 3,
+      "title": "Extend the device matrix to every sub-view and add a contrast check",
+      "size": "M",
+      "writes": [
+        "e2e/ember-screens.spec.js",
+        "e2e/helpers/contrast.js",
+        "e2e/matrix/phone.spec.js",
+        "e2e/matrix/ipad-portrait.spec.js",
+        "e2e/matrix/ipad-landscape.spec.js",
+        "e2e/matrix/desktop.spec.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "e2e/helpers/layout.js",
+        "e2e/fixtures/ember-day.js"
+      ],
+      "deps": [
+        "E4-01",
+        "E4-02",
+        "E4-03",
+        "E4-06",
+        "E4-07",
+        "E4-08",
+        "E4-09",
+        "E4-10",
+        "E4-11",
+        "E4-12"
+      ],
+      "acceptance": "npm run test:e2e -- --trace off passes: all 17 sub-views plus Today and Agents load at 390, 834, 1194 and 1440 with no horizontal scroll and no console errors; visible text on the ember theme meets 4.5:1 on Today, Reminders, Notes and Spend"
+    },
+    {
+      "id": "E4-14",
+      "phase": "E4",
+      "wave": 3,
+      "title": "Update the README and write the device checklist",
+      "size": "S",
+      "writes": [
+        "README.md",
+        "docs/qa/ember-device-checklist.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/qa/definition-of-done.md"
+      ],
+      "deps": [
+        "E4-01",
+        "E4-04",
+        "E4-05"
+      ],
+      "acceptance": "test -f docs/qa/ember-device-checklist.md && grep -c \"^- \\[ \\]\" docs/qa/ember-device-checklist.md prints >= 25; README Layout section names src/capture, src/today/dailies.js and the ember theme"
+    },
+    {
+      "id": "E4-U1",
+      "phase": "E4",
+      "wave": 4,
+      "title": "Owner: run the device checklist on your iPhone and iPad",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/reports/E4-device-check.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/qa/ember-device-checklist.md"
+      ],
+      "deps": [
+        "E4-13",
+        "E4-14"
+      ],
+      "acceptance": "docs/plan/ember/reports/E4-device-check.md exists with every item in docs/qa/ember-device-checklist.md marked pass or fail, the device and iOS version, and a note for each fail",
+      "owner": "user"
+    },
+    {
+      "id": "E4-GATE",
+      "phase": "E4",
+      "wave": 5,
+      "title": "Phase gate: screens",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/reports/E4-gate.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md"
+      ],
+      "deps": [
+        "E4-U1"
+      ],
+      "acceptance": "npm test, npm run lint, npm run build, npm run size, npm run check:secrets and npm run test:e2e -- --trace off green; every fail in the device check is fixed or listed as accepted by the owner; stop for owner sign-off. The web app is shippable at this point",
+      "gate": true
+    },
+    {
+      "id": "E5-U1",
+      "phase": "E5",
+      "wave": 1,
+      "title": "Owner: confirm the iPhone app prerequisites",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/reports/E5-prereqs.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/plan/OPEN-DECISIONS.md",
+        "docs/runbooks/ios-release.md"
+      ],
+      "deps": [
+        "E4-GATE"
+      ],
+      "acceptance": "The report states: Mac model and Xcode version (26 or later), Apple Developer team id, bundle id, iPhone model and iOS version, and that the Capacitor shell from docs/plan/plan.json phase P4 (tasks X1-11, X1-12, X1-13) builds and runs on the device",
+      "notes": "Nothing native in this phase can start before this is true. Tasks E5-01 to E5-04 are web-only and can run without it.",
+      "owner": "user"
+    },
+    {
+      "id": "E5-01",
+      "phase": "E5",
+      "wave": 1,
+      "title": "Build the widget snapshot from app data",
+      "size": "M",
+      "writes": [
+        "src/widgets/snapshot.js",
+        "test/widgetSnapshot.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/today/dailies.js",
+        "src/today/timeline.js",
+        "src/money/dayLog.js"
+      ],
+      "deps": [
+        "E4-GATE"
+      ],
+      "acceptance": "node --test test/widgetSnapshot.test.js passes: output has schema version, day key, five dailies, done count, streak, nextUp, up to 4 open reminders, overdue count, spend today, month spend and budget; it is under 4 kB as JSON; it contains no note bodies beyond one pinned title"
+    },
+    {
+      "id": "E5-02",
+      "phase": "E5",
+      "wave": 1,
+      "title": "Write the widget spec: sizes, content, links, actions",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/WIDGETS.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E4-GATE"
+      ],
+      "acceptance": "test -f docs/plan/ember/WIDGETS.md; it has one section each for small, medium, large, lock rectangle, lock circle and lock inline with content, tap target and link; it defines the snapshot fields each uses, the tinted and clear rendering rule, and the two actions (complete reminder, open capture)",
+      "notes": "Sizes in points for a 393pt-wide iPhone must be checked against Apple's current widget documentation, not copied from memory."
+    },
+    {
+      "id": "E5-03",
+      "phase": "E5",
+      "wave": 2,
+      "title": "Publish the snapshot to the native side when data changes",
+      "size": "S",
+      "writes": [
+        "src/platform/widgetBridge.js",
+        "test/widgetBridge.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/platform/persist.js",
+        "src/storeEvents.js"
+      ],
+      "deps": [
+        "E5-01"
+      ],
+      "acceptance": "node --test test/widgetBridge.test.js passes: on the web the bridge is a no-op; with a fake plugin it sends at most one snapshot per 2 seconds, only when the snapshot changed, and once on app resume"
+    },
+    {
+      "id": "E5-04",
+      "phase": "E5",
+      "wave": 2,
+      "title": "Open items and capture from links",
+      "size": "S",
+      "writes": [
+        "src/capture/deepLink.js",
+        "src/capture/captureContext.js",
+        "test/captureDeepLink.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/router.js",
+        "src/routes.js"
+      ],
+      "deps": [
+        "E5-02"
+      ],
+      "acceptance": "node --test test/captureDeepLink.test.js passes: #/today?capture=expense opens capture on Expense once and then clears the query; #/life/reminders?id=<id> selects that reminder; unknown values are ignored"
+    },
+    {
+      "id": "E5-05",
+      "phase": "E5",
+      "wave": 3,
+      "title": "Add the native plugin, App Group and widget target",
+      "size": "M",
+      "writes": [
+        "ios/App/App/Plugins/ForgeWidgets/**",
+        "ios/App/App/App.entitlements",
+        "ios/App/App.xcodeproj/project.pbxproj",
+        "ios/App/ForgeWidgets/ForgeWidgetsBundle.swift",
+        "ios/App/ForgeWidgets/Shared/**",
+        "ios/App/ForgeWidgets/Info.plist",
+        "ios/App/ForgeWidgets/ForgeWidgets.entitlements"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/plan/ember/WIDGETS.md",
+        "src/platform/widgetBridge.js"
+      ],
+      "deps": [
+        "E5-U1",
+        "E5-03"
+      ],
+      "acceptance": "xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphonesimulator build succeeds; calling setSnapshot from the web layer writes the JSON to the App Group container and reloads widget timelines; the widget target uses a folder-synchronised group so later tasks add files without editing project.pbxproj",
+      "notes": "Needs the Mac. Single writer of project.pbxproj in this phase."
+    },
+    {
+      "id": "E5-06",
+      "phase": "E5",
+      "wave": 4,
+      "title": "Build the small, medium and large widgets",
+      "size": "M",
+      "writes": [
+        "ios/App/ForgeWidgets/Home/**"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/plan/ember/WIDGETS.md",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E5-05"
+      ],
+      "acceptance": "The simulator build succeeds; SwiftUI previews exist for each size with the fixture snapshot, an empty snapshot and the tinted rendering mode; layouts match WIDGETS.md; all tap targets carry the links from the spec"
+    },
+    {
+      "id": "E5-07",
+      "phase": "E5",
+      "wave": 4,
+      "title": "Build the lock-screen widgets",
+      "size": "S",
+      "writes": [
+        "ios/App/ForgeWidgets/Lock/**"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/plan/ember/WIDGETS.md",
+        "docs/designs/app-directions.html"
+      ],
+      "deps": [
+        "E5-05"
+      ],
+      "acceptance": "The simulator build succeeds; previews exist for rectangle (next up), circle (done/total) and inline (spend today and code) with fixture and empty snapshots"
+    },
+    {
+      "id": "E5-08",
+      "phase": "E5",
+      "wave": 5,
+      "title": "Complete a reminder from a widget and reconcile in the app",
+      "size": "M",
+      "writes": [
+        "ios/App/ForgeWidgets/Intents/**",
+        "src/platform/widgetInbox.js",
+        "test/widgetInbox.test.js"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "src/life/LifeData.jsx",
+        "docs/plan/ember/WIDGETS.md"
+      ],
+      "deps": [
+        "E5-06"
+      ],
+      "acceptance": "node --test test/widgetInbox.test.js passes: pending actions are applied once through the reminder actions on resume, duplicates and unknown ids are ignored, and the inbox is cleared only after a successful save; on the simulator, ticking a reminder in the medium widget strikes it through and the app shows it done on next open"
+    },
+    {
+      "id": "E5-U2",
+      "phase": "E5",
+      "wave": 6,
+      "title": "Owner: use the widgets on your phone for two days",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/reports/E5-device-check.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md",
+        "docs/plan/ember/WIDGETS.md"
+      ],
+      "deps": [
+        "E5-07",
+        "E5-08",
+        "E5-04"
+      ],
+      "acceptance": "The report says for each widget: shows correct data within a minute of a change in the app (yes or no), tick-off works (yes or no), links open the right place (yes or no), readable in tinted mode (yes or no), with the device and iOS version",
+      "owner": "user"
+    },
+    {
+      "id": "E5-GATE",
+      "phase": "E5",
+      "wave": 7,
+      "title": "Phase gate: widgets",
+      "size": "S",
+      "writes": [
+        "docs/plan/ember/reports/E5-gate.md"
+      ],
+      "reads": [
+        "docs/plan/ember/DESIGN.md"
+      ],
+      "deps": [
+        "E5-U2"
+      ],
+      "acceptance": "npm test and npm run build green; the simulator build succeeds; every \"no\" in the device check is fixed or accepted by the owner; stop for owner sign-off",
+      "gate": true
+    }
   ]
- },
- "phases": [
-  {
-   "id": "E0",
-   "name": "Foundations",
-   "goal": "Make the wave runner work with this plan, add the Ember theme, fonts, icons and the new primitives, and switch the tab bar to line icons. No screen changes yet.",
-   "exit": [
-    "npm test, lint, build, size and e2e green",
-    "Ember is the default theme for a new install; a saved theme is untouched",
-    "gallery.html shows every new primitive under ember and cream",
-    "six labelled tabs with line icons fit at 390px",
-    "tools/live/wave.mjs runs against docs/plan/ember/plan.json"
-   ]
-  },
-  {
-   "id": "E1",
-   "name": "Data and logic",
-   "goal": "Add everything the new screens need to know, as tested pure logic: the five dailies, puzzle solve dates, expense logging days, the Today timeline, reminder snooze and repeat, and the capture parser.",
-   "exit": [
-    "npm test, lint and build green",
-    "the fixture day computes 3 of 5 dailies",
-    "old backups and old puzzle progress still load",
-    "sync v2 flags remain off and no SQL was touched"
-   ]
-  },
-  {
-   "id": "E2",
-   "name": "Today",
-   "goal": "Replace the top of Today with the Ember layout: header with ring, five dailies, next up, and the timeline, keeping five of the existing tiles below.",
-   "exit": [
-    "Today matches the mockup at 390px (differences listed in the gate report)",
-    "checking the next-up reminder advances it",
-    "no horizontal scroll at 390, 834, 1194, 1440",
-    "owner sign-off"
-   ]
-  },
-  {
-   "id": "E3",
-   "name": "Plus button and capture",
-   "goal": "One plus button on every tab that opens a capture sheet: type a sentence, check the chips, save. Covers expense, income, note, reminder, task, habit check-in, solve and mood.",
-   "exit": [
-    "an expense can be logged from any tab without visiting Money",
-    "N and the command palette open capture",
-    "every save can be undone",
-    "the Money-only add button is gone",
-    "owner sign-off"
-   ]
-  },
-  {
-   "id": "E4",
-   "name": "Screens in the Ember look",
-   "goal": "Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, including reminders with snooze and repeat, notes with titles, and the expense logging strip.",
-   "exit": [
-    "all sub-views pass the device matrix",
-    "text contrast >= 4.5:1 on the ember theme",
-    "owner device checklist complete",
-    "the web app is shippable"
-   ]
-  },
-  {
-   "id": "E5",
-   "name": "Widgets (iPhone)",
-   "goal": "Small, medium, large and lock-screen widgets fed by a snapshot from the app, with tick-off from the widget. Needs the iPhone app shell, a Mac and an Apple Developer account.",
-   "exit": [
-    "widgets show current data after a change in the app",
-    "ticking a reminder in a widget is reflected in the app",
-    "owner used them on a real phone for two days"
-   ]
-  }
- ],
- "tasks": [
-  {
-   "id": "E0-01",
-   "phase": "E0",
-   "wave": 1,
-   "title": "Make the wave runner and live graph work with any plan file",
-   "size": "M",
-   "writes": [
-    "tools/live/**",
-    "test/waveRunner.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/plan/WORKFLOW.md",
-    "docs/plan/ember/KICKOFF.md"
-   ],
-   "deps": [],
-   "acceptance": "FORGE_PLAN=docs/plan/ember/plan.json node tools/live/wave.mjs status prints counts for E0..E5; with FORGE_PLAN unset it still reads docs/plan/plan.json; node --test test/waveRunner.test.js passes; grep -c \"session_01T1mhHa\" tools/live/wave.mjs prints 0",
-   "notes": "Plan path from FORGE_PLAN env or --plan. Brief text (context files, default decisions, commit trailers) comes from plan.meta.brief and FORGE_TRAILERS, not hard-coded strings. Merge re-lints the same plan file."
-  },
-  {
-   "id": "E0-02",
-   "phase": "E0",
-   "wave": 1,
-   "title": "Record the Ember decision and defaults E1-E10 as an ADR",
-   "size": "S",
-   "writes": [
-    "docs/adr/0005-ember-direction.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/adr/0001-hybrid-shell-and-today.md",
-    "docs/plan/ember/plan.json",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [],
-   "acceptance": "test -f docs/adr/0005-ember-direction.md && grep -c \"^| E\" docs/adr/0005-ember-direction.md prints 10; status line says Accepted for the direction and Default assumed for each open decision"
-  },
-  {
-   "id": "E0-03",
-   "phase": "E0",
-   "wave": 1,
-   "title": "Add the Ember theme tokens plus type, spacing and motion scales",
-   "size": "M",
-   "writes": [
-    "src/styles/ember.css",
-    "test/emberTokens.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/styles/tokens.css",
-    "src/styles.css"
-   ],
-   "deps": [],
-   "acceptance": "node --test test/emberTokens.test.js passes: every token in DESIGN.md section 2 is defined under :root[data-accent=\"ember\"]; text, secondary and accent on bg and on surface are >= 4.5:1; accent-fg on accent >= 4.5:1",
-   "notes": "One new file. Do not edit tokens.css or styles.css. Scales (type, space, motion) are defined on :root so every theme gets them."
-  },
-  {
-   "id": "E0-04",
-   "phase": "E0",
-   "wave": 1,
-   "title": "Self-host Space Grotesk, Inter and JetBrains Mono (latin subset)",
-   "size": "M",
-   "writes": [
-    "package.json",
-    "package-lock.json",
-    "src/styles/fonts.css",
-    "test/fonts.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "vite.config.js",
-    "vite-plugins/cspMeta.js",
-    "scripts/ci/budgets.json"
-   ],
-   "deps": [],
-   "acceptance": "npm run build emits woff2 files only for the weights in DESIGN.md section 2; their total size is under 160 kB; fonts.css uses font-display: swap; node --test test/fonts.test.js passes; no request to fonts.googleapis.com anywhere in dist",
-   "notes": "Use @fontsource-variable packages pinned to exact versions. This task may run npm install. CSP stays font-src self."
-  },
-  {
-   "id": "E0-05",
-   "phase": "E0",
-   "wave": 1,
-   "title": "Add an SVG line-icon set and Icon component",
-   "size": "S",
-   "writes": [
-    "src/ui/Icon.jsx",
-    "src/ui/icons.js",
-    "test/icons.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [],
-   "acceptance": "node --test test/icons.test.js passes: icons.js exports the 20 names listed in DESIGN.md section 3.1, each a 24x24 path string; Icon renders aria-hidden unless a label prop is given",
-   "notes": "Copy the path data from the <symbol> elements in the mockup. Category and pet emoji stay emoji."
-  },
-  {
-   "id": "E0-06",
-   "phase": "E0",
-   "wave": 1,
-   "title": "Add the fixed sample day used by the mockups as an e2e fixture",
-   "size": "S",
-   "writes": [
-    "e2e/fixtures/ember-day.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "e2e/fixtures/data.js",
-    "e2e/fixtures/hermetic.js",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [],
-   "acceptance": "node -e \"import('./e2e/fixtures/ember-day.js').then(m=>{if(!m.NOW||m.reminders.length<5||m.expenses.length<5)process.exit(1)})\" exits 0; NOW is Sun 15 Nov 2026 16:18 local"
-  },
-  {
-   "id": "E0-07",
-   "phase": "E0",
-   "wave": 2,
-   "title": "Register Ember as a theme and make it the default for new installs",
-   "size": "M",
-   "writes": [
-    "src/App.jsx",
-    "src/store.js",
-    "src/main.jsx",
-    "index.html",
-    "test/emberTheme.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/styles/ember.css",
-    "src/styles/fonts.css"
-   ],
-   "deps": [
-    "E0-03",
-    "E0-04"
-   ],
-   "acceptance": "node --test test/emberTheme.test.js passes: THEMES has ember first with chrome #0a0c10; getSettings() with no saved theme returns ember; a saved theme (for example ocean) is returned unchanged; npm run build green",
-   "notes": "Existing users keep the theme they saved. Only the fallback default changes."
-  },
-  {
-   "id": "E0-08",
-   "phase": "E0",
-   "wave": 2,
-   "title": "Build DailyCell and SegDots primitives",
-   "size": "S",
-   "writes": [
-    "src/ui/DailyCell.jsx",
-    "src/ui/SegDots.jsx",
-    "src/ui/ember-ui.css",
-    "test/segDots.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/ui/ui.css",
-    "src/ui/Ring.jsx",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E0-03"
-   ],
-   "acceptance": "node --test test/segDots.test.js passes (filled/empty mapping, aria-label \"13 of 15 days logged\"); DailyCell has done and open states that differ by more than colour (a check glyph when done)"
-  },
-  {
-   "id": "E0-09",
-   "phase": "E0",
-   "wave": 2,
-   "title": "Build TimelineRow and NextUpCard primitives",
-   "size": "M",
-   "writes": [
-    "src/ui/TimelineRow.jsx",
-    "src/ui/NextUpCard.jsx",
-    "src/ui/timeline.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/ui/Row.jsx",
-    "src/ui/Check.jsx",
-    "src/ui/ui.css",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E0-03",
-    "E0-05"
-   ],
-   "acceptance": "npm run build green; TimelineRow supports kinds reminder, note, expense, now and done; touch targets are >= 44px under (pointer: coarse); no colour literal in timeline.css outside var()"
-  },
-  {
-   "id": "E0-10",
-   "phase": "E0",
-   "wave": 2,
-   "title": "Build the Fab primitive and add count badges to SubNav",
-   "size": "S",
-   "writes": [
-    "src/ui/Fab.jsx",
-    "src/ui/fab.css",
-    "src/ui/SubNav.jsx",
-    "src/ui/subnav.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/styles/overlays.css",
-    "src/styles/shell.css"
-   ],
-   "deps": [
-    "E0-03",
-    "E0-05"
-   ],
-   "acceptance": "npm run build green; Fab is a 56px button with aria-label, sits above var(--tabbar-h) plus the bottom safe area; SubNav items accept an optional count and existing SubNav callers render unchanged"
-  },
-  {
-   "id": "E0-11",
-   "phase": "E0",
-   "wave": 3,
-   "title": "Show the new primitives in the component gallery",
-   "size": "S",
-   "writes": [
-    "src/ui/Gallery.jsx"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "gallery.html",
-    "src/ui/gallery-main.jsx"
-   ],
-   "deps": [
-    "E0-08",
-    "E0-09",
-    "E0-10"
-   ],
-   "acceptance": "npm run build green; gallery.html shows DailyCell (done, open), SegDots, TimelineRow (5 kinds), NextUpCard, Fab and Icon grid under the ember theme and under cream"
-  },
-  {
-   "id": "E0-12",
-   "phase": "E0",
-   "wave": 3,
-   "title": "Switch the six tab icons from emoji to line icons",
-   "size": "S",
-   "writes": [
-    "src/shell/Nav.jsx",
-    "src/styles/nav.css",
-    "test/navIcons.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/routes.js",
-    "test/shellCss.test.js"
-   ],
-   "deps": [
-    "E0-05",
-    "E0-07"
-   ],
-   "acceptance": "node --test test/navIcons.test.js passes (six items, order today, life, logic, money, invest, agents, each with an Icon name); npx playwright test e2e/matrix/phone.spec.js --trace off passes with six labelled tabs at 390px"
-  },
-  {
-   "id": "E0-GATE",
-   "phase": "E0",
-   "wave": 4,
-   "title": "Phase gate: foundations",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/reports/E0-gate.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md"
-   ],
-   "deps": [
-    "E0-01",
-    "E0-02",
-    "E0-06",
-    "E0-11",
-    "E0-12"
-   ],
-   "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off all green; report lists each exit criterion with pass or fail and a screenshot of gallery.html under ember; stop for owner sign-off",
-   "gate": true
-  },
-  {
-   "id": "E1-01",
-   "phase": "E1",
-   "wave": 1,
-   "title": "Record the day a puzzle was solved",
-   "size": "S",
-   "writes": [
-    "src/logic/puzzleProgress.js",
-    "test/puzzleProgress.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/tabs/Puzzles.jsx",
-    "src/logic/stats.js"
-   ],
-   "deps": [
-    "E0-GATE"
-   ],
-   "acceptance": "node --test test/puzzleProgress.test.js passes: normalize(true) gives {solved:true, at:null}; markSolved(id, now) stores at; solvedOn(progress, dayKey) counts only dated solves; old boolean data round-trips without loss"
-  },
-  {
-   "id": "E1-02",
-   "phase": "E1",
-   "wave": 1,
-   "title": "Work out which days expenses were logged, and the logging run",
-   "size": "S",
-   "writes": [
-    "src/money/dayLog.js",
-    "test/moneyDayLog.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/money/logic.js",
-    "src/life/logic.js"
-   ],
-   "deps": [
-    "E0-GATE"
-   ],
-   "acceptance": "node --test test/moneyDayLog.test.js passes: loggedDays counts a day with any transaction or a no-spend mark; logStreak ends at today or yesterday; monthStrip(now) returns one boolean per day up to today; local-midnight edges covered"
-  },
-  {
-   "id": "E1-03",
-   "phase": "E1",
-   "wave": 1,
-   "title": "Add snooze, repeat and reschedule rules for reminders",
-   "size": "M",
-   "writes": [
-    "src/life/reminderLogic.js",
-    "test/reminderLogic.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/screens/Reminders.jsx",
-    "src/life/logic.js"
-   ],
-   "deps": [
-    "E0-GATE"
-   ],
-   "acceptance": "node --test test/reminderLogic.test.js passes: snooze presets (1 hour, tonight 8 PM, tomorrow 9 AM); repeat none, daily, weekly on chosen weekdays, monthly; completing a repeating reminder returns the next occurrence; month-end and DST cases covered",
-   "notes": "Pure functions only. New optional fields on a reminder: repeat, snoozedFrom. Old reminders without them stay valid."
-  },
-  {
-   "id": "E1-04",
-   "phase": "E1",
-   "wave": 1,
-   "title": "Write the capture parser: one sentence to a typed draft",
-   "size": "M",
-   "writes": [
-    "src/capture/parse.js",
-    "test/captureParse.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/logic.js",
-    "src/money/categories.js"
-   ],
-   "deps": [
-    "E0-GATE"
-   ],
-   "acceptance": "node --test test/captureParse.test.js passes at least 30 cases, including \"450 coffee with raj\" -> expense 450 coffee person Raj today; \"call mom tomorrow 6pm\" -> reminder; \"gym tomorrow 5pm\" with type task -> task; \"solved cf 1328E\" -> solve; plain text -> note; each result lists the tokens it used",
-   "notes": "Reuse parseQuick for dates and times. A forced type (from the chip row) overrides inference. Never guess a category with no keyword match: leave it empty."
-  },
-  {
-   "id": "E1-05",
-   "phase": "E1",
-   "wave": 1,
-   "title": "Derive a note title and excerpt from its first line",
-   "size": "S",
-   "writes": [
-    "src/life/noteTitle.js",
-    "test/noteTitle.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/notesTree.js"
-   ],
-   "deps": [
-    "E0-GATE"
-   ],
-   "acceptance": "node --test test/noteTitle.test.js passes: title is the first non-empty line trimmed to 80 chars, excerpt is the rest collapsed to one line; a one-line note has an empty excerpt"
-  },
-  {
-   "id": "E1-06",
-   "phase": "E1",
-   "wave": 1,
-   "title": "Add the dailyLog synced key (no-spend days, daily puzzle done)",
-   "size": "M",
-   "writes": [
-    "src/store.js",
-    "src/sync/flags.js",
-    "src/sync/appSubscriptions.js",
-    "src/backup/backup.js",
-    "test/dailyLogStore.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/sync/engine.js",
-    "src/life/records.js"
-   ],
-   "deps": [
-    "E0-GATE"
-   ],
-   "acceptance": "node --test test/dailyLogStore.test.js test/backup.test.js test/sync.test.js test/appSubscriptions.test.js passes: dailyLog is in SYNCED_KEYS and the flags list, exports and imports in a backup, and a backup made before this change still imports",
-   "notes": "Shape: { \"YYYY-MM-DD\": { noSpend?: true, puzzle?: true } }. Sync v1 only. Do not touch supabase/ or any v2 SQL."
-  },
-  {
-   "id": "E1-07",
-   "phase": "E1",
-   "wave": 2,
-   "title": "Compute the five dailies from stored data",
-   "size": "M",
-   "writes": [
-    "src/today/dailies.js",
-    "test/dailies.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/logic/stats.js",
-    "src/life/selectors.js",
-    "src/money/dayLog.js",
-    "src/logic/puzzleProgress.js",
-    "e2e/fixtures/ember-day.js"
-   ],
-   "deps": [
-    "E1-01",
-    "E1-02",
-    "E1-06"
-   ],
-   "acceptance": "node --test test/dailies.test.js passes: returns habits, spend, mood, code, puzzle in that order, each with label, value text, done flag and href; with the fixture day it gives 3 of 5 done; zero habits means the habits daily is not counted"
-  },
-  {
-   "id": "E1-08",
-   "phase": "E1",
-   "wave": 2,
-   "title": "Build the Today timeline and pick the next-up item",
-   "size": "M",
-   "writes": [
-    "src/today/timeline.js",
-    "test/timeline.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/reminderLogic.js",
-    "src/life/noteTitle.js",
-    "src/life/selectors.js"
-   ],
-   "deps": [
-    "E1-03",
-    "E1-05"
-   ],
-   "acceptance": "node --test test/timeline.test.js passes: merges today's reminders, timed tasks, expenses and notes in time order with one now marker; nextUp is the earliest open reminder or timed task after now; overdue items are returned separately, oldest first"
-  },
-  {
-   "id": "E1-09",
-   "phase": "E1",
-   "wave": 2,
-   "title": "Make the Puzzles screen store solve dates and the Lichess daily mark",
-   "size": "M",
-   "writes": [
-    "src/tabs/Puzzles.jsx",
-    "src/tabs/LogicBuilding.jsx"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/logic/puzzleProgress.js",
-    "src/store.js"
-   ],
-   "deps": [
-    "E1-01",
-    "E1-06"
-   ],
-   "acceptance": "npm test and npm run build green; marking a bank puzzle solved writes a dated entry; the Lichess card has a Mark solved control that sets dailyLog[today].puzzle; the Puzzles solved count still reads 0..145 with old boolean data"
-  },
-  {
-   "id": "E1-10",
-   "phase": "E1",
-   "wave": 2,
-   "title": "Add reminder actions: snooze, reschedule, repeat, complete",
-   "size": "M",
-   "writes": [
-    "src/life/LifeData.jsx",
-    "test/lifeReminderActions.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/reminderLogic.js",
-    "src/life/records.js",
-    "src/undo.js"
-   ],
-   "deps": [
-    "E1-03"
-   ],
-   "acceptance": "node --test test/lifeReminderActions.test.js test/lifeRecords.test.js passes: each action stamps updatedAt, completing a repeating reminder creates the next one exactly once, and every action is undoable through the existing undo helper"
-  },
-  {
-   "id": "E1-11",
-   "phase": "E1",
-   "wave": 2,
-   "title": "Expose logged days and a no-spend action from MoneyContext",
-   "size": "S",
-   "writes": [
-    "src/money/MoneyContext.jsx",
-    "test/moneyNoSpend.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/money/dayLog.js",
-    "src/store.js"
-   ],
-   "deps": [
-    "E1-02",
-    "E1-06"
-   ],
-   "acceptance": "node --test test/moneyNoSpend.test.js passes: markNoSpend(dayKey) sets dailyLog[day].noSpend, adding a transaction that day clears it, and the context value includes logStreak and monthStrip"
-  },
-  {
-   "id": "E1-13",
-   "phase": "E1",
-   "wave": 2,
-   "title": "Include reminders in command palette search",
-   "size": "S",
-   "writes": [
-    "src/shell/searchIndex.js",
-    "test/searchIndex.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/shell/commands.js"
-   ],
-   "deps": [
-    "E0-GATE"
-   ],
-   "acceptance": "node --test test/searchIndex.test.js passes with a new case: an open reminder is found by title and navigates to #/life/reminders"
-  },
-  {
-   "id": "E1-12",
-   "phase": "E1",
-   "wave": 3,
-   "title": "Add the useDailies hook that feeds Today",
-   "size": "M",
-   "writes": [
-    "src/today/useDailies.js",
-    "test/useDailiesLoad.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/today/useTodayData.js",
-    "src/storeEvents.js",
-    "src/useSynced.js"
-   ],
-   "deps": [
-    "E1-07",
-    "E1-08",
-    "E1-10",
-    "E1-11"
-   ],
-   "acceptance": "node --test test/useDailiesLoad.test.js passes for the pure loader (keys read, result shape); the hook re-computes on store events for the keys it reads and exposes actions completeReminder, snooze, reschedule, checkIn, logMood, markNoSpend"
-  },
-  {
-   "id": "E1-GATE",
-   "phase": "E1",
-   "wave": 4,
-   "title": "Phase gate: data and logic",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/reports/E1-gate.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md"
-   ],
-   "deps": [
-    "E1-04",
-    "E1-09",
-    "E1-12",
-    "E1-13"
-   ],
-   "acceptance": "npm test, npm run lint and npm run build green; report gives the new test count, confirms a pre-change backup file imports, and confirms sync v2 flags are still all off; stop for owner sign-off",
-   "gate": true
-  },
-  {
-   "id": "E2-01",
-   "phase": "E2",
-   "wave": 1,
-   "title": "Build the dailies strip",
-   "size": "S",
-   "writes": [
-    "src/today/DailiesStrip.jsx",
-    "src/today/dailies.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/ui/DailyCell.jsx",
-    "src/today/dailies.js",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E1-GATE"
-   ],
-   "acceptance": "npm run build green; five cells in one row at 390px with no wrap; each is a link to its screen; done cells show the done style and a check; loading state shows five skeleton cells"
-  },
-  {
-   "id": "E2-02",
-   "phase": "E2",
-   "wave": 1,
-   "title": "Build the next-up card with Done, Snooze and the overdue chip",
-   "size": "M",
-   "writes": [
-    "src/today/NextUp.jsx",
-    "src/today/nextup.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/ui/NextUpCard.jsx",
-    "src/today/timeline.js",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E1-GATE"
-   ],
-   "acceptance": "npm run build green; shows title, time and \"in N min\"; Done and Snooze 1h call the passed handlers; an overdue chip above it shows the count and oldest title and offers Today 7 PM; empty state reads \"Nothing left on the clock.\""
-  },
-  {
-   "id": "E2-03",
-   "phase": "E2",
-   "wave": 1,
-   "title": "Build the Today timeline list",
-   "size": "M",
-   "writes": [
-    "src/today/Timeline.jsx",
-    "src/today/timeline-screen.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/ui/TimelineRow.jsx",
-    "src/today/timeline.js",
-    "src/money/format.js",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E1-GATE"
-   ],
-   "acceptance": "npm run build green; renders rows from timeline.js with times in the device 12h or 24h format; reminders have a working check; expense rows show the amount right-aligned in tabular figures; the now row is announced as \"Now\" to screen readers"
-  },
-  {
-   "id": "E2-04",
-   "phase": "E2",
-   "wave": 1,
-   "title": "Build the Today header: date, streak and the dailies ring",
-   "size": "S",
-   "writes": [
-    "src/today/TodayHeader.jsx",
-    "src/today/today-header.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/ui/Ring.jsx",
-    "src/today/useProgressSummary.js",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E1-GATE"
-   ],
-   "acceptance": "npm run build green; shows \"SUN 15 NOV · 12-DAY STREAK\" style line, the title Today and a ring with done/total and an aria-label such as \"3 of 5 dailies done\"; with no streak the streak part is omitted"
-  },
-  {
-   "id": "E2-05",
-   "phase": "E2",
-   "wave": 2,
-   "title": "Compose the new Today home",
-   "size": "M",
-   "writes": [
-    "src/today/TodayHome.jsx",
-    "src/today/today.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/today/useDailies.js",
-    "src/today/useTodayData.js",
-    "src/today/tiles/tiles-a.css",
-    "src/today/tiles/tiles-b.css"
-   ],
-   "deps": [
-    "E2-01",
-    "E2-02",
-    "E2-03",
-    "E2-04"
-   ],
-   "acceptance": "npm test and npm run build green; order is header, dailies, next up, timeline, then the kept tiles (Streak, Wallet, Pets, Watch, Tutor); Tasks, Code, Spend and Mood tiles are no longer mounted; from 900px container width the kept tiles sit in a second column; the error state still renders",
-   "notes": "Tile component files stay in the repo. Mood is logged from its dailies cell (opens the capture sheet in E3; until then it links to #/life/growth)."
-  },
-  {
-   "id": "E2-06",
-   "phase": "E2",
-   "wave": 3,
-   "title": "Add end-to-end checks for Today",
-   "size": "M",
-   "writes": [
-    "e2e/today-ember.spec.js",
-    "e2e/matrix/phone.spec.js",
-    "e2e/matrix/ipad-portrait.spec.js",
-    "e2e/matrix/ipad-landscape.spec.js",
-    "e2e/matrix/desktop.spec.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "e2e/fixtures/ember-day.js",
-    "e2e/helpers/layout.js"
-   ],
-   "deps": [
-    "E2-05"
-   ],
-   "acceptance": "npx playwright test e2e/today-ember.spec.js e2e/matrix --trace off passes: with the fixture day the ring reads 3/5, next up is Gym, checking Gym moves next up to Call mom, and there is no horizontal scroll at 390, 834, 1194 and 1440"
-  },
-  {
-   "id": "E2-07",
-   "phase": "E2",
-   "wave": 3,
-   "title": "Celebrate once when all dailies are done",
-   "size": "S",
-   "writes": [
-    "src/today/celebrate.js",
-    "src/today/TodayHome.jsx",
-    "test/todayCelebrate.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/confetti.js"
-   ],
-   "deps": [
-    "E2-05"
-   ],
-   "acceptance": "node --test test/todayCelebrate.test.js passes: fires once per local day when done reaches total, never on load when already complete, and not at all under prefers-reduced-motion"
-  },
-  {
-   "id": "E2-GATE",
-   "phase": "E2",
-   "wave": 4,
-   "title": "Phase gate: Today",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/reports/E2-gate.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md"
-   ],
-   "deps": [
-    "E2-06",
-    "E2-07"
-   ],
-   "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report has Today screenshots at 390, 834 and 1194 next to the mockup and lists every visible difference; stop for owner sign-off",
-   "gate": true
-  },
-  {
-   "id": "E3-01",
-   "phase": "E3",
-   "wave": 1,
-   "title": "Build the capture sheet frame: type chips, text field, parsed chips",
-   "size": "M",
-   "writes": [
-    "src/capture/CaptureSheet.jsx",
-    "src/capture/capture.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/Sheet.jsx",
-    "src/capture/parse.js",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E2-GATE"
-   ],
-   "acceptance": "npm run build green; chips Expense, Note, Reminder, Task, Habit, Solve, Mood scroll sideways at 390px; typing shows parsed chips live; the primary button label names the type (\"Add expense\"); focus starts in the field and Esc closes"
-  },
-  {
-   "id": "E3-02",
-   "phase": "E3",
-   "wave": 1,
-   "title": "Map a parsed draft to store changes for every type",
-   "size": "M",
-   "writes": [
-    "src/capture/submit.js",
-    "test/captureSubmit.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/money/MoneyContext.jsx",
-    "src/life/LifeData.jsx",
-    "src/store.js",
-    "src/logic/puzzleProgress.js"
-   ],
-   "deps": [
-    "E2-GATE"
-   ],
-   "acceptance": "node --test test/captureSubmit.test.js passes: expense, income, note, reminder, task, habit check-in, solve and mood each produce the same record shape the existing screens create; an expense with no category is rejected with the message \"Pick a category\"; every submit returns an undo function"
-  },
-  {
-   "id": "E3-03",
-   "phase": "E3",
-   "wave": 1,
-   "title": "Build the chip editors: amount, category, when, repeat, person",
-   "size": "M",
-   "writes": [
-    "src/capture/editors/**"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/money/categories.js",
-    "src/life/reminderLogic.js",
-    "src/money/AddTxnSheet.jsx"
-   ],
-   "deps": [
-    "E2-GATE"
-   ],
-   "acceptance": "npm run build green; CategoryPicker shows the 12 categories sorted by recent use; WhenPicker offers Tonight 8 PM, Tomorrow 9 AM, Sat 10 AM and Pick a time; every control is reachable by keyboard and is >= 44px on touch"
-  },
-  {
-   "id": "E3-04",
-   "phase": "E3",
-   "wave": 1,
-   "title": "Add capture state: open, prefill, and the default type per screen",
-   "size": "S",
-   "writes": [
-    "src/capture/captureContext.js",
-    "test/captureDefaults.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/routes.js",
-    "src/router.js"
-   ],
-   "deps": [
-    "E2-GATE"
-   ],
-   "acceptance": "node --test test/captureDefaults.test.js passes: default type is expense on money, reminder on life/reminders, note on life/notes, task on life/tasks, solve on logic, otherwise the last used type (stored locally), falling back to expense"
-  },
-  {
-   "id": "E3-09",
-   "phase": "E3",
-   "wave": 1,
-   "title": "Build the non-text panels: habit check-in, mood, solve",
-   "size": "M",
-   "writes": [
-    "src/capture/panels/**"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/screens/Habits.jsx",
-    "src/life/logic.js",
-    "src/tabs/CodeView.jsx"
-   ],
-   "deps": [
-    "E2-GATE"
-   ],
-   "acceptance": "npm run build green; Habit lists habits not yet checked in today with one-tap check-in; Mood shows the five existing moods; Solve offers \"Solved a problem\" (adds to code today) and \"Daily puzzle done\"; each panel shows a clear empty state"
-  },
-  {
-   "id": "E3-05",
-   "phase": "E3",
-   "wave": 2,
-   "title": "Wire the capture sheet: editors, panels, submit, undo toast",
-   "size": "M",
-   "writes": [
-    "src/capture/CaptureSheet.jsx",
-    "test/captureFlow.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/capture/submit.js",
-    "src/capture/captureContext.js",
-    "src/toast.js"
-   ],
-   "deps": [
-    "E3-01",
-    "E3-02",
-    "E3-03",
-    "E3-04",
-    "E3-09"
-   ],
-   "acceptance": "node --test test/captureFlow.test.js passes for the pure reducer; saving closes the sheet, shows a toast with Undo, and Undo restores the previous data; a failed save keeps the sheet open with the typed text intact"
-  },
-  {
-   "id": "E3-06",
-   "phase": "E3",
-   "wave": 2,
-   "title": "Put the plus button in the shell on every tab",
-   "size": "S",
-   "writes": [
-    "src/shell/Shell.jsx",
-    "src/styles/shell.css",
-    "src/shell/TopBar.jsx",
-    "test/shellCss.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/ui/Fab.jsx",
-    "src/styles/overlays.css",
-    "src/styles/nav.css"
-   ],
-   "deps": [
-    "E3-04"
-   ],
-   "acceptance": "node --test test/shellCss.test.js passes; the Fab is bottom-right above the tab bar below 600px, bottom-right of the page from 600px, and never covers the last list row (the page gets matching bottom padding); it is hidden while a sheet is open"
-  },
-  {
-   "id": "E3-07",
-   "phase": "E3",
-   "wave": 3,
-   "title": "Mount capture in the app, add the N shortcut and palette commands",
-   "size": "M",
-   "writes": [
-    "src/App.jsx",
-    "src/shell/commands.js",
-    "src/shell/useShortcuts.js",
-    "test/commands.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/capture/captureContext.js",
-    "src/capture/CaptureSheet.jsx"
-   ],
-   "deps": [
-    "E3-05",
-    "E3-06"
-   ],
-   "acceptance": "node --test test/commands.test.js passes: N opens capture with the screen default; the palette lists New expense, New note, New reminder, New task, Check in a habit, Log mood; N does nothing while typing in an input"
-  },
-  {
-   "id": "E3-08",
-   "phase": "E3",
-   "wave": 3,
-   "title": "Replace the Money-only add button with the global plus",
-   "size": "S",
-   "writes": [
-    "src/money/MoneyApp.jsx",
-    "src/money/money.css",
-    "src/today/DailiesStrip.jsx"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/money/AddTxnSheet.jsx",
-    "src/capture/captureContext.js"
-   ],
-   "deps": [
-    "E3-05"
-   ],
-   "acceptance": "npm test and npm run build green; the money-fab is gone; + Expense and + Income on Spend open capture prefilled with that type; the Mood dailies cell opens capture on Mood; editing an existing transaction still uses the existing edit sheet"
-  },
-  {
-   "id": "E3-10",
-   "phase": "E3",
-   "wave": 4,
-   "title": "Add end-to-end checks for capture",
-   "size": "M",
-   "writes": [
-    "e2e/capture.spec.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "e2e/fixtures/ember-day.js",
-    "e2e/helpers/layout.js"
-   ],
-   "deps": [
-    "E3-07",
-    "E3-08"
-   ],
-   "acceptance": "npx playwright test e2e/capture.spec.js --trace off passes: plus, type \"450 coffee with raj\", Add expense -> row appears under Today in Money and the spend daily is done; \"call mom tomorrow 6pm\" creates a reminder; Undo removes it; focus returns to the plus button on close"
-  },
-  {
-   "id": "E3-GATE",
-   "phase": "E3",
-   "wave": 5,
-   "title": "Phase gate: plus button and capture",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/reports/E3-gate.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md"
-   ],
-   "deps": [
-    "E3-10"
-   ],
-   "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report states the tap count to log an expense on a phone and attaches capture screenshots at 390 and 1194; stop for owner sign-off",
-   "gate": true
-  },
-  {
-   "id": "E4-01",
-   "phase": "E4",
-   "wave": 1,
-   "title": "Restyle the Life frame: header line and section chips with counts",
-   "size": "S",
-   "writes": [
-    "src/tabs/Life.jsx",
-    "src/life/life.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/views.js",
-    "src/ui/SubNav.jsx",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "npm test and npm run build green; chips read Tasks N, Reminders N, Notes N, Habits, Growth and keep their routes; the header shows wallet and level in the mono style; no horizontal scroll at 390px"
-  },
-  {
-   "id": "E4-02",
-   "phase": "E4",
-   "wave": 1,
-   "title": "Rebuild Reminders: sections, week strip, reschedule, snooze, repeat",
-   "size": "M",
-   "writes": [
-    "src/life/screens/Reminders.jsx",
-    "src/life/screens/ReminderInspector.jsx",
-    "src/life/reminders.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/LifeData.jsx",
-    "src/life/reminderLogic.js",
-    "src/life/icsClient.js",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "npm test and npm run build green; sections Overdue, Today, Tomorrow, Later, Done; an overdue row offers Today 7 PM; the inspector edits title, time and repeat and offers the three snooze presets; Add to Calendar and Undo on delete still work"
-  },
-  {
-   "id": "E4-03",
-   "phase": "E4",
-   "wave": 1,
-   "title": "Rebuild Notes: title and excerpt rows, Pinned and Recent, tag chips",
-   "size": "M",
-   "writes": [
-    "src/life/screens/Notes.jsx",
-    "src/life/screens/NoteInspector.jsx",
-    "src/life/notes.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/noteTitle.js",
-    "src/life/notesTree.js",
-    "src/dnd/Dnd.jsx",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "npm test and npm run build green; rows show colour dot, title, two-line excerpt, tags, sub-note count and date; tag chips filter in one tap; nesting, pin, colour, drag and drop, cascade delete and Undo behave as before (existing notesTree tests pass)",
-   "notes": "Large file (541 lines). Restyle and restructure the list only; do not change the data model. Split out a NoteRow file if it helps."
-  },
-  {
-   "id": "E4-04",
-   "phase": "E4",
-   "wave": 1,
-   "title": "Rebuild Money Spend: month card, logging strip, day groups",
-   "size": "M",
-   "writes": [
-    "src/money/screens/SpendScreen.jsx",
-    "src/money/screens/SpendSummary.jsx",
-    "src/money/screens/TxnList.jsx",
-    "src/money/screens/spend.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/money/MoneyContext.jsx",
-    "src/ui/SegDots.jsx",
-    "src/money/logic.js",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "npm test and npm run build green; the top card shows month spend, budget, a bar and \"left\"; under it \"Logged N days in a row\" with one square per day of the month so far; a \"Nothing spent today\" button appears only when today has no entries; category bars and the 3-month trend remain below the day list"
-  },
-  {
-   "id": "E4-05",
-   "phase": "E4",
-   "wave": 1,
-   "title": "Restyle Logic: solved-today ring, daily puzzle status, code streak",
-   "size": "M",
-   "writes": [
-    "src/tabs/LogicBuilding.jsx",
-    "src/tabs/Puzzles.jsx",
-    "src/logic/logic.css",
-    "src/logic/puzzles.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/logic/stats.js",
-    "src/logic/puzzleProgress.js"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "npm test and npm run build green; the header shows Solved today n/goal as a ring, \"Daily puzzle: open\" or \"solved\", and the code streak; section chips Code, Puzzles, Exams, DSA keep their routes",
-   "notes": "Not drawn in the mockup. Follow DESIGN.md section 5.6."
-  },
-  {
-   "id": "E4-06",
-   "phase": "E4",
-   "wave": 1,
-   "title": "Restyle Tasks, Habits and Growth",
-   "size": "M",
-   "writes": [
-    "src/life/screens/Tasks.jsx",
-    "src/life/screens/TaskInspector.jsx",
-    "src/life/screens/Habits.jsx",
-    "src/life/screens/HabitInspector.jsx",
-    "src/life/screens/Growth.jsx",
-    "src/life/screens/GrowthInspector.jsx",
-    "src/life/wellbeing.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/LifeData.jsx",
-    "src/life/selectors.js"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "npm test and npm run build green; task sections and quadrant chips use the ember row style; the habit card keeps pet, streak, health, earnings and Check in; the task inspector gains a time-of-day field for dueAt; drag and drop still works"
-  },
-  {
-   "id": "E4-07",
-   "phase": "E4",
-   "wave": 2,
-   "title": "Restyle Budgets, Goals and Loans",
-   "size": "M",
-   "writes": [
-    "src/money/screens/BudgetsScreen.jsx",
-    "src/money/screens/GoalsScreen.jsx",
-    "src/money/screens/GoalFormSheet.jsx",
-    "src/money/screens/LoansScreen.jsx",
-    "src/money/screens/LoanFormSheet.jsx",
-    "src/money/screens/LoanPersonCard.jsx",
-    "src/money/money.css",
-    "src/money/AddTxnSheet.jsx"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/money/screens/spend.css"
-   ],
-   "deps": [
-    "E4-04"
-   ],
-   "acceptance": "npm test and npm run build green; all four Money sections share the chip row and card style; budget warnings at 80% and 100% keep their text; no behaviour change (moneyLogic and loanBalance tests pass)"
-  },
-  {
-   "id": "E4-08",
-   "phase": "E4",
-   "wave": 2,
-   "title": "Restyle Invest: Learn, Research, Watchlist",
-   "size": "S",
-   "writes": [
-    "src/invest/screens/**",
-    "src/invest/invest.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "npm test and npm run build green; the disclaimer bar stays visible; watchlist rows use tabular figures and the ember row style; no behaviour change (investLogic tests pass)",
-   "notes": "Not drawn in the mockup. Follow DESIGN.md section 5.7."
-  },
-  {
-   "id": "E4-09",
-   "phase": "E4",
-   "wave": 2,
-   "title": "Restyle Agents",
-   "size": "S",
-   "writes": [
-    "src/tabs/Agents.jsx",
-    "src/agents/agents.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "npm test and npm run build green; topic chips and the More tools menu use the chip style; chat bubbles use surface tokens; streaming, Stop and Retry behave as before (agentStreamClient tests pass)",
-   "notes": "Not drawn in the mockup. Follow DESIGN.md section 5.8."
-  },
-  {
-   "id": "E4-10",
-   "phase": "E4",
-   "wave": 2,
-   "title": "Restyle Code, Exams and the DSA frame",
-   "size": "M",
-   "writes": [
-    "src/tabs/CodeView.jsx",
-    "src/tabs/Exams.jsx",
-    "src/tabs/DsaView.jsx",
-    "src/logic/code.css",
-    "src/logic/exams.css",
-    "src/logic/dsa.css"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/logic/logic.css"
-   ],
-   "deps": [
-    "E4-05"
-   ],
-   "acceptance": "npm test and npm run build green; problem rows show rating and tags in the mono style; exam percentages never exceed 100; keyboard j, k, x, s still work in Code"
-  },
-  {
-   "id": "E4-11",
-   "phase": "E4",
-   "wave": 2,
-   "title": "Move Settings to its own panel and add the dailies settings",
-   "size": "M",
-   "writes": [
-    "src/App.jsx",
-    "src/settings/SettingsPanel.jsx",
-    "src/settings/settings.css",
-    "src/today/dailies.js",
-    "test/dailies.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/backup/BackupPanel.jsx"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "node --test test/dailies.test.js passes with new cases: settings.dailyCodeGoal (1 to 10, default 3) and settings.dailies (which of the five count) change the result; the panel has Codeforces handle, Theme, Daily code goal, Dailies and Backup"
-  },
-  {
-   "id": "E4-12",
-   "phase": "E4",
-   "wave": 2,
-   "title": "Replace hard-coded colours in the legacy stylesheet with tokens",
-   "size": "M",
-   "writes": [
-    "src/styles.css",
-    "test/legacyColours.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/styles/tokens.css",
-    "src/styles/ember.css"
-   ],
-   "deps": [
-    "E3-GATE"
-   ],
-   "acceptance": "node --test test/legacyColours.test.js passes: no hex or rgb literal remains in src/styles.css outside the token blocks at the top; npm run build green; the cream and sky themes still render (existing e2e smoke passes)"
-  },
-  {
-   "id": "E4-13",
-   "phase": "E4",
-   "wave": 3,
-   "title": "Extend the device matrix to every sub-view and add a contrast check",
-   "size": "M",
-   "writes": [
-    "e2e/ember-screens.spec.js",
-    "e2e/helpers/contrast.js",
-    "e2e/matrix/phone.spec.js",
-    "e2e/matrix/ipad-portrait.spec.js",
-    "e2e/matrix/ipad-landscape.spec.js",
-    "e2e/matrix/desktop.spec.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "e2e/helpers/layout.js",
-    "e2e/fixtures/ember-day.js"
-   ],
-   "deps": [
-    "E4-01",
-    "E4-02",
-    "E4-03",
-    "E4-06",
-    "E4-07",
-    "E4-08",
-    "E4-09",
-    "E4-10",
-    "E4-11",
-    "E4-12"
-   ],
-   "acceptance": "npm run test:e2e -- --trace off passes: all 17 sub-views plus Today and Agents load at 390, 834, 1194 and 1440 with no horizontal scroll and no console errors; visible text on the ember theme meets 4.5:1 on Today, Reminders, Notes and Spend"
-  },
-  {
-   "id": "E4-14",
-   "phase": "E4",
-   "wave": 3,
-   "title": "Update the README and write the device checklist",
-   "size": "S",
-   "writes": [
-    "README.md",
-    "docs/qa/ember-device-checklist.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/qa/definition-of-done.md"
-   ],
-   "deps": [
-    "E4-01",
-    "E4-04",
-    "E4-05"
-   ],
-   "acceptance": "test -f docs/qa/ember-device-checklist.md && grep -c \"^- \\[ \\]\" docs/qa/ember-device-checklist.md prints >= 25; README Layout section names src/capture, src/today/dailies.js and the ember theme"
-  },
-  {
-   "id": "E4-U1",
-   "phase": "E4",
-   "wave": 4,
-   "title": "Owner: run the device checklist on your iPhone and iPad",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/reports/E4-device-check.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/qa/ember-device-checklist.md"
-   ],
-   "deps": [
-    "E4-13",
-    "E4-14"
-   ],
-   "acceptance": "docs/plan/ember/reports/E4-device-check.md exists with every item in docs/qa/ember-device-checklist.md marked pass or fail, the device and iOS version, and a note for each fail",
-   "owner": "user"
-  },
-  {
-   "id": "E4-GATE",
-   "phase": "E4",
-   "wave": 5,
-   "title": "Phase gate: screens",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/reports/E4-gate.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md"
-   ],
-   "deps": [
-    "E4-U1"
-   ],
-   "acceptance": "npm test, npm run lint, npm run build, npm run size, npm run check:secrets and npm run test:e2e -- --trace off green; every fail in the device check is fixed or listed as accepted by the owner; stop for owner sign-off. The web app is shippable at this point",
-   "gate": true
-  },
-  {
-   "id": "E5-U1",
-   "phase": "E5",
-   "wave": 1,
-   "title": "Owner: confirm the iPhone app prerequisites",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/reports/E5-prereqs.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/plan/OPEN-DECISIONS.md",
-    "docs/runbooks/ios-release.md"
-   ],
-   "deps": [
-    "E4-GATE"
-   ],
-   "acceptance": "The report states: Mac model and Xcode version (26 or later), Apple Developer team id, bundle id, iPhone model and iOS version, and that the Capacitor shell from docs/plan/plan.json phase P4 (tasks X1-11, X1-12, X1-13) builds and runs on the device",
-   "notes": "Nothing native in this phase can start before this is true. Tasks E5-01 to E5-04 are web-only and can run without it.",
-   "owner": "user"
-  },
-  {
-   "id": "E5-01",
-   "phase": "E5",
-   "wave": 1,
-   "title": "Build the widget snapshot from app data",
-   "size": "M",
-   "writes": [
-    "src/widgets/snapshot.js",
-    "test/widgetSnapshot.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/today/dailies.js",
-    "src/today/timeline.js",
-    "src/money/dayLog.js"
-   ],
-   "deps": [
-    "E4-GATE"
-   ],
-   "acceptance": "node --test test/widgetSnapshot.test.js passes: output has schema version, day key, five dailies, done count, streak, nextUp, up to 4 open reminders, overdue count, spend today, month spend and budget; it is under 4 kB as JSON; it contains no note bodies beyond one pinned title"
-  },
-  {
-   "id": "E5-02",
-   "phase": "E5",
-   "wave": 1,
-   "title": "Write the widget spec: sizes, content, links, actions",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/WIDGETS.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E4-GATE"
-   ],
-   "acceptance": "test -f docs/plan/ember/WIDGETS.md; it has one section each for small, medium, large, lock rectangle, lock circle and lock inline with content, tap target and link; it defines the snapshot fields each uses, the tinted and clear rendering rule, and the two actions (complete reminder, open capture)",
-   "notes": "Sizes in points for a 393pt-wide iPhone must be checked against Apple's current widget documentation, not copied from memory."
-  },
-  {
-   "id": "E5-03",
-   "phase": "E5",
-   "wave": 2,
-   "title": "Publish the snapshot to the native side when data changes",
-   "size": "S",
-   "writes": [
-    "src/platform/widgetBridge.js",
-    "test/widgetBridge.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/platform/persist.js",
-    "src/storeEvents.js"
-   ],
-   "deps": [
-    "E5-01"
-   ],
-   "acceptance": "node --test test/widgetBridge.test.js passes: on the web the bridge is a no-op; with a fake plugin it sends at most one snapshot per 2 seconds, only when the snapshot changed, and once on app resume"
-  },
-  {
-   "id": "E5-04",
-   "phase": "E5",
-   "wave": 2,
-   "title": "Open items and capture from links",
-   "size": "S",
-   "writes": [
-    "src/capture/deepLink.js",
-    "src/capture/captureContext.js",
-    "test/captureDeepLink.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/router.js",
-    "src/routes.js"
-   ],
-   "deps": [
-    "E5-02"
-   ],
-   "acceptance": "node --test test/captureDeepLink.test.js passes: #/today?capture=expense opens capture on Expense once and then clears the query; #/life/reminders?id=<id> selects that reminder; unknown values are ignored"
-  },
-  {
-   "id": "E5-05",
-   "phase": "E5",
-   "wave": 3,
-   "title": "Add the native plugin, App Group and widget target",
-   "size": "M",
-   "writes": [
-    "ios/App/App/Plugins/ForgeWidgets/**",
-    "ios/App/App/App.entitlements",
-    "ios/App/App.xcodeproj/project.pbxproj",
-    "ios/App/ForgeWidgets/ForgeWidgetsBundle.swift",
-    "ios/App/ForgeWidgets/Shared/**",
-    "ios/App/ForgeWidgets/Info.plist",
-    "ios/App/ForgeWidgets/ForgeWidgets.entitlements"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/plan/ember/WIDGETS.md",
-    "src/platform/widgetBridge.js"
-   ],
-   "deps": [
-    "E5-U1",
-    "E5-03"
-   ],
-   "acceptance": "xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphonesimulator build succeeds; calling setSnapshot from the web layer writes the JSON to the App Group container and reloads widget timelines; the widget target uses a folder-synchronised group so later tasks add files without editing project.pbxproj",
-   "notes": "Needs the Mac. Single writer of project.pbxproj in this phase."
-  },
-  {
-   "id": "E5-06",
-   "phase": "E5",
-   "wave": 4,
-   "title": "Build the small, medium and large widgets",
-   "size": "M",
-   "writes": [
-    "ios/App/ForgeWidgets/Home/**"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/plan/ember/WIDGETS.md",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E5-05"
-   ],
-   "acceptance": "The simulator build succeeds; SwiftUI previews exist for each size with the fixture snapshot, an empty snapshot and the tinted rendering mode; layouts match WIDGETS.md; all tap targets carry the links from the spec"
-  },
-  {
-   "id": "E5-07",
-   "phase": "E5",
-   "wave": 4,
-   "title": "Build the lock-screen widgets",
-   "size": "S",
-   "writes": [
-    "ios/App/ForgeWidgets/Lock/**"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/plan/ember/WIDGETS.md",
-    "docs/designs/app-directions.html"
-   ],
-   "deps": [
-    "E5-05"
-   ],
-   "acceptance": "The simulator build succeeds; previews exist for rectangle (next up), circle (done/total) and inline (spend today and code) with fixture and empty snapshots"
-  },
-  {
-   "id": "E5-08",
-   "phase": "E5",
-   "wave": 5,
-   "title": "Complete a reminder from a widget and reconcile in the app",
-   "size": "M",
-   "writes": [
-    "ios/App/ForgeWidgets/Intents/**",
-    "src/platform/widgetInbox.js",
-    "test/widgetInbox.test.js"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "src/life/LifeData.jsx",
-    "docs/plan/ember/WIDGETS.md"
-   ],
-   "deps": [
-    "E5-06"
-   ],
-   "acceptance": "node --test test/widgetInbox.test.js passes: pending actions are applied once through the reminder actions on resume, duplicates and unknown ids are ignored, and the inbox is cleared only after a successful save; on the simulator, ticking a reminder in the medium widget strikes it through and the app shows it done on next open"
-  },
-  {
-   "id": "E5-U2",
-   "phase": "E5",
-   "wave": 6,
-   "title": "Owner: use the widgets on your phone for two days",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/reports/E5-device-check.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md",
-    "docs/plan/ember/WIDGETS.md"
-   ],
-   "deps": [
-    "E5-07",
-    "E5-08",
-    "E5-04"
-   ],
-   "acceptance": "The report says for each widget: shows correct data within a minute of a change in the app (yes or no), tick-off works (yes or no), links open the right place (yes or no), readable in tinted mode (yes or no), with the device and iOS version",
-   "owner": "user"
-  },
-  {
-   "id": "E5-GATE",
-   "phase": "E5",
-   "wave": 7,
-   "title": "Phase gate: widgets",
-   "size": "S",
-   "writes": [
-    "docs/plan/ember/reports/E5-gate.md"
-   ],
-   "reads": [
-    "docs/plan/ember/DESIGN.md"
-   ],
-   "deps": [
-    "E5-U2"
-   ],
-   "acceptance": "npm test and npm run build green; the simulator build succeeds; every \"no\" in the device check is fixed or accepted by the owner; stop for owner sign-off",
-   "gate": true
-  }
- ]
 }

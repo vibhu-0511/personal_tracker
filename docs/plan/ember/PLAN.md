@@ -1,6 +1,6 @@
 # Forge Ember build plan
 
-> Generated from `docs/plan/ember/plan.json` by `scripts/plan/plan-lint.mjs --render`. Edit the JSON, not this file.
+> Generated from `docs/plan/plan.json` by `scripts/plan/plan-lint.mjs --render`. Edit the JSON, not this file.
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
@@ -66,7 +66,7 @@ Make the wave runner work with this plan, add the Ember theme, fonts, icons and 
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E0-07` | Register Ember as a theme and make it the default for new installs | M | `src/App.jsx`<br>`src/store.js`<br>`src/main.jsx`<br>`index.html`<br>`test/emberTheme.test.js` | E0-03, E0-04 | node --test test/emberTheme.test.js passes: THEMES has ember first with chrome #0a0c10; getSettings() with no saved theme returns ember; a saved theme (for example ocean) is returned unchanged; npm run build green |
+| `E0-07` | Register Ember as a theme and make it the default for new installs | M | `src/App.jsx`<br>`src/store.js`<br>`src/main.jsx`<br>`index.html`<br>`test/emberTheme.test.js`<br>`vite.config.js` | E0-03, E0-04 | node --test test/emberTheme.test.js passes: THEMES has ember first with chrome #0a0c10; getSettings() with no saved theme returns ember; a saved theme (for example ocean) is returned unchanged; npm run build green; workbox globPatterns in vite.config.js include woff2 so the fonts are precached |
 | `E0-08` | Build DailyCell and SegDots primitives | S | `src/ui/DailyCell.jsx`<br>`src/ui/SegDots.jsx`<br>`src/ui/ember-ui.css`<br>`test/segDots.test.js` | E0-03 | node --test test/segDots.test.js passes (filled/empty mapping, aria-label "13 of 15 days logged"); DailyCell has done and open states that differ by more than colour (a check glyph when done) |
 | `E0-09` | Build TimelineRow and NextUpCard primitives | M | `src/ui/TimelineRow.jsx`<br>`src/ui/NextUpCard.jsx`<br>`src/ui/timeline.css` | E0-03, E0-05 | npm run build green; TimelineRow supports kinds reminder, note, expense, now and done; touch targets are >= 44px under (pointer: coarse); no colour literal in timeline.css outside var() |
 | `E0-10` | Build the Fab primitive and add count badges to SubNav | S | `src/ui/Fab.jsx`<br>`src/ui/fab.css`<br>`src/ui/SubNav.jsx`<br>`src/ui/subnav.css` | E0-03, E0-05 | npm run build green; Fab is a 56px button with aria-label, sits above var(--tabbar-h) plus the bottom safe area; SubNav items accept an optional count and existing SubNav callers render unchanged |
