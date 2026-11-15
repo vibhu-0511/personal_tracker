@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 30 waves · 76 tasks · widest wave 7 tasks in parallel**
+**6 phases · 30 waves · 77 tasks · widest wave 7 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -142,7 +142,7 @@ Add everything the new screens need to know, as tested pure logic: the five dail
 
 Replace the top of Today with the Ember layout: header with ring, five dailies, next up, and the timeline, keeping five of the existing tiles below.
 
-8 tasks across 4 waves.
+9 tasks across 4 waves.
 
 **Exit criteria**
 - Today matches the mockup at 390px (differences listed in the gate report)
@@ -150,7 +150,7 @@ Replace the top of Today with the Ember layout: header with ring, five dailies, 
 - no horizontal scroll at 390, 834, 1194, 1440
 - owner sign-off
 
-### E2 · Wave 1 — 4 in parallel
+### E2 · Wave 1 — 5 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
@@ -158,6 +158,7 @@ Replace the top of Today with the Ember layout: header with ring, five dailies, 
 | `E2-02` | Build the next-up card with Done, Snooze and the overdue chip | M | `src/today/NextUp.jsx`<br>`src/today/nextup.css` | E1-GATE | npm run build green; shows title, time and "in N min"; Done and Snooze 1h call the passed handlers; an overdue chip above it shows the count and oldest title and offers Today 7 PM; empty state reads "Nothing left on the clock." |
 | `E2-03` | Build the Today timeline list | M | `src/today/Timeline.jsx`<br>`src/today/timeline-screen.css` | E1-GATE | npm run build green; renders rows from timeline.js with times in the device 12h or 24h format; reminders have a working check; expense rows show the amount right-aligned in tabular figures; the now row is announced as "Now" to screen readers |
 | `E2-04` | Build the Today header: date, streak and the dailies ring | S | `src/today/TodayHeader.jsx`<br>`src/today/today-header.css` | E1-GATE | npm run build green; shows "SUN 15 NOV · 12-DAY STREAK" style line, the title Today and a ring with done/total and an aria-label such as "3 of 5 dailies done"; with no streak the streak part is omitted |
+| `E2-09` | Bring the entry JS bundle back under the 135 kB budget by lazy-loading | M | `src/App.jsx`<br>`vite.config.js`<br>`test/entryChunk.test.js` | E1-GATE | npm run build then npm run size reports entry JS <= 135 kB with scripts/ci/budgets.json UNCHANGED; npm test, npm run test:e2e -- --trace off green; test/entryChunk.test.js asserts the built entry chunk does not contain the reminder-action and capture-parser modules (they load lazily) |
 
 ### E2 · Wave 2 — 1 in parallel
 

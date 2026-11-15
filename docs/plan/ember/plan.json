@@ -1779,6 +1779,30 @@
       ],
       "acceptance": "node --test test/appPaletteData.test.js passes: App renders CommandPalette inside a LifeDataProvider (source check or bundled render); the Life screens still work (npm test, npm run build green, e2e smoke green)",
       "notes": "From E1-16 report: App.jsx renders CommandPalette with no provider above it, so palette reminders and tasks stay empty. Do not mount a second provider inside Life.jsx without checking for double writes."
+    },
+    {
+      "id": "E2-09",
+      "phase": "E2",
+      "wave": 1,
+      "title": "Bring the entry JS bundle back under the 135 kB budget by lazy-loading",
+      "size": "M",
+      "writes": [
+        "src/App.jsx",
+        "vite.config.js",
+        "test/entryChunk.test.js"
+      ],
+      "reads": [
+        "scripts/ci/budgets.json",
+        "scripts/ci/bundle-budget.mjs",
+        "src/life/LifeData.jsx",
+        "src/money/MoneyContext.jsx",
+        "src/shell/CommandPalette.jsx"
+      ],
+      "deps": [
+        "E1-GATE"
+      ],
+      "acceptance": "npm run build then npm run size reports entry JS <= 135 kB with scripts/ci/budgets.json UNCHANGED; npm test, npm run test:e2e -- --trace off green; test/entryChunk.test.js asserts the built entry chunk does not contain the reminder-action and capture-parser modules (they load lazily)",
+      "notes": "E1 gate: entry JS 136.4 kB vs 135. Find what E0-E1 pulled into the entry (use a Rollup manualChunks / dynamic import of the Life provider internals, capture parser, dailies) without changing behaviour. Do NOT edit budgets.json or the budget test. If another file must change, stop and report it."
     }
   ]
 }
