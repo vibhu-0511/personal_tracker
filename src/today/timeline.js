@@ -6,7 +6,9 @@
 //   reminders: { id, title, at, done, repeat? }
 //   tasks:     { id, title, due: 'YYYY-MM-DD'|null, dueAt: ms|null, done }
 //   expenses:  { id, amount, date, category, type? }   (type 'income' is skipped)
-//   notes:     { id, text?, title?, createdAt }
+//   notes:     { id, body?, text?, title?, createdAt }
+//              The app stores note text in `body` (Notes.jsx); `text` is a legacy fallback.
+//              Row title: `title` if present, else the first line of `body ?? text`.
 //
 // buildTimeline({ reminders, tasks, expenses, notes }, now) ->
 //   items:  [{ kind, id, at, title, done?, ... }] for today, ascending by time, with exactly
@@ -76,7 +78,7 @@ export function buildTimeline({ reminders, tasks, expenses, notes } = {}, now) {
   }
   for (const n of ns) {
     if (!inToday(n.createdAt)) continue
-    const title = n.title || deriveNoteTitle(n.text).title
+    const title = n.title || deriveNoteTitle(n.body ?? n.text).title
     items.push({ kind: 'note', id: n.id, at: n.createdAt, title })
   }
   items.sort(byTime)

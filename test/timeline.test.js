@@ -73,3 +73,17 @@ test('does not mutate inputs', () => {
   buildTimeline(data, NOW)
   assert.deepEqual(data, copy)
 })
+
+test('note rows title from body, fall back to text, prefer explicit title', () => {
+  const d = {
+    notes: [
+      { id: 'b', body: '  First line\nrest', createdAt: at(15, 9) },
+      { id: 'x', text: 'Legacy\nmore', createdAt: at(15, 10) },
+      { id: 't', title: 'Explicit', body: 'Body line', createdAt: at(15, 11) },
+    ],
+  }
+  const t = (id) => buildTimeline(d, NOW).items.find((i) => i.id === id).title
+  assert.equal(t('b'), 'First line')
+  assert.equal(t('x'), 'Legacy')
+  assert.equal(t('t'), 'Explicit')
+})
