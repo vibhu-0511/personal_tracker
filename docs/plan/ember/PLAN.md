@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 29 waves · 75 tasks · widest wave 7 tasks in parallel**
+**6 phases · 30 waves · 76 tasks · widest wave 7 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -88,7 +88,7 @@ Make the wave runner work with this plan, add the Ember theme, fonts, icons and 
 
 Add everything the new screens need to know, as tested pure logic: the five dailies, puzzle solve dates, expense logging days, the Today timeline, reminder snooze and repeat, and the capture parser.
 
-16 tasks across 4 waves.
+17 tasks across 5 waves.
 
 **Exit criteria**
 - npm test, lint and build green
@@ -130,7 +130,13 @@ Add everything the new screens need to know, as tested pure logic: the five dail
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E1-GATE` | Phase gate: data and logic | S | `docs/plan/ember/reports/E1-gate.md` | E1-04, E1-09, E1-12, E1-13 | npm test, npm run lint and npm run build green; report gives the new test count, confirms a pre-change backup file imports, and confirms sync v2 flags are still all off; stop for owner sign-off |
+| `E1-17` | Mount the Life data provider at the app shell so the palette sees reminders and tasks | S | `src/App.jsx`<br>`test/appPaletteData.test.js` | E1-16 | node --test test/appPaletteData.test.js passes: App renders CommandPalette inside a LifeDataProvider (source check or bundled render); the Life screens still work (npm test, npm run build green, e2e smoke green) |
+
+### E1 · Wave 5 — 1 in parallel
+
+| Task | Title | Size | Writes | Depends on | Acceptance |
+|---|---|---|---|---|---|
+| `E1-GATE` | Phase gate: data and logic | S | `docs/plan/ember/reports/E1-gate.md` | E1-04, E1-09, E1-12, E1-13, E1-15, E1-16, E1-17 | npm test, npm run lint and npm run build green; report gives the new test count, confirms a pre-change backup file imports, and confirms sync v2 flags are still all off; stop for owner sign-off |
 
 ## E2 · Today
 

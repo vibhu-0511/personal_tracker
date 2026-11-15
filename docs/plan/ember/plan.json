@@ -708,7 +708,7 @@
     {
       "id": "E1-GATE",
       "phase": "E1",
-      "wave": 4,
+      "wave": 5,
       "title": "Phase gate: data and logic",
       "size": "S",
       "writes": [
@@ -721,7 +721,10 @@
         "E1-04",
         "E1-09",
         "E1-12",
-        "E1-13"
+        "E1-13",
+        "E1-15",
+        "E1-16",
+        "E1-17"
       ],
       "acceptance": "npm test, npm run lint and npm run build green; report gives the new test count, confirms a pre-change backup file imports, and confirms sync v2 flags are still all off; stop for owner sign-off",
       "gate": true
@@ -1756,6 +1759,26 @@
       ],
       "acceptance": "node --test test/commandPaletteReminders.test.js passes: CommandPalette passes the reminders list into buildIndex (static source check or bundled render); npm test and build green",
       "notes": "From E1-13 report: palette still calls buildIndex({tasks, notes})."
+    },
+    {
+      "id": "E1-17",
+      "phase": "E1",
+      "wave": 4,
+      "title": "Mount the Life data provider at the app shell so the palette sees reminders and tasks",
+      "size": "S",
+      "writes": [
+        "src/App.jsx",
+        "test/appPaletteData.test.js"
+      ],
+      "reads": [
+        "src/shell/CommandPalette.jsx",
+        "src/life/LifeData.jsx"
+      ],
+      "deps": [
+        "E1-16"
+      ],
+      "acceptance": "node --test test/appPaletteData.test.js passes: App renders CommandPalette inside a LifeDataProvider (source check or bundled render); the Life screens still work (npm test, npm run build green, e2e smoke green)",
+      "notes": "From E1-16 report: App.jsx renders CommandPalette with no provider above it, so palette reminders and tasks stay empty. Do not mount a second provider inside Life.jsx without checking for double writes."
     }
   ]
 }
