@@ -1,0 +1,14 @@
+# Decisions log (owner decisions, with the default taken so work never waits)
+
+Standing rule from the owner (2026-11-15): note each decision here, do not wait, keep building; where a newer task depends on an older one, go with the recommendation. Change any row and the affected tasks can be redone.
+
+| # | Decision | Recommendation / default taken | Status | Affects |
+|---|---|---|---|---|
+| D1 | Phase gate sign-offs E0, E1 | Proceed through gates without stopping; gate reports are still written to `reports/` | Taken (owner said continue) | all gates |
+| D2 | Entry JS over budget at E1 (136.4 vs 135 kB) | Lazy-load Life provider and palette (E2-09), budget unchanged. Raising the limit was blocked by the permission system and not pursued | Owner approved the one test edit | E2-09 |
+| D3 | `public/dsa/mastery-map.html` still references fonts.googleapis.com | Leave as is (static pre-existing page, not app code); revisit if offline use of the map matters | Open, default taken | E0-04 acceptance |
+| D4 | Fab visible on desktop | Keep visible (DESIGN.md: one Fab on every tab) | Open, default taken | E0-10, E3 |
+| D5 | ADR README row for 0005 | Add it in a later docs task | Open, default taken | docs/adr |
+| D6 | Mood daily links to Life growth until capture sheet exists | Repoint in E3 | Open, default taken | E1-07, E3 |
+| D7 | `dailyLog` write race (`markNoSpend` read-then-write) | Add `mutateDailyLog` to the store in E2/E3 if two writers overlap | Open, default taken | E1-11, E1-12 |
+| D8 | Owner-only tasks: E4-U1 (device checklist), E5-U1 (Mac, Apple account, shell), E5-U2 (device test) | Prepare everything, skip these, continue other tasks; E5 native tasks stay queued behind E5-U1 | Waiting on owner | E4 gate, E5 |
