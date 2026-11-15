@@ -10,8 +10,17 @@ import Bar from './Bar.jsx';
 import Ring from './Ring.jsx';
 import Donut from './Donut.jsx';
 import Spark from './Spark.jsx';
+import DailyCell from './DailyCell.jsx';
+import SegDots from './SegDots.jsx';
+import TimelineRow, { TIMELINE_KINDS } from './TimelineRow.jsx';
+import NextUpCard from './NextUpCard.jsx';
+import Fab from './Fab.jsx';
+import Icon from './Icon.jsx';
+import { icons } from './icons.js';
+// Ember tokens (colours under data-accent="ember"); the app entry imports this too.
+import '../styles/ember.css';
 
-const THEMES = ['ocean', 'forest', 'sunset', 'grape', 'rose', 'sky', 'cream'];
+const THEMES = ['ember', 'ocean', 'forest', 'sunset', 'grape', 'rose', 'sky', 'cream'];
 const WIDTHS = [
   { id: 'phone', label: 'Phone 390', px: 390 },
   { id: 'tablet', label: 'Tablet 768', px: 768 },
@@ -131,6 +140,61 @@ function Primitives() {
           <Spark points={[2, 2, 2, 2]} width={96} height={32} />
         </div>
       </Section>
+
+      <Section title="DailyCell">
+        <div className="gal-inline">
+          <DailyCell label="Water" value="6 / 8" />
+          <DailyCell label="Walk" value="30 min" done />
+          <DailyCell label="Link cell" value="open" href="#gallery" />
+          <DailyCell label="Button cell" value="done" done onClick={() => {}} />
+        </div>
+      </Section>
+
+      <Section title="SegDots">
+        <SegDots filled={0} total={7} />
+        <SegDots filled={4} total={7} />
+        <SegDots filled={7} total={7} />
+        <SegDots filled={2} total={5} label="2 of 5 workouts" />
+      </Section>
+
+      <Section title="TimelineRow">
+        <ul className="gal-list">
+          {TIMELINE_KINDS.map((kind, i) => (
+            <TimelineRow
+              key={kind}
+              kind={kind}
+              time={`${8 + i}:00`}
+              title={`${kind} entry`}
+              sub={kind === 'expense' ? 'Groceries' : 'Timeline kind'}
+              trail={kind === 'expense' ? '$24.10' : kind === 'done' ? <Check checked label="Done" /> : undefined}
+              onSelect={kind === 'note' ? () => {} : undefined}
+            />
+          ))}
+        </ul>
+      </Section>
+
+      <Section title="NextUpCard">
+        <NextUpCard title="Call the dentist" time="10:30" onDone={() => {}} onSnooze={() => {}} />
+        <NextUpCard title={null} />
+      </Section>
+
+      <Section title="Fab">
+        <div className="gal-inline gal-fab">
+          <Fab label="Add" />
+          <Fab label="Add note" icon="note" />
+        </div>
+      </Section>
+
+      <Section title="Icon">
+        <div className="gal-icons">
+          {Object.keys(icons).map((name) => (
+            <figure key={name} className="gal-icon">
+              <Icon name={name} size={24} />
+              <figcaption>{name}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </Section>
     </>
   );
 }
@@ -150,11 +214,15 @@ const CSS = `
 .gal-h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-secondary); margin: 0 0 8px; }
 .gal-stack { display: flex; flex-direction: column; gap: 10px; }
 .gal-inline { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.gal-fab .ui-fab { position: static; }
+.gal-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.gal-icon { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border: 1px solid var(--border); border-radius: var(--radius-xs); color: var(--text); }
+.gal-icon figcaption { font-size: 11px; color: var(--text-secondary); }
 .gal-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 `;
 
 export default function Gallery() {
-  const [theme, setTheme] = useState('ocean');
+  const [theme, setTheme] = useState('ember');
   const [widths, setWidths] = useState(['phone']);
 
   useEffect(() => {
