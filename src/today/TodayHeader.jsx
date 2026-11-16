@@ -26,14 +26,18 @@ export default function TodayHeader({ now, streak = 0, done = 0, total = 0 }) {
         <p className="today-header-line">{headerLine(now, streak)}</p>
         <h1 className="today-header-title">Today</h1>
       </div>
-      <Ring
-        className="today-header-ring"
-        size={56}
-        value={t ? (d / t) * 100 : 0}
-        label={`${d} of ${t} dailies done`}
-      >
-        <span className="today-header-count">{d}/{t}</span>
-      </Ring>
+      {t === 0 ? (
+        <span className="today-header-count today-header-none" role="img" aria-label="None enabled">None enabled</span>
+      ) : (
+        <Ring
+          className="today-header-ring"
+          size={56}
+          value={(d / t) * 100}
+          label={`${d} of ${t} dailies done`}
+        >
+          <span className="today-header-count">{d}/{t}</span>
+        </Ring>
+      )}
     </header>
   )
 }
