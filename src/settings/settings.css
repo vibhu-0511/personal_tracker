@@ -12,4 +12,8 @@
   min-height: 36px; color: var(--text); cursor: pointer;
 }
 .settings-check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
-@media (pointer: coarse) { .settings-check { min-height: 44px; } }
+@media (pointer: coarse) {
+  .settings-check { min-height: 44px; }
+  .theme-swatches .theme-swatch { min-width: 44px; min-height: 44px; }
+  .settings-goal .btn { min-width: 44px; min-height: 44px; }
+}
