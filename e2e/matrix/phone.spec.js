@@ -8,6 +8,7 @@ import {
   TAB_COUNT, TAB_LABELS, onlyProjects, openApp, nav, navItems, appWidth, modeForWidth,
   expectNoHorizontalScroll, boxOf, safeAreaMetrics, gapToViewportBottom, undersizedTargets, settle,
 } from '../helpers/layout.js'
+import { SCREENS, openScreen } from '../helpers/contrast.js'
 
 onlyProjects(test, ['iphone-14', 'ipad-split-third'])
 
@@ -122,4 +123,31 @@ test.describe('phone shell: Today (Ember)', () => {
     await expect(nextUp(page).getByRole('heading')).toHaveText('Call mom')
     await expectNoHorizontalScroll(page)
   })
+})
+
+// Every restyled screen (Today, Agents, Settings panel and the 17 sub-views) in this layout,
+// on the fixed sample day. The full per-screen load/contrast matrix lives in
+// e2e/ember-screens.spec.js; these assert what is specific to this shell.
+test.describe('phone shell: every screen', () => {
+  test.use({ kvSeed: { ...KV_SEED, ...KV_EMBER_DAY, settings: { ...KV_SEED.settings, theme: 'ember' } } })
+  test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(NOW) })
+
+  for (const screen of SCREENS) {
+    test(`${screen.name}: phone layout, six tabs on one row, no horizontal scroll`, async ({ page }) => {
+      await openScreen(page, screen)
+      const width = await appWidth(page)
+      expect(modeForWidth(width)).toBe('phone')
+      const items = await navItems(page)
+      expect(items.map((i) => i.label)).toEqual(TAB_LABELS)
+      const viewport = page.viewportSize()
+      for (const item of items) {
+        expect(item.y).toBeCloseTo(items[0].y, 0)
+        expect(item.x).toBeGreaterThanOrEqual(0)
+        expect(item.x + item.width).toBeLessThanOrEqual(viewport.width + 0.5)
+      }
+      expect(await undersizedTargets(nav(page), 44, 'a')).toEqual([])
+      await expectNoHorizontalScroll(page)
+      await expect(page.getByRole('button', { name: 'New entry' })).toHaveCount(1)
+    })
+  }
 })
