@@ -22,3 +22,4 @@ Standing rule from the owner (2026-11-15): note each decision here, do not wait,
 | D16 | E3-10 e2e merged with 15 known failing tests (two real app bugs: focus not returned to the Fab, Life ignores the route sub-view); fixes are E3-12 and E3-13 | Merge specs, fix next wave, gate requires e2e green | Taken | E3-10, E3-12, E3-13 |
 | D17 | phone matrix FAB-offset test still targeted the removed Add transaction button (stale after E3-08) | Retarget the locator to New entry, keep both assertions (E3-14) | Taken | E3-08, E3-14 |
 | D18 | Money Spend: old Income/Expenses/Balance/Savings-rate grid removed (spec has only the month card) | Accept; data helpers untouched; revisit if you miss the stats | Open, default taken | E4-04 |
+| D19 | Reminders week strip (named in the E4-02 title but not described in DESIGN 5.3) not built | Skip; add later only if you want it | Open, default taken | E4-02 |

@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 34 waves · 84 tasks · widest wave 7 tasks in parallel**
+**6 phases · 34 waves · 85 tasks · widest wave 8 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -258,7 +258,7 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 
 Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, including reminders with snooze and repeat, notes with titles, and the expense logging strip.
 
-17 tasks across 5 waves.
+18 tasks across 5 waves.
 
 **Exit criteria**
 - all sub-views pass the device matrix
@@ -277,7 +277,7 @@ Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, inclu
 | `E4-05` | Restyle Logic: solved-today ring, daily puzzle status, code streak | M | `src/tabs/LogicBuilding.jsx`<br>`src/tabs/Puzzles.jsx`<br>`src/logic/logic.css`<br>`src/logic/puzzles.css` | E3-GATE | npm test and npm run build green; the header shows Solved today n/goal as a ring, "Daily puzzle: open" or "solved", and the code streak; section chips Code, Puzzles, Exams, DSA keep their routes |
 | `E4-06` | Restyle Tasks, Habits and Growth | M | `src/life/screens/Tasks.jsx`<br>`src/life/screens/TaskInspector.jsx`<br>`src/life/screens/Habits.jsx`<br>`src/life/screens/HabitInspector.jsx`<br>`src/life/screens/Growth.jsx`<br>`src/life/screens/GrowthInspector.jsx`<br>`src/life/wellbeing.css` | E3-GATE | npm test and npm run build green; task sections and quadrant chips use the ember row style; the habit card keeps pet, streak, health, earnings and Check in; the task inspector gains a time-of-day field for dueAt; drag and drop still works |
 
-### E4 · Wave 2 — 7 in parallel
+### E4 · Wave 2 — 8 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
@@ -288,12 +288,13 @@ Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, inclu
 | `E4-11` | Move Settings to its own panel and add the dailies settings | M | `src/App.jsx`<br>`src/settings/SettingsPanel.jsx`<br>`src/settings/settings.css`<br>`src/today/dailies.js`<br>`test/dailies.test.js` | E3-GATE | node --test test/dailies.test.js passes with new cases: settings.dailyCodeGoal (1 to 10, default 3) and settings.dailies (which of the five count) change the result; the panel has Codeforces handle, Theme, Daily code goal, Dailies and Backup |
 | `E4-12` | Replace hard-coded colours in the legacy stylesheet with tokens | M | `src/styles.css`<br>`test/legacyColours.test.js` | E3-GATE | node --test test/legacyColours.test.js passes: no hex or rgb literal remains in src/styles.css outside the token blocks at the top; npm run build green; the cream and sky themes still render (existing e2e smoke passes) |
 | `E4-15` | Show the real per-day pattern in the Money logging strip (SegDots takes a pattern) | S | `src/ui/SegDots.jsx`<br>`src/money/screens/SpendSummary.jsx`<br>`test/segDots.test.js` | E4-04 | node --test test/segDots.test.js passes with new cases: SegDots accepts an optional pattern array of booleans and renders one square per entry filled or empty exactly as given; the existing filled/total API and the aria-label (13 of 15 days logged) still work unchanged; SpendSummary passes monthStrip(expenses, dailyLog) as the pattern; npm test and build green |
+| `E4-16` | Weekly reminders repeat on chosen weekdays (weekday picker in the inspector) | S | `src/life/screens/ReminderInspector.jsx`<br>`test/reminderInspectorDays.test.js` | E4-02 | node --test test/reminderInspectorDays.test.js passes: choosing Weekly shows seven weekday buttons (aria-pressed, 44px under coarse pointer), at least one stays selected, and the saved repeat is {type:weekly, days:[...]} as reminderLogic.normalizeRepeat expects; completing the reminder lands on the next chosen weekday; npm test and build green |
 
 ### E4 · Wave 3 — 2 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E4-13` | Extend the device matrix to every sub-view and add a contrast check | M | `e2e/ember-screens.spec.js`<br>`e2e/helpers/contrast.js`<br>`e2e/matrix/phone.spec.js`<br>`e2e/matrix/ipad-portrait.spec.js`<br>`e2e/matrix/ipad-landscape.spec.js`<br>`e2e/matrix/desktop.spec.js` | E4-01, E4-02, E4-03, E4-06, E4-07, E4-08, E4-09, E4-10, E4-11, E4-12, E4-15 | npm run test:e2e -- --trace off passes: all 17 sub-views plus Today and Agents load at 390, 834, 1194 and 1440 with no horizontal scroll and no console errors; visible text on the ember theme meets 4.5:1 on Today, Reminders, Notes and Spend |
+| `E4-13` | Extend the device matrix to every sub-view and add a contrast check | M | `e2e/ember-screens.spec.js`<br>`e2e/helpers/contrast.js`<br>`e2e/matrix/phone.spec.js`<br>`e2e/matrix/ipad-portrait.spec.js`<br>`e2e/matrix/ipad-landscape.spec.js`<br>`e2e/matrix/desktop.spec.js` | E4-01, E4-02, E4-03, E4-06, E4-07, E4-08, E4-09, E4-10, E4-11, E4-12, E4-15, E4-16 | npm run test:e2e -- --trace off passes: all 17 sub-views plus Today and Agents load at 390, 834, 1194 and 1440 with no horizontal scroll and no console errors; visible text on the ember theme meets 4.5:1 on Today, Reminders, Notes and Spend |
 | `E4-14` | Update the README and write the device checklist | S | `README.md`<br>`docs/qa/ember-device-checklist.md` | E4-01, E4-04, E4-05 | test -f docs/qa/ember-device-checklist.md && grep -c "^- \[ \]" docs/qa/ember-device-checklist.md prints >= 25; README Layout section names src/capture, src/today/dailies.js and the ember theme |
 
 ### E4 · Wave 4 — 1 in parallel
