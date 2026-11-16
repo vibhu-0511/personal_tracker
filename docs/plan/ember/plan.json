@@ -1135,7 +1135,7 @@
     {
       "id": "E3-GATE",
       "phase": "E3",
-      "wave": 6,
+      "wave": 7,
       "title": "Phase gate: plus button and capture",
       "size": "S",
       "writes": [
@@ -1146,7 +1146,9 @@
       ],
       "deps": [
         "E3-10",
-        "E3-11"
+        "E3-11",
+        "E3-12",
+        "E3-13"
       ],
       "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report states the tap count to log an expense on a phone and attaches capture screenshots at 390 and 1194; stop for owner sign-off",
       "gate": true
@@ -1880,6 +1882,47 @@
       ],
       "acceptance": "node --test test/captureStyles.test.js passes: CaptureSheet.jsx has no style={{ props left for colour or layout, capture.css defines .capture-chip, .capture-editor and .capture-panel-host with tokens only and a cream-safe fallback; test/captureFlow.test.js still passes unchanged",
       "notes": "From E3-05 report: .capture-chip uses inline style and there is no CSS for .capture-editor or .capture-panel-host."
+    },
+    {
+      "id": "E3-12",
+      "phase": "E3",
+      "wave": 6,
+      "title": "Return focus to the plus button when the capture sheet closes",
+      "size": "S",
+      "writes": [
+        "src/shell/Shell.jsx",
+        "test/shellFocus.test.js"
+      ],
+      "reads": [
+        "src/App.jsx",
+        "e2e/capture.spec.js"
+      ],
+      "deps": [
+        "E3-10"
+      ],
+      "acceptance": "npx playwright test e2e/capture.spec.js --trace off: the test Esc closes and focus returns to the plus button passes in every project; node --test test/shellFocus.test.js passes (Shell keeps the Fab mounted while the sheet is open); npm test and build green",
+      "notes": "E3-10 found: Shell.jsx line 46 unmounts the Fab while the sheet is open ({!captureOpen && <Fab/>}) so returnFocusRef in App.jsx holds a detached node and focus lands on body. Keep the Fab mounted and hide it with CSS only (shell.css already hides it under an open dialog); do not edit App.jsx or shell.css unless you report it first."
+    },
+    {
+      "id": "E3-13",
+      "phase": "E3",
+      "wave": 6,
+      "title": "Make Life follow the sub-view in the route (reminders, notes)",
+      "size": "S",
+      "writes": [
+        "src/App.jsx",
+        "test/lifeRoute.test.js"
+      ],
+      "reads": [
+        "src/tabs/Life.jsx",
+        "src/routes.js",
+        "e2e/capture.spec.js"
+      ],
+      "deps": [
+        "E3-10"
+      ],
+      "acceptance": "npx playwright test e2e/capture.spec.js --trace off: the deep link #/life/reminders renders the Reminders view; tapping the Reminders or Notes pill changes the hash; the plus then opens on Reminder or Note; node --test test/lifeRoute.test.js passes; npm test and build green",
+      "notes": "E3-10 found: App.jsx:380 renders <Life syncTick=.../> without view, onViewChange or selectedId although src/tabs/Life.jsx supports them. Wire them to the route (see how other tabs do it)."
     }
   ]
 }

@@ -19,3 +19,4 @@ Standing rule from the owner (2026-11-15): note each decision here, do not wait,
 | D13 | Solve panel "Solved a problem" writes a synthetic `quick-<ts>` id into the Code `progress` map | Accept for now (counts toward the Code daily); revisit if the Logic screens list unknown ids | Open, default taken | E3-09, E1-07 |
 | D14 | Money provider mounted at the shell (like Life in E1-17) so global capture can write expenses and dailyLog safely; MoneyApp reuses it | Option 1 from the E3-07 report; E3-07 moved to wave 4, E3-10 wave 5, gate wave 6 | Taken | E3-07 |
 | D15 | Total JS budget 310 -> 325 kB after global capture | Raised; owner approved explicitly (2026-11-16) | Done | E3-07 |
+| D16 | E3-10 e2e merged with 15 known failing tests (two real app bugs: focus not returned to the Fab, Life ignores the route sub-view); fixes are E3-12 and E3-13 | Merge specs, fix next wave, gate requires e2e green | Taken | E3-10, E3-12, E3-13 |
