@@ -133,6 +133,9 @@
   font-weight: 500;
   cursor: pointer;
 }
+@media (pointer: coarse) {
+  .spend-filter { min-width: 44px; min-height: 44px; }
+}
 .spend-filter[data-active] { background: var(--accent-dim); color: var(--accent); }
 .spend-txns-head { display: flex; align-items: baseline; justify-content: space-between; }
 .spend-day { display: flex; flex-direction: column; gap: 6px; }

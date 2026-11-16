@@ -132,7 +132,7 @@
 }
 
 @media (pointer: coarse) {
-  .notes-chip { min-height: 44px; }
+  .notes-chip { min-width: 44px; min-height: 44px; }
   .note-open { min-height: 44px; }
   .note-expand { min-width: 44px; min-height: 44px; }
   .note-color-picker .note-swatch { min-width: 44px; min-height: 44px; background-clip: content-box; padding: 12px; }
