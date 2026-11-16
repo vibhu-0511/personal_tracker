@@ -1891,7 +1891,8 @@
       "size": "S",
       "writes": [
         "src/shell/Shell.jsx",
-        "test/shellFocus.test.js"
+        "test/shellFocus.test.js",
+        "test/shellCss.test.js"
       ],
       "reads": [
         "src/App.jsx",

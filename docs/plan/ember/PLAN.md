@@ -239,7 +239,7 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E3-12` | Return focus to the plus button when the capture sheet closes | S | `src/shell/Shell.jsx`<br>`test/shellFocus.test.js` | E3-10 | npx playwright test e2e/capture.spec.js --trace off: the test Esc closes and focus returns to the plus button passes in every project; node --test test/shellFocus.test.js passes (Shell keeps the Fab mounted while the sheet is open); npm test and build green |
+| `E3-12` | Return focus to the plus button when the capture sheet closes | S | `src/shell/Shell.jsx`<br>`test/shellFocus.test.js`<br>`test/shellCss.test.js` | E3-10 | npx playwright test e2e/capture.spec.js --trace off: the test Esc closes and focus returns to the plus button passes in every project; node --test test/shellFocus.test.js passes (Shell keeps the Fab mounted while the sheet is open); npm test and build green |
 | `E3-13` | Make Life follow the sub-view in the route (reminders, notes) | S | `src/App.jsx`<br>`test/lifeRoute.test.js` | E3-10 | npx playwright test e2e/capture.spec.js --trace off: the deep link #/life/reminders renders the Reminders view; tapping the Reminders or Notes pill changes the hash; the plus then opens on Reminder or Note; node --test test/lifeRoute.test.js passes; npm test and build green |
 
 ### E3 · Wave 7 — 1 in parallel
