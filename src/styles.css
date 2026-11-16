@@ -23,6 +23,23 @@
   --nav-bg: rgba(10, 12, 16, 0.85);
   --nav-blur: none;
   --title-grad-end: #a78bfa;
+  /* literal colours that had no token equivalent: fixed in every theme, as before.
+     Component rules below reference these through var(), never a literal. */
+  --chip-muted-bg: rgba(139, 149, 168, 0.1);
+  --success-dim-strong: rgba(74, 222, 128, 0.2);
+  --note-bg-red: rgba(248, 113, 113, 0.08);
+  --note-bg-orange: rgba(251, 146, 60, 0.08);
+  --note-bg-green: rgba(74, 222, 128, 0.08);
+  --note-bg-blue: rgba(110, 168, 254, 0.08);
+  --note-bg-purple: rgba(192, 132, 252, 0.08);
+  --swatch-orange: #fb923c;
+  --swatch-blue: #6ea8fe;
+  --swatch-purple: #c084fc;
+  --danger-border: rgba(248, 113, 113, 0.2);
+  --warn-border: rgba(251, 191, 36, 0.2);
+  --warn-border-strong: rgba(251, 191, 36, 0.3);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --scrim: rgba(0, 0, 0, 0.5);
   color-scheme: dark;
 }
 
@@ -91,7 +108,7 @@
   background: var(--surface);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--tile-shadow);
 }
 
 :root { --accent-hover: #3b82f6; }
@@ -202,7 +219,7 @@ body {
   color: var(--accent);
 }
 .chip-muted {
-  background: rgba(139, 149, 168, 0.1);
+  background: var(--chip-muted-bg, var(--surface-raised));
   color: var(--text-secondary);
 }
 
@@ -230,7 +247,7 @@ body {
 .btn-primary {
   background: var(--accent-solid);
   border-color: var(--accent-solid);
-  color: #fff;
+  color: var(--on-accent);
 }
 @media (hover: hover) and (pointer: fine) { .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); } }
 
@@ -244,7 +261,7 @@ body {
 @media (hover: hover) and (pointer: fine) { .btn-ghost:hover { color: var(--text); background: var(--accent-dim); } }
 
 .btn-success { background: var(--success-dim); border-color: transparent; color: var(--success); }
-@media (hover: hover) and (pointer: fine) { .btn-success:hover { background: rgba(74, 222, 128, 0.2); } }
+@media (hover: hover) and (pointer: fine) { .btn-success:hover { background: var(--success-dim-strong, var(--success-dim)); } }
 
 .btn-danger-ghost {
   background: transparent;
@@ -399,21 +416,21 @@ select { cursor: pointer; }
 .note-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .note-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .note-pinned { border-color: var(--accent); }
-.note-card[data-color="red"] { background: rgba(248, 113, 113, 0.08); }
-.note-card[data-color="orange"] { background: rgba(251, 146, 60, 0.08); }
-.note-card[data-color="green"] { background: rgba(74, 222, 128, 0.08); }
-.note-card[data-color="blue"] { background: rgba(110, 168, 254, 0.08); }
-.note-card[data-color="purple"] { background: rgba(192, 132, 252, 0.08); }
+.note-card[data-color="red"] { background: var(--note-bg-red, var(--surface-raised)); }
+.note-card[data-color="orange"] { background: var(--note-bg-orange, var(--surface-raised)); }
+.note-card[data-color="green"] { background: var(--note-bg-green, var(--surface-raised)); }
+.note-card[data-color="blue"] { background: var(--note-bg-blue, var(--surface-raised)); }
+.note-card[data-color="purple"] { background: var(--note-bg-purple, var(--surface-raised)); }
 
 .note-color-picker { display: flex; gap: 8px; }
 .note-swatch { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
 .note-swatch.active { border-color: var(--text); }
 .note-swatch-none { background: var(--surface-raised); border: 1px solid var(--border-light); }
 .note-swatch-red { background: var(--danger); }
-.note-swatch-orange { background: #fb923c; }
+.note-swatch-orange { background: var(--swatch-orange, var(--accent)); }
 .note-swatch-green { background: var(--success); }
-.note-swatch-blue { background: #6ea8fe; }
-.note-swatch-purple { background: #c084fc; }
+.note-swatch-blue { background: var(--swatch-blue, var(--accent)); }
+.note-swatch-purple { background: var(--swatch-purple, var(--accent)); }
 
 /* ── Agent Chat ── */
 .agent-bar {
@@ -485,7 +502,7 @@ select { cursor: pointer; }
 .chat-bubble.user {
   align-self: flex-end;
   background: var(--accent-solid);
-  color: #fff;
+  color: var(--on-accent);
   border-bottom-right-radius: 4px;
 }
 .chat-bubble.assistant {
@@ -517,7 +534,7 @@ select { cursor: pointer; }
   background: var(--accent-solid);
   border: none;
   cursor: pointer;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 18px;
   flex-shrink: 0;
   transition: all 0.15s;
@@ -571,7 +588,7 @@ select { cursor: pointer; }
 /* ── Warning banner ── */
 .banner-warn {
   background: var(--danger-dim);
-  border: 1px solid rgba(248, 113, 113, 0.2);
+  border: 1px solid var(--danger-border, var(--danger));
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 13px;
@@ -604,7 +621,7 @@ select { cursor: pointer; }
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   font-size: 13px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-pop, none);
   pointer-events: auto;
 }
 .toast span { flex: 1; }
@@ -703,7 +720,7 @@ select { cursor: pointer; }
   border-radius: 50%;
   border: none;
   background: var(--accent-solid);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 28px;
   font-weight: 300;
   cursor: pointer;
@@ -794,7 +811,7 @@ select { cursor: pointer; }
   color: inherit;
 }
 .sheet-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--scrim, transparent);
 }
 
 .money-trend-row {
@@ -840,7 +857,7 @@ select { cursor: pointer; }
 /* ── Invest tab ── */
 .invest-disclaimer {
   background: var(--warn-dim);
-  border: 1px solid rgba(251, 191, 36, 0.2);
+  border: 1px solid var(--warn-border, var(--warn));
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 12.5px;
@@ -977,7 +994,7 @@ select { cursor: pointer; }
 }
 
 .life-reminder-banner {
-  background: var(--warn-dim); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: var(--radius-sm);
+  background: var(--warn-dim); border: 1px solid var(--warn-border-strong, var(--warn)); border-radius: var(--radius-sm);
   padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: var(--warn);
   animation: slideDown 0.2s ease-out;
 }
@@ -1015,7 +1032,7 @@ select { cursor: pointer; }
 
 .habit-checkin-btn {
   width: 100%; margin-top: 12px; padding: 10px; border-radius: var(--radius-xs); border: none;
-  background: var(--accent-solid); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
+  background: var(--accent-solid); color: var(--on-accent); font-weight: 700; font-size: 14px; cursor: pointer;
   transition: transform 0.1s;
 }
 .habit-checkin-btn:active { transform: scale(0.97); }
@@ -1081,7 +1098,7 @@ select { cursor: pointer; }
   font-size: 12px;
   text-align: center;
   color: var(--text-tertiary);
-  border: 1px dashed var(--border, rgba(128,128,128,.4));
+  border: 1px dashed var(--border, var(--border-light));
   border-radius: 8px;
 }
 
