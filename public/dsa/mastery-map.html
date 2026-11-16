@@ -8,7 +8,6 @@
 /* ?embed=1 — set before first paint so embed CSS applies with no flash (R3-04) */
 (function () { try { if (new URLSearchParams(location.search).get('embed') === '1') document.documentElement.classList.add('embed'); } catch (e) {} })();
 </script>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0a0a0b;
@@ -71,7 +70,7 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
     min-height: 100vh;
     min-height: 100dvh;
     background-image:
@@ -106,7 +105,7 @@
     margin-bottom: 12px;
   }
   .brand h1 {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 16px;
     font-weight: 700;
     letter-spacing: -0.01em;
@@ -116,14 +115,14 @@
     color: var(--text-faint);
     font-size: 10px;
     margin-top: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
   }
 
   .nav-group {
     padding: 8px 0;
   }
   .nav-group-label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -137,7 +136,7 @@
     padding: 8px 20px;
     color: var(--text-dim);
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 13px;
     border-left: 2px solid transparent;
     transition: all 0.12s;
@@ -176,7 +175,7 @@
     border-bottom: 1px solid var(--border);
   }
   .main-title {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 24px;
     font-weight: 700;
     letter-spacing: -0.02em;
@@ -186,14 +185,14 @@
     color: var(--text-dim);
     font-size: 12px;
     margin-top: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
   }
 
   .stats {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
   }
   .stat {
     background: var(--bg-card);
@@ -223,7 +222,7 @@
     color: var(--text);
     padding: 10px 14px;
     border-radius: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 13px;
     outline: none;
     transition: border-color 0.15s;
@@ -238,7 +237,7 @@
     color: var(--text-dim);
     padding: 9px 14px;
     border-radius: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 12px;
     cursor: pointer;
     transition: all 0.15s;
@@ -256,7 +255,7 @@
     gap: 18px;
     margin-bottom: 20px;
     flex-wrap: wrap;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-dim);
   }
@@ -275,7 +274,7 @@
     border-bottom: 1px dashed var(--border);
   }
   .layer-label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     font-weight: 700;
     padding: 3px 8px;
@@ -290,12 +289,12 @@
   .tier-6 .layer-label { background: var(--tier-6); }
   .tier-7 .layer-label { background: var(--tier-7); }
   .layer-title {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 14px;
     font-weight: 600;
   }
   .layer-desc {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-faint);
   }
@@ -387,7 +386,7 @@
     margin-bottom: 10px;
   }
   .tag {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     padding: 2px 7px;
     border-radius: 4px;
@@ -408,7 +407,7 @@
     gap: 8px;
   }
   .prereq {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-faint);
     flex: 1;
@@ -443,14 +442,14 @@
     border: 1px solid var(--border);
     padding: 10px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text);
     margin-bottom: 10px;
     white-space: pre-wrap;
   }
   .detail-row {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-dim);
     margin-bottom: 5px;
@@ -464,7 +463,7 @@
     border-top: 1px solid var(--border);
   }
   .hint {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-faint);
     line-height: 1.6;
@@ -482,7 +481,7 @@
     text-align: center;
     padding: 60px 20px;
     color: var(--text-faint);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 13px;
   }
 
@@ -523,7 +522,7 @@
     border-radius: 4px;
   }
   .ars-category-label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     font-weight: 700;
     padding: 3px 8px;
@@ -532,12 +531,12 @@
     color: var(--bg);
   }
   .ars-category-title {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 14px;
     font-weight: 600;
   }
   .ars-category-desc {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-faint);
   }
@@ -579,13 +578,13 @@
     line-height: 1.3;
   }
   .ars-card-id {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-faint);
     margin-right: 6px;
   }
   .ars-tier-badge {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     font-weight: 700;
     padding: 2px 7px;
@@ -601,7 +600,7 @@
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 4px 10px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-dim);
     margin-bottom: 8px;
@@ -650,7 +649,7 @@
     border: 1px solid var(--border);
     padding: 12px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     line-height: 1.5;
     color: var(--text);
@@ -663,7 +662,7 @@
   .ars-code::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 3px; }
 
   .ars-gotchas {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--diff-med);
     background: rgba(251, 191, 36, 0.08);
@@ -675,7 +674,7 @@
   }
 
   .ars-applied-in {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-dim);
     margin-top: 6px;
@@ -685,7 +684,7 @@
 
   /* ========== PATTERN TAB STYLES ========== */
   .pat-signal {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 12px;
     color: var(--theme-patterns);
     background: rgba(45, 212, 191, 0.08);
@@ -704,7 +703,7 @@
     opacity: 0.7;
   }
   .pat-idea {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
     font-size: 13px;
     color: var(--text);
     margin: 6px 0 10px;
@@ -712,7 +711,7 @@
   }
   .pat-idea::before {
     content: 'IDEA · ';
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     font-weight: 700;
     color: var(--text-faint);
@@ -726,7 +725,7 @@
     margin-top: 6px;
   }
   .pat-chip {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     padding: 3px 8px;
     border-radius: 4px;
@@ -742,7 +741,7 @@
   .pat-chip.unresolved:hover { border-color: var(--border); color: var(--text-dim); }
 
   .algo-related-patterns {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-dim);
     margin-top: 8px;
@@ -770,7 +769,7 @@
     flex-wrap: wrap;
   }
   .rm-header h3 {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 12px;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -778,7 +777,7 @@
     margin-bottom: 6px;
   }
   .rm-current-phase {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 14px;
     color: var(--theme-roadmap);
     font-weight: 700;
@@ -794,7 +793,7 @@
     color: var(--text-dim);
     padding: 6px 12px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     cursor: pointer;
     transition: all 0.15s;
@@ -812,7 +811,7 @@
     color: var(--text);
     padding: 6px 10px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 12px;
     width: 90px;
     outline: none;
@@ -874,7 +873,7 @@
     flex-wrap: wrap;
   }
   .rm-phase-num {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     font-weight: 700;
     color: var(--theme-roadmap);
@@ -886,7 +885,7 @@
     margin: 2px 0 4px;
   }
   .rm-phase-meta {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-dim);
     display: flex;
@@ -895,7 +894,7 @@
   }
   .rm-phase-meta .target { color: var(--theme-roadmap); font-weight: 600; }
   .rm-progress-ring {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     text-align: right;
   }
@@ -924,7 +923,7 @@
     margin-bottom: 14px;
   }
   .rm-section-label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -935,7 +934,7 @@
     margin-bottom: 10px;
   }
   .rm-topic-group-name {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-dim);
     margin-bottom: 4px;
@@ -946,7 +945,7 @@
     gap: 4px;
   }
   .rm-chip {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     padding: 3px 8px;
     border-radius: 4px;
@@ -962,7 +961,7 @@
   .rm-chip.unresolved:hover { border-color: var(--border); color: var(--text-dim); }
 
   .rm-list {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-dim);
     line-height: 1.7;
@@ -976,7 +975,7 @@
     gap: 6px;
   }
   .rm-checkpoint {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     padding: 4px 10px;
     border-radius: 4px;
@@ -995,7 +994,7 @@
     border: none;
     padding: 8px 14px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;
@@ -1017,7 +1016,7 @@
     color: var(--text-dim);
     padding: 7px 12px;
     border-radius: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     cursor: pointer;
     transition: all 0.15s;
@@ -1047,7 +1046,7 @@
     position: relative;
   }
   .polish-modal h3 {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 14px;
     margin-bottom: 14px;
     color: var(--theme);
@@ -1068,7 +1067,7 @@
     color: var(--text);
     padding: 10px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     resize: vertical;
     outline: none;
@@ -1086,7 +1085,7 @@
     border: none;
     padding: 8px 14px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;
@@ -1109,7 +1108,7 @@
   }
   .next-up-item:hover { border-color: var(--theme); transform: translateX(2px); }
   .next-up-item .title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-  .next-up-item .meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); }
+  .next-up-item .meta { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace; font-size: 10px; color: var(--text-dim); }
 
   .global-search-result {
     padding: 10px 12px;
@@ -1120,7 +1119,7 @@
   .global-search-result:hover { background: var(--bg); }
   .global-search-result .title { font-size: 13px; font-weight: 600; }
   .global-search-result .meta {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-faint);
     margin-top: 2px;
@@ -1129,7 +1128,7 @@
     margin-bottom: 16px;
   }
   .global-search-group-label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--theme);
     text-transform: uppercase;
@@ -1151,7 +1150,7 @@
     color: var(--theme-roadmap);
     padding: 6px 12px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -1167,7 +1166,7 @@
     font-size: 11px;
   }
   .dl-preview-meta {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-dim);
     margin-bottom: 10px;
@@ -1193,7 +1192,7 @@
   .cm-card:hover { background: var(--bg-card-hover); }
   .cm-card.done { opacity: 0.55; }
   .cm-signal {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 12px;
     color: var(--theme-confusion);
     font-weight: 600;
@@ -1214,7 +1213,7 @@
     align-items: start;
   }
   .cm-row .label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     font-weight: 700;
     padding: 3px 0;
@@ -1243,7 +1242,7 @@
     margin-top: 4px;
   }
   .cm-ref {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     padding: 2px 7px;
     border-radius: 4px;
@@ -1284,7 +1283,7 @@
     line-height: 1.5;
   }
   .bug-row .k {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     font-weight: 700;
     color: var(--text-faint);
@@ -1293,14 +1292,14 @@
   }
   .bug-row .v { color: var(--text); }
   .bug-row .v.ex {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     color: #fca5a5;
     background: rgba(239, 68, 68, 0.08);
     padding: 4px 8px;
     border-radius: 3px;
   }
   .bug-row .v.fix {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     color: var(--tier-1);
     background: rgba(94, 234, 212, 0.05);
     padding: 4px 8px;
@@ -1310,7 +1309,7 @@
   /* ========== CHEAT SHEET ========== */
   .cs-section { margin-bottom: 32px; overflow-x: auto; }
   .cs-title {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 14px;
     font-weight: 700;
     color: var(--theme-cheatsheet);
@@ -1321,7 +1320,7 @@
   .cs-table {
     width: 100%;
     border-collapse: collapse;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
   }
   .cs-table th, .cs-table td {
@@ -1348,7 +1347,7 @@
 
   /* ========== WHEN NOT TO USE on patterns ========== */
   .pat-when-not {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: #fca5a5;
     background: rgba(239, 68, 68, 0.06);
@@ -1385,7 +1384,7 @@
     border: none;
     padding: 8px 14px;
     border-radius: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
@@ -1399,7 +1398,7 @@
     color: var(--text);
     padding: 7px 10px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 12px;
     outline: none;
   }
@@ -1410,7 +1409,7 @@
     color: var(--text-dim);
     padding: 7px 10px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     cursor: pointer;
   }
@@ -1423,7 +1422,7 @@
     color: var(--text-dim);
     padding: 7px 10px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     cursor: pointer;
   }
@@ -1433,7 +1432,7 @@
   }
 
   .log-stats {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     color: var(--text-faint);
     padding: 8px 12px;
@@ -1453,7 +1452,7 @@
     margin-bottom: 16px;
   }
   .log-tag-chip {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     padding: 3px 8px;
     border-radius: 4px;
@@ -1501,7 +1500,7 @@
   .log-entry.status-giving-up { border-left: 3px solid var(--diff-gm); opacity: 0.7; }
 
   .log-pid {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 11px;
     font-weight: 700;
     color: var(--theme-log);
@@ -1514,7 +1513,7 @@
     white-space: nowrap;
   }
   .log-title-col .ptag {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-dim);
     margin-left: 6px;
@@ -1524,7 +1523,7 @@
     border: 1px solid var(--border);
   }
   .log-diff {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     padding: 2px 7px;
     border-radius: 3px;
@@ -1533,7 +1532,7 @@
     border: 1px solid var(--border);
   }
   .log-status {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-dim);
     padding: 2px 7px;
@@ -1559,11 +1558,11 @@
     background: var(--bg);
     border-radius: 4px;
     white-space: pre-wrap;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
   }
   .log-notes.empty { color: var(--text-faint); font-style: italic; }
   .log-meta {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-faint);
     margin-top: 6px;
@@ -1581,7 +1580,7 @@
     color: var(--text-dim);
     padding: 5px 10px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     cursor: pointer;
   }
@@ -1596,7 +1595,7 @@
     align-items: center;
   }
   .log-edit-grid label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 10px;
     color: var(--text-faint);
     text-transform: uppercase;
@@ -1608,7 +1607,7 @@
     color: var(--text);
     padding: 7px 10px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 12px;
     outline: none;
     width: 100%;
@@ -1617,14 +1616,14 @@
   .log-edit-grid input:focus, .log-edit-grid select:focus, .log-edit-grid textarea:focus {
     border-color: var(--theme-log);
   }
-  .log-edit-grid textarea { min-height: 80px; font-family: 'JetBrains Mono', monospace; }
+  .log-edit-grid textarea { min-height: 80px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace; }
   .log-edit-grid select option { background: var(--bg); color: var(--text); }
 
   .log-empty {
     text-align: center;
     padding: 50px 20px;
     color: var(--text-faint);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
     font-size: 12px;
   }
 
@@ -6808,18 +6807,18 @@ function renderPatterns() {
         <div class="pat-idea">${escapeHtml(p.coreIdea)}</div>
         ${(typeof PATTERN_ANTI_SIGNALS !== 'undefined' && PATTERN_ANTI_SIGNALS[p.id]) ? `<div class="pat-when-not">${escapeHtml(PATTERN_ANTI_SIGNALS[p.id])}</div>` : ''}
         <div class="ars-card-controls">
-          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint);">${cs.expanded ? '▼ hide template' : '▶ show template'}</span>
+          <span style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:10px;color:var(--text-faint);">${cs.expanded ? '▼ hide template' : '▶ show template'}</span>
           <div class="ars-card-check" data-action="toggle-done"></div>
         </div>
         <div class="ars-card-detail">
           <pre class="ars-code">${escapeHtml(p.template)}</pre>
-          <div class="detail-row" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);margin-top:6px;">
+          <div class="detail-row" style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:11px;color:var(--text-dim);margin-top:6px;">
             <strong style="color:var(--text);">canonical:</strong> ${escapeHtml(p.canonicalProblem)}
           </div>
-          ${p.moreProblems && p.moreProblems.length ? `<div class="detail-row" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);margin-top:4px;">
+          ${p.moreProblems && p.moreProblems.length ? `<div class="detail-row" style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:11px;color:var(--text-dim);margin-top:4px;">
             <strong style="color:var(--text);">more:</strong> ${p.moreProblems.map(escapeHtml).join(' · ')}
           </div>` : ''}
-          ${p.relatedAlgos && p.relatedAlgos.length ? `<div style="margin-top:8px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint);">RELATED ALGOS</span><div class="pat-chips">${p.relatedAlgos.map(a => {
+          ${p.relatedAlgos && p.relatedAlgos.length ? `<div style="margin-top:8px;"><span style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:10px;color:var(--text-faint);">RELATED ALGOS</span><div class="pat-chips">${p.relatedAlgos.map(a => {
             const tabId = findAlgoTab(a);
             const cls = tabId ? 'pat-chip algo-chip' : 'pat-chip algo-chip unresolved';
             return `<span class="${cls}" data-algo-title="${escapeHtml(a)}" ${tabId ? '' : 'title="not yet built"'}>${escapeHtml(a)}</span>`;
@@ -6987,7 +6986,7 @@ function renderRoadmap() {
 
         <div class="rm-section">
           <div class="rm-section-label">Volume Target</div>
-          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);">${escapeHtml(phase.volumeTarget)}</div>
+          <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace; font-size: 12px; color: var(--text);">${escapeHtml(phase.volumeTarget)}</div>
         </div>
 
         <div class="rm-section">
@@ -7111,7 +7110,7 @@ Keep it brutal, no fluff.`;
 function showToast(msg) {
   const t = document.createElement('div');
   t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--theme);color:var(--bg);padding:10px 18px;border-radius:6px;font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;z-index:200;';
+  t.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--theme);color:var(--bg);padding:10px 18px;border-radius:6px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:12px;font-weight:700;z-index:200;';
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2500);
 }
@@ -7131,7 +7130,7 @@ function openGlobalSearch() {
 
   function doSearch() {
     const q = input.value.toLowerCase().trim();
-    if (q.length < 2) { resultsEl.innerHTML = '<div style="color:var(--text-faint);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px;">type at least 2 chars...</div>'; return; }
+    if (q.length < 2) { resultsEl.innerHTML = '<div style="color:var(--text-faint);font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:11px;padding:10px;">type at least 2 chars...</div>'; return; }
 
     const byTab = {};
     for (const tab of TABS) {
@@ -7154,7 +7153,7 @@ function openGlobalSearch() {
     }
 
     if (Object.keys(byTab).length === 0) {
-      resultsEl.innerHTML = '<div style="color:var(--text-faint);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px;">no matches</div>';
+      resultsEl.innerHTML = '<div style="color:var(--text-faint);font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:11px;padding:10px;">no matches</div>';
       return;
     }
 
@@ -7234,7 +7233,7 @@ function openNextUp() {
 
   body.innerHTML = `
     <h3>Next Up — ${escapeHtml(tab ? tab.name : '')}</h3>
-    <div style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text-dim);margin-bottom:12px;">
+    <div style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:11px;color:var(--text-dim);margin-bottom:12px;">
       cards w/ prereqs met · not done · click to jump
     </div>
     ${top.length === 0 ? '<div style="color:var(--text-faint);padding:10px;">nothing unlocked — mark more prereqs done or switch tabs</div>' :
@@ -7278,7 +7277,7 @@ function openExport() {
   const json = JSON.stringify(payload, null, 2);
   body.innerHTML = `
     <h3>Export Progress</h3>
-    <div style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text-dim);margin-bottom:10px;">
+    <div style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:11px;color:var(--text-dim);margin-bottom:10px;">
       copy this JSON and save it somewhere safe. import later to restore.
     </div>
     <textarea class="polish-textarea" id="export-ta" readonly>${escapeHtml(json)}</textarea>
@@ -7309,7 +7308,7 @@ function openImport() {
   const body = document.getElementById('modal-body');
   body.innerHTML = `
     <h3>Import Progress</h3>
-    <div style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text-dim);margin-bottom:10px;">
+    <div style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:11px;color:var(--text-dim);margin-bottom:10px;">
       paste exported JSON below. will OVERWRITE current progress.
     </div>
     <textarea class="polish-textarea" id="import-ta" placeholder="paste JSON here..."></textarea>
@@ -7524,7 +7523,7 @@ function renderConfusion() {
       cardEl.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:10px;">
           <div>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint);">${c.id}</span>
+            <span style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:10px;color:var(--text-faint);">${c.id}</span>
             <span style="font-weight:700;font-size:14px;margin-left:6px;">${escapeHtml(c.title)}</span>
           </div>
           <div class="ars-card-check" data-action="toggle-done"></div>
@@ -7633,7 +7632,7 @@ function renderBugs() {
       cardEl.className = `bug-card ${cs.done ? 'done' : ''}`;
       cardEl.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px;">
-          <div class="bug-title"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint);margin-right:4px;">${b.id}</span>${escapeHtml(b.title)}</div>
+          <div class="bug-title"><span style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:10px;color:var(--text-faint);margin-right:4px;">${b.id}</span>${escapeHtml(b.title)}</div>
           <div class="ars-card-check" data-action="toggle-done"></div>
         </div>
         <div class="bug-row"><span class="k">Symptom</span><span class="v">${escapeHtml(b.symptom)}</span></div>
@@ -8007,7 +8006,7 @@ function openLogImport() {
   const body = document.getElementById('modal-body');
   body.innerHTML = `
     <h3>Import Problem Log</h3>
-    <div style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--text-dim);margin-bottom:10px;">
+    <div style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:11px;color:var(--text-dim);margin-bottom:10px;">
       paste JSON array of problem objects. will MERGE with existing (no duplicates by pid).
     </div>
     <textarea class="polish-textarea" id="log-import-ta" placeholder='[{"pid":"CF 1234E","title":"..."}, ...]'></textarea>
@@ -8120,7 +8119,7 @@ function renderArsenal() {
           <span class="k">use when:</span><span class="v">${escapeHtml(card.whenToUse)}</span>
         </div>
         <div class="ars-card-controls">
-          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint);">${cs.expanded ? '▼ hide code' : '▶ show code'}</span>
+          <span style="font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;font-size:10px;color:var(--text-faint);">${cs.expanded ? '▼ hide code' : '▶ show code'}</span>
           <div class="ars-card-check" data-action="toggle-done"></div>
         </div>
         <div class="ars-card-detail">
