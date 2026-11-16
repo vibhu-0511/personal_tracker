@@ -49,7 +49,7 @@ function rowSub(e) {
   return parts.join(' · ')
 }
 
-const HEADINGS = { all: 'All Transactions', income: 'Income', expense: 'Expenses' }
+const HEADINGS = { all: 'All transactions', income: 'Income', expense: 'Expenses' }
 
 export default function TxnList({ expenses, onEdit, onDelete, onSelect, selectedId = null }) {
   const [search, setSearch] = useState('')
@@ -103,10 +103,10 @@ export default function TxnList({ expenses, onEdit, onDelete, onSelect, selected
         return (
           <div key={dayKey} className="spend-day">
             <div className="spend-day-head">
-              <span>{formatDate(Number(dayKey))}</span>
-              {items.some((e) => !isIncome(e)) && (
-                <span className="spend-expense-text">{formatRupees(daySpent)} spent</span>
-              )}
+              <span>
+                {formatDate(Number(dayKey))}
+                {items.some((e) => !isIncome(e)) && ` · ${formatRupees(daySpent)} spent`}
+              </span>
             </div>
             <ul className="spend-day-list">
               {items.map((e) => {
@@ -114,7 +114,7 @@ export default function TxnList({ expenses, onEdit, onDelete, onSelect, selected
                 return (
                   <Row
                     key={e.id}
-                    lead={<span className="spend-txn-emoji" aria-hidden="true">{income ? '💵' : categoryInfo(e.category).emoji}</span>}
+                    lead={<span className="spend-txn-emoji" data-income={income ? '' : undefined} aria-hidden="true">{income ? '💵' : categoryInfo(e.category).emoji}</span>}
                     title={
                       <span className="spend-txn-title">
                         <span>{rowTitle(e)}</span>
