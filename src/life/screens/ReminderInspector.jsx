@@ -15,6 +15,16 @@ import { normalizeRepeat, REPEAT_TYPES, SNOOZE_PRESETS } from '../reminderLogic.
 const REPEAT_LABEL = { none: 'Never', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' }
 const SNOOZE_LABEL = { '1h': 'In 1 hour', tonight: 'Tonight', tomorrow: 'Tomorrow' }
 
+const WEEKDAYS = [
+  { d: 0, short: 'S', name: 'Sunday' },
+  { d: 1, short: 'M', name: 'Monday' },
+  { d: 2, short: 'T', name: 'Tuesday' },
+  { d: 3, short: 'W', name: 'Wednesday' },
+  { d: 4, short: 'T', name: 'Thursday' },
+  { d: 5, short: 'F', name: 'Friday' },
+  { d: 6, short: 'S', name: 'Saturday' },
+]
+
 const pad = (n) => String(n).padStart(2, '0')
 
 // ms -> value for <input type="datetime-local"> in the viewer's local time zone.
@@ -69,7 +79,23 @@ function ReminderEditor({ reminder, onChange, onReschedule, onRepeat, onSnooze, 
     if (nextAt == null) setWhen(savedWhen)
   }
 
-  const repeatType = normalizeRepeat(reminder.repeat).type
+  const repeat = normalizeRepeat(reminder.repeat)
+  const repeatType = repeat.type
+  // Chosen weekdays; with none saved, the weekday of the reminder time (what the logic assumes).
+  const fallbackDay = new Date(reminder.at).getDay()
+  const weekdays = repeat.days?.length ? repeat.days : [fallbackDay]
+
+  function pickRepeat(type) {
+    onRepeat(reminder.id, type === 'weekly' ? { type: 'weekly', days: [fallbackDay] } : { type })
+  }
+
+  // At least one weekday always stays selected.
+  function toggleDay(d) {
+    const on = weekdays.includes(d)
+    if (on && weekdays.length === 1) return
+    const days = (on ? weekdays.filter((x) => x !== d) : [...weekdays, d]).sort((a, b) => a - b)
+    onRepeat(reminder.id, { type: 'weekly', days })
+  }
 
   return (
     <div className="reminder-inspector rem-inspector">
@@ -116,13 +142,42 @@ function ReminderEditor({ reminder, onChange, onReschedule, onRepeat, onSnooze, 
         <select
           aria-label="Repeat"
           value={repeatType}
-          onChange={(e) => onRepeat(reminder.id, { type: e.target.value })}
+          onChange={(e) => pickRepeat(e.target.value)}
         >
           {REPEAT_TYPES.map((t) => (
             <option key={t} value={t}>{REPEAT_LABEL[t]}</option>
           ))}
         </select>
       </label>
+
+      {repeatType === 'weekly' && (
+        <div className="rem-field" role="group" aria-label="Repeat on weekdays">
+          <span className="rem-field-label">Repeat on</span>
+          <div className="rem-snooze">
+            {WEEKDAYS.map(({ d, short, name }) => {
+              const on = weekdays.includes(d)
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  className="rem-chip"
+                  data-day={d}
+                  aria-pressed={on}
+                  aria-label={name}
+                  style={{
+                    minWidth: 44,
+                    background: on ? 'var(--accent-dim)' : undefined,
+                    borderColor: on ? 'var(--accent)' : undefined,
+                  }}
+                  onClick={() => toggleDay(d)}
+                >
+                  {short}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="rem-field" role="group" aria-label="Snooze">
         <span className="rem-field-label">Snooze</span>
