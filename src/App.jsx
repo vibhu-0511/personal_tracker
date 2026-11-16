@@ -9,9 +9,11 @@ import BackupPanel from './backup/BackupPanel.jsx'
 import { supabase } from './supabaseClient.js'
 import ToastHost from './Toast.jsx'
 import Shell from './shell/Shell.jsx'
+import SubNav from './ui/SubNav.jsx'
+import { LIFE_VIEWS } from './life/views.js'
 import { useShortcuts } from './shell/useShortcuts.js'
 import { captureCommands, registry } from './shell/commands.js'
-import { useRoute, navigate } from './router.js'
+import { useRoute, useSubView, navigate } from './router.js'
 
 // The Life data layer (reminder actions, selectors) and the palette that reads it load as
 // their own chunks, off the entry bundle.
@@ -86,6 +88,7 @@ export default function App() {
   const [authBusy, setAuthBusy] = useState(false)
 
   const route = useRoute()
+  const [lifeView, setLifeView] = useSubView('life', 'tasks')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settings, setSettings] = useState({ cfHandle: '', theme: 'ember' })
   const [draftHandle, setDraftHandle] = useState('')
@@ -377,7 +380,12 @@ export default function App() {
 
         <Suspense fallback={<div className="loading"><span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" /></div>}>
           {route.tab === 'today' && <Home syncTick={syncTicks.Home || 0} />}
-          {route.tab === 'life' && <Life syncTick={syncTicks.Life || 0} />}
+          {route.tab === 'life' && (
+            <>
+              <SubNav items={LIFE_VIEWS} value={lifeView} onChange={setLifeView} label="Life sections" />
+              <Life syncTick={syncTicks.Life || 0} view={lifeView} onViewChange={setLifeView} />
+            </>
+          )}
           {route.tab === 'logic' && <LogicBuilding cfHandle={settings.cfHandle} syncTicks={syncTicks} />}
           {route.tab === 'money' && <Expenses syncTick={syncTicks.Expenses || 0} />}
           {route.tab === 'invest' && <Invest syncTick={syncTicks.Invest || 0} />}
