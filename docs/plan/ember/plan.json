@@ -1430,7 +1430,7 @@
     {
       "id": "E4-13",
       "phase": "E4",
-      "wave": 3,
+      "wave": 4,
       "title": "Extend the device matrix to every sub-view and add a contrast check",
       "size": "M",
       "writes": [
@@ -1487,7 +1487,7 @@
     {
       "id": "E4-U1",
       "phase": "E4",
-      "wave": 4,
+      "wave": 5,
       "title": "Owner: run the device checklist on your iPhone and iPad",
       "size": "S",
       "writes": [
@@ -1507,7 +1507,7 @@
     {
       "id": "E4-GATE",
       "phase": "E4",
-      "wave": 5,
+      "wave": 6,
       "title": "Phase gate: screens",
       "size": "S",
       "writes": [

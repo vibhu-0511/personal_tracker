@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 34 waves · 85 tasks · widest wave 8 tasks in parallel**
+**6 phases · 35 waves · 86 tasks · widest wave 8 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -258,7 +258,7 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 
 Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, including reminders with snooze and repeat, notes with titles, and the expense logging strip.
 
-18 tasks across 5 waves.
+19 tasks across 6 waves.
 
 **Exit criteria**
 - all sub-views pass the device matrix
@@ -294,16 +294,22 @@ Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, inclu
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E4-13` | Extend the device matrix to every sub-view and add a contrast check | M | `e2e/ember-screens.spec.js`<br>`e2e/helpers/contrast.js`<br>`e2e/matrix/phone.spec.js`<br>`e2e/matrix/ipad-portrait.spec.js`<br>`e2e/matrix/ipad-landscape.spec.js`<br>`e2e/matrix/desktop.spec.js` | E4-01, E4-02, E4-03, E4-06, E4-07, E4-08, E4-09, E4-10, E4-11, E4-12, E4-15, E4-16 | npm run test:e2e -- --trace off passes: all 17 sub-views plus Today and Agents load at 390, 834, 1194 and 1440 with no horizontal scroll and no console errors; visible text on the ember theme meets 4.5:1 on Today, Reminders, Notes and Spend |
 | `E4-14` | Update the README and write the device checklist | S | `README.md`<br>`docs/qa/ember-device-checklist.md` | E4-01, E4-04, E4-05 | test -f docs/qa/ember-device-checklist.md && grep -c "^- \[ \]" docs/qa/ember-device-checklist.md prints >= 25; README Layout section names src/capture, src/today/dailies.js and the ember theme |
+| `E4-17` | Handle zero enabled dailies in the Today header and ring | S | `src/today/TodayHeader.jsx`<br>`test/todayHeaderZero.test.js` | E4-11 | node --test test/todayHeaderZero.test.js passes: with dailies total 0 the header renders without NaN or Infinity, no ring or an empty ring with the label None enabled, and no division by zero in the source; npm test and build green |
 
 ### E4 · Wave 4 — 1 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E4-U1` 👤 | Owner: run the device checklist on your iPhone and iPad | S | `docs/plan/ember/reports/E4-device-check.md` | E4-13, E4-14 | docs/plan/ember/reports/E4-device-check.md exists with every item in docs/qa/ember-device-checklist.md marked pass or fail, the device and iOS version, and a note for each fail |
+| `E4-13` | Extend the device matrix to every sub-view and add a contrast check | M | `e2e/ember-screens.spec.js`<br>`e2e/helpers/contrast.js`<br>`e2e/matrix/phone.spec.js`<br>`e2e/matrix/ipad-portrait.spec.js`<br>`e2e/matrix/ipad-landscape.spec.js`<br>`e2e/matrix/desktop.spec.js` | E4-01, E4-02, E4-03, E4-06, E4-07, E4-08, E4-09, E4-10, E4-11, E4-12, E4-15, E4-16, E4-17 | npm run test:e2e -- --trace off passes: all 17 sub-views plus Today and Agents load at 390, 834, 1194 and 1440 with no horizontal scroll and no console errors; visible text on the ember theme meets 4.5:1 on Today, Reminders, Notes and Spend |
 
 ### E4 · Wave 5 — 1 in parallel
+
+| Task | Title | Size | Writes | Depends on | Acceptance |
+|---|---|---|---|---|---|
+| `E4-U1` 👤 | Owner: run the device checklist on your iPhone and iPad | S | `docs/plan/ember/reports/E4-device-check.md` | E4-13, E4-14 | docs/plan/ember/reports/E4-device-check.md exists with every item in docs/qa/ember-device-checklist.md marked pass or fail, the device and iOS version, and a note for each fail |
+
+### E4 · Wave 6 — 1 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
