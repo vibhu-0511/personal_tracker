@@ -1,0 +1,140 @@
+/* Notes list (E4-03, DESIGN 5.4): search, tag chips, Pinned / Recent sections, title + excerpt rows.
+   Tokens only, so every accent (including cream) restyles it. Loaded after styles.css. */
+
+.notes-search { margin-bottom: var(--space-3); }
+
+.notes-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  margin-bottom: var(--space-3);
+  scrollbar-width: none;
+}
+.notes-chips::-webkit-scrollbar { display: none; }
+.notes-chip {
+  flex: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-chip);
+  padding: 5px 12px;
+  font: inherit;
+  font-size: var(--fs-sm, 13px);
+  cursor: pointer;
+}
+.notes-chip[aria-pressed="true"] {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.notes-section-label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: var(--space-3) 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--fs-label, 12px);
+  letter-spacing: var(--label-tracking, 0.08em);
+  text-transform: uppercase;
+}
+.notes-section-label .count { font-family: var(--font-data); }
+
+/* Row */
+.note-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.note-card[data-selected="true"] { border-color: var(--accent); }
+.note-card.note-pinned { border-color: var(--border); }
+.note-card.note-pinned[data-selected="true"] { border-color: var(--accent); }
+/* The old full-card colour wash is replaced by the dot. */
+.note-card[data-color] { background: var(--surface); }
+
+.note-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-round);
+  margin-top: 6px;
+  background: var(--border);
+}
+.note-card[data-color="red"] .note-dot { background: var(--danger); }
+.note-card[data-color="orange"] .note-dot { background: var(--accent); }
+.note-card[data-color="green"] .note-dot { background: var(--success); }
+.note-card[data-color="blue"] .note-dot { background: var(--note); }
+.note-card[data-color="purple"] .note-dot { background: var(--chart-5); }
+
+/* Swatches use the same tokens as the dot. */
+.note-color-picker .note-swatch-red { background: var(--danger); }
+.note-color-picker .note-swatch-orange { background: var(--accent); }
+.note-color-picker .note-swatch-green { background: var(--success); }
+.note-color-picker .note-swatch-blue { background: var(--note); }
+.note-color-picker .note-swatch-purple { background: var(--chart-5); }
+
+.note-open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  display: block;
+}
+.note-title-line { display: flex; align-items: center; gap: 6px; }
+.note-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-pin-icon { flex: none; width: 14px; height: 14px; color: var(--accent); }
+.note-excerpt {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: var(--fs-sm, 13px);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.note-meta {
+  margin-top: 4px;
+  font-family: var(--font-data);
+  font-size: var(--fs-xs, 12px);
+  color: var(--text-tertiary, var(--text-secondary));
+}
+.note-expand {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+}
+.note-row-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+@media (pointer: coarse) {
+  .notes-chip { min-height: 44px; }
+  .note-open { min-height: 44px; }
+  .note-expand { min-width: 44px; min-height: 44px; }
+  .note-color-picker .note-swatch { min-width: 44px; min-height: 44px; background-clip: content-box; padding: 12px; }
+  .note-actions .btn, .note-row-foot .btn { min-height: 44px; }
+}
