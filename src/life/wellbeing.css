@@ -185,9 +185,27 @@ button.life-section-label.wb-label {
   border-radius: var(--radius-control, 10px);
   background: var(--surface-raised);
 }
+.wb-quick input,
+.wb-filter {
+  border: 1px solid var(--text-secondary);
+}
+.wb-quick input::placeholder,
+.wb-filter::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
 .wb-filter { margin-bottom: var(--space-3); }
-.wb-toggle[aria-pressed="false"] { opacity: 0.45; }
-.wb-toggle[aria-pressed="true"] { opacity: 1; }
+/* Off vs on is shown by border style and weight (dashed hairline vs solid accent ring
+   plus fill), not by colour or opacity alone; text stays at full contrast in both. */
+.wb-toggle { opacity: 1; color: var(--text); }
+.wb-toggle[aria-pressed="false"] {
+  border: 1px dashed var(--text-secondary);
+  background: none;
+}
+.wb-toggle[aria-pressed="true"] {
+  border: 2px solid var(--accent);
+  background: var(--accent-dim, var(--hover));
+}
 
 /* ── Icon buttons ── */
 .life-icon-btn.wb-icon { border-radius: var(--radius-control, 10px); }

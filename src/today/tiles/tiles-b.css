@@ -21,7 +21,7 @@
 .tb-note {
   margin: 0;
   font-size: 12px;
-  color: var(--tile-sec, var(--text-secondary));
+  color: var(--text);
 }
 .tb-big {
   font-size: 22px;
@@ -93,8 +93,12 @@
   font: inherit;
   color: var(--text);
   background: var(--tile-inner, var(--surface-raised));
-  border: 1px solid var(--border);
+  border: 1px solid var(--tile-sec, var(--text-secondary));
   border-radius: var(--radius-xs, 10px);
+}
+.tb-ask-input::placeholder {
+  color: var(--text);
+  opacity: 1;
 }
 .tb-ask-btn {
   min-height: 44px;
@@ -102,7 +106,7 @@
   padding: 0 16px;
   font: inherit;
   font-weight: 600;
-  color: var(--on-accent, #fff);
+  color: var(--accent-fg, var(--on-accent));
   background: var(--accent);
   border: 0;
   border-radius: var(--radius-xs, 10px);
