@@ -60,3 +60,32 @@
   .md-root--solo { grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); }  /* screens that edit in the inspector: no empty middle column */
   .md-detail { display: block; }
 }
+
+/* Life frame header (E4-01, DESIGN 5.2): title at left, mono wallet and level
+   at right. Tokens only. */
+.life-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  margin-bottom: 12px;
+}
+.life-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text);
+}
+.life-head-line {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
