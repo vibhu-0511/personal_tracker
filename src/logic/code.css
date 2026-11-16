@@ -104,3 +104,37 @@
 @media (pointer: coarse) {
   .code-insp-actions .btn { min-height: 44px; }
 }
+
+/* Problem rows (E4-10, DESIGN 5.6): name, mono rating, up to three tag chips, badge. */
+.code-row { border-radius: var(--radius-sm); }
+.code-row-rating {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text);
+}
+.code-row-tag {
+  padding: 1px 8px;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+/* State is carried by the glyph and the word, colour only reinforces it. */
+.code-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid currentColor;
+  text-transform: capitalize;
+}
+.cf-filter-toggle, .cf-tag-chip { border-color: var(--border); }
+.cf-filter-toggle:focus-visible, .cf-tag-chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+@media (pointer: coarse) {
+  .code-row { min-height: 44px; }
+  .cf-filter-toggle, .cf-tag-chip, .code-pager .btn, .code-banner .btn { min-height: 44px; }
+}

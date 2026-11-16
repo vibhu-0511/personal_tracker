@@ -117,3 +117,13 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* E4-10: frame takes card styles only (the embedded page is untouched). */
+.dsa-stage { border-radius: var(--radius); background: var(--surface); border-color: var(--border); }
+.dsa-skel-bar,
+.dsa-skel-block { background: var(--track); }
+.dsa-open:focus-visible { outline-color: var(--focus-ring); }
+.dsa-open-primary { border-color: var(--border-light); border-radius: var(--radius-sm); }
+@media (pointer: coarse) {
+  .dsa-open { min-height: 44px; min-width: 44px; }
+}
