@@ -74,8 +74,9 @@ test.describe('phone shell', () => {
     expect(bar.height).toBeCloseTo(tabbarH, 0)
     expect(await gapToViewportBottom(nav(page))).toBeCloseTo(0, 0)
 
-    // overlays.css / money.css: bottom = max(--tabbar-h, inset) + 12.
-    const fab = page.getByRole('button', { name: 'Add transaction' })
+    // fab.css: the global plus button ('New entry', rendered by Shell) sits at
+    // bottom = max(--tabbar-h, inset) + 12.
+    const fab = page.getByRole('button', { name: 'New entry' })
     await expect(fab).toBeVisible()
     await settle(page)
     expect(await gapToViewportBottom(fab)).toBeCloseTo(Math.max(tabbarH, inset) + 12, 0)
