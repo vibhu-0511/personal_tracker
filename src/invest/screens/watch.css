@@ -80,3 +80,28 @@
   }
   .watch-inspector-empty { padding: 8px 2px; }
 }
+
+/* Ember restyle (E4-08): ember row style, mono data, tabular figures. */
+.card.watch-row { border-radius: var(--radius-card, var(--radius)); transition: border-color 150ms, background-color 150ms; }
+.watch-row-title { font-family: var(--font-display, inherit); font-weight: 500; }
+.watch-row-symbol { font-family: var(--font-data, ui-monospace, monospace); font-variant-numeric: tabular-nums; font-size: 12px; }
+.watch-row-price { font-family: var(--font-data, ui-monospace, monospace); font-variant-numeric: tabular-nums; }
+.watch-row-price-main { font-weight: 500; font-size: 15px; }
+.watch-row-sub, .watch-row-fine { font-variant-numeric: tabular-nums; }
+.watch-facts dd { font-family: var(--font-data, ui-monospace, monospace); font-variant-numeric: tabular-nums; font-weight: 500; }
+.watch-detail-title { font-family: var(--font-display, inherit); font-weight: 500; }
+.watch-detail-label { letter-spacing: 0.08em; }
+.watch-inspector { border-radius: var(--radius-card, var(--radius, 12px)); }
+.watch-row-main:focus-visible,
+.watch-note-text:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .card.watch-row:not(.selected):hover { border-color: var(--border-light, var(--border)); }
+}
+@media (pointer: coarse) {
+  .watch-note-text, .watch-detail-actions a, .watch-detail-actions .btn, .watch-form .btn, .watch-toolbar .btn { min-height: 44px; }
+  .watch-note-text { display: flex; align-items: center; }
+  .watch-detail-actions a { display: inline-flex; align-items: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card.watch-row { transition: none; }
+}

@@ -1,3 +1,38 @@
 /* Invest shell. The disclaimer banner (.invest-disclaimer) is styled in styles.css. */
 .invest-shell { min-width: 0; }
 .invest-shell > .invest-disclaimer { margin-bottom: 10px; }
+
+/* Ember restyle (E4-08). Tokens only; chip row, cards and mono data match the
+   other tabs. The disclaimer bar stays first and keeps its warn styling. */
+.invest-shell { font-family: var(--font-body, inherit); }
+.invest-shell .agent-bar { gap: 8px; margin-bottom: 16px; }
+.invest-shell .agent-pill {
+  flex: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-chip, 999px);
+  background: var(--surface-raised, var(--surface));
+  transition: background-color 150ms, border-color 150ms, color 150ms;
+}
+.invest-shell .agent-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg, var(--on-accent));
+}
+.invest-shell .agent-pill:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+.invest-shell .card { border-radius: var(--radius-card, var(--radius)); }
+.invest-shell .h3 { font-family: var(--font-display, inherit); }
+.invest-shell .section-title { letter-spacing: 0.08em; }
+.invest-shell .btn { border-radius: var(--radius-control, var(--radius-sm)); }
+.invest-shell .btn:focus-visible,
+.invest-shell input:focus-visible,
+.invest-shell select:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+@media (pointer: coarse) {
+  .invest-shell .agent-pill,
+  .invest-shell .btn,
+  .invest-shell .btn-sm { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .invest-shell .agent-pill { transition: none; }
+}
