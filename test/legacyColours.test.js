@@ -110,8 +110,10 @@ const norm = (s) => s.replace(/\s+/g, ' ').trim()
 // [selector, property, old literal value, themes where the old literal applied (default: all)]
 const EXPECT = [
   ['.chip-muted', 'background', 'rgba(139, 149, 168, 0.1)'],
-  ['.btn-primary', 'color', '#fff'],
-  ['.chat-bubble.user', 'color', '#fff'],
+  ['.btn-primary', 'color', '#fff', ['ocean', 'forest', 'sunset', 'grape', 'rose', 'sky', 'cream']],
+  ['.btn-primary', 'color', '#1d0d02', ['ember']], // ember --accent-fg (E4-19)
+  ['.chat-bubble.user', 'color', '#fff', ['ocean', 'forest', 'sunset', 'grape', 'rose', 'sky', 'cream']],
+  ['.chat-bubble.user', 'color', '#1d0d02', ['ember']], // ember --accent-fg (E4-19)
   ['.note-card[data-color="red"]', 'background', 'rgba(248, 113, 113, 0.08)'],
   ['.note-card[data-color="orange"]', 'background', 'rgba(251, 146, 60, 0.08)'],
   ['.note-card[data-color="green"]', 'background', 'rgba(74, 222, 128, 0.08)'],
