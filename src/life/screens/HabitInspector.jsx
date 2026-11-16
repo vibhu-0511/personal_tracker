@@ -12,6 +12,7 @@ import {
   dateKey, streaks, multiplier, earnings, petState, CATEGORY_LABELS, DOMAINS,
 } from '../logic.js'
 import { lastNDays, checkedCount } from '../habitView.js'
+import '../wellbeing.css'
 
 const DAYS = 30
 
@@ -46,47 +47,49 @@ function HabitCard({ habit, now, flash, onCheckIn, onChange, onRemove, onClose }
   }
 
   return (
-    <div className="habit-inspector" style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }}>
+    <div className="habit-inspector wb-stack wb-form">
       {flash != null && <div className="coin-float">+₹{Math.round(flash)}</div>}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div className="life-section-label" style={{ flex: 1, margin: 0 }}>Habit</div>
+      <div className="wb-head">
+        <div className="life-section-label wb-label">Habit</div>
         {onClose && (
           <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close inspector">Close</button>
         )}
       </div>
 
       {editing ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="wb-stack">
           <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Habit name" autoFocus />
           <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category">
             {Object.keys(CATEGORY_LABELS).map((c) => (
               <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
             ))}
           </select>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div className="wb-chip-row">
             {DOMAINS.map((d) => (
               <button
                 key={d.id}
-                className={`agent-pill${domain === d.id ? ' active' : ''}`}
+                type="button"
+                className="wb-chip wb-chip-btn"
+                aria-pressed={domain === d.id}
                 onClick={() => setDomain(d.id)}
               >
                 {d.label}
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="wb-actions">
             <button className="btn btn-primary btn-sm" onClick={save} disabled={!name.trim()}>Save</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>
           </div>
         </div>
       ) : (
         <div className="habit-head">
-          <span className={`pet-avatar pet-mood-${pet.mood}`} style={{ fontSize: 40 }}>
+          <span className={`pet-avatar pet-mood-${pet.mood}`}>
             {habit.species}
             {pet.accessory && <span className="pet-accessory">{pet.accessory}</span>}
           </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="wb-open-text">
             <div className="habit-name">{habit.name}</div>
             <div className="habit-meta">
               {current > 0 && <span className="habit-streak-flame">🔥</span>} {current}-day streak
@@ -100,38 +103,37 @@ function HabitCard({ habit, now, flash, onCheckIn, onChange, onRemove, onClose }
       )}
 
       <div>
-        <div className="habit-meta" style={{ marginTop: 0 }}>Health (last 7 days) · {pet.health}%</div>
-        <div className="habit-health-bar" style={{ marginTop: 4 }}>
-          <div className="habit-health-fill" style={{ width: `${pet.health}%` }} />
+        <div className="habit-meta">Health (last 7 days) · {pet.health}%</div>
+        <div className="habit-health-bar wb-bar">
+          <div className="habit-health-fill wb-bar-fill" style={{ width: `${pet.health}%` }} />
         </div>
       </div>
 
-      <div className="habit-wallet-row" style={{ marginTop: 0 }}>
+      <div className="habit-wallet-row">
         <span className="habit-wallet-amount">₹{Math.round(money.total)} earned</span>
-        <span className="habit-multiplier-chip">×{multiplier(current)}</span>
+        <span className="habit-multiplier-chip wb-chip" data-tone="accent">×{multiplier(current)}</span>
       </div>
-      <div className="habit-meta" style={{ marginTop: -8 }}>
+      <div className="habit-meta">
         ₹{Math.round(money.today)} today
         {money.nextMultiplierIn != null ? ` · next multiplier in ${money.nextMultiplierIn} day${money.nextMultiplierIn === 1 ? '' : 's'}` : ''}
       </div>
 
-      <div className="habit-traits" style={{ marginTop: 0 }}>
+      <div className="habit-traits">
         {pet.traits.map((t) => (
-          <span key={t.days} className={`habit-trait${t.unlocked ? ' unlocked' : ''}`}>
+          <span key={t.days} className={`habit-trait wb-chip${t.unlocked ? ' unlocked' : ''}`}>
             {t.unlocked ? '✓ ' : '🔒 '}{t.label}
           </span>
         ))}
       </div>
 
       <div>
-        <div className="habit-meta" style={{ marginTop: 0, marginBottom: 6 }}>
+        <div className="habit-meta">
           Last {DAYS} days · {checkedCount(days)} checked in
         </div>
         <div
-          className="habit-grid"
+          className="habit-grid wb-habit-grid"
           role="img"
           aria-label={`${checkedCount(days)} of the last ${DAYS} days checked in`}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(10, minmax(0, 1fr))', gap: 4 }}
         >
           {days.map((d) => (
             <span
@@ -139,27 +141,22 @@ function HabitCard({ habit, now, flash, onCheckIn, onChange, onRemove, onClose }
               title={`${d.date}${d.checked ? ' ✓' : ''}`}
               data-date={d.date}
               data-checked={d.checked ? 'true' : 'false'}
-              style={{
-                aspectRatio: '1',
-                borderRadius: 4,
-                background: d.checked ? 'var(--success)' : 'var(--border)',
-                outline: d.date === dateKey(now) ? '2px solid var(--accent)' : 'none',
-                outlineOffset: 1,
-              }}
+              data-today={d.date === dateKey(now) ? 'true' : 'false'}
+              className="wb-habit-cell"
             />
           ))}
         </div>
       </div>
 
       <button
-        className={`habit-checkin-btn${checkedToday ? ' checked-in' : ''}`}
+        className={`habit-checkin-btn wb-primary${checkedToday ? ' checked-in' : ''}`}
         onClick={() => onCheckIn(habit)}
       >
         {checkedToday ? '✓ Checked in today (tap to undo)' : 'Check in'}
       </button>
 
       {!editing && (
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="wb-actions">
           <button className="btn btn-ghost btn-sm" onClick={startEdit}>✎ Edit</button>
           <button className="btn btn-ghost btn-sm" onClick={() => onRemove(habit.id)}>🗑️ Remove</button>
         </div>

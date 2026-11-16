@@ -15,6 +15,7 @@ import MasterDetail from '../ui/MasterDetail.jsx'
 import TaskInspector from './TaskInspector.jsx'
 // MasterDetail's layout rules; nothing else imports them yet.
 import '../life.css'
+import '../wellbeing.css'
 
 const URGENCY_FILTERS = [
   { id: 'all', label: 'All' },
@@ -52,9 +53,9 @@ function useInspectorPane() {
 }
 
 function quadrantLabel(t) {
-  if (t.urgent && t.important) return { label: 'Urgent', cls: 'chip' }
-  if (t.important) return { label: 'Important', cls: 'chip' }
-  if (t.urgent) return { label: 'Not important', cls: 'chip-muted' }
+  if (t.urgent && t.important) return { label: 'Urgent', tone: 'hot' }
+  if (t.important) return { label: 'Important', tone: 'accent' }
+  if (t.urgent) return { label: 'Not important', tone: 'muted' }
   return null
 }
 
@@ -175,7 +176,7 @@ export default function TasksView({ tasks, onUpdate, now, selectedId, onSelect }
 
   const list = (
     <div>
-      <div className="life-quick-add">
+      <div className="life-quick-add wb-quick">
         <input
           value={quick}
           onChange={(e) => setQuick(e.target.value)}
@@ -183,19 +184,19 @@ export default function TasksView({ tasks, onUpdate, now, selectedId, onSelect }
           onKeyDown={(e) => e.key === 'Enter' && addTask()}
         />
         <button
-          className="life-icon-btn"
+          className="life-icon-btn wb-icon wb-toggle"
           title="Urgent"
           aria-label="New task urgent"
-          style={{ opacity: newUrgent ? 1 : 0.3 }}
+          aria-pressed={newUrgent}
           onClick={() => setNewUrgent((v) => !v)}
         >
           🔥
         </button>
         <button
-          className="life-icon-btn"
+          className="life-icon-btn wb-icon wb-toggle"
           title="Important"
           aria-label="New task important"
-          style={{ opacity: newImportant ? 1 : 0.3 }}
+          aria-pressed={newImportant}
           onClick={() => setNewImportant((v) => !v)}
         >
           ⭐
@@ -207,12 +208,13 @@ export default function TasksView({ tasks, onUpdate, now, selectedId, onSelect }
 
       {tasks.length > 0 && (
         <>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div className="wb-chip-row">
             {URGENCY_FILTERS.map((f) => (
               <button
                 key={f.id}
-                className={`chip${urgencyFilter === f.id ? '' : ' chip-muted'}`}
-                style={{ cursor: 'pointer', border: 'none' }}
+                type="button"
+                className="wb-chip wb-chip-btn"
+                aria-pressed={urgencyFilter === f.id}
                 onClick={() => setUrgencyFilter(f.id)}
               >
                 {f.label}
@@ -223,7 +225,8 @@ export default function TasksView({ tasks, onUpdate, now, selectedId, onSelect }
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="🔍 Filter tasks..."
-            style={{ marginBottom: 12 }}
+            aria-label="Filter tasks"
+            className="wb-filter"
           />
         </>
       )}
@@ -277,7 +280,10 @@ function TaskSection({ id, label, items, overdue, selectedId, onSelect, onToggle
 
   return (
     <>
-      <div className="life-section-label">{label}</div>
+      <div className="life-section-label wb-label" data-tone={overdue ? 'danger' : undefined}>
+        {label}
+        {items.length > 0 && <span className="wb-count">{items.length}</span>}
+      </div>
       <DropList id={id} type="task" items={items.map((t) => t.id)} dropDisabled={id === 'overdue'}>
       <AnimatePresence initial={false}>
         {items.map((t) => {
@@ -292,15 +298,11 @@ function TaskSection({ id, label, items, overdue, selectedId, onSelect, onToggle
                 exit={{ opacity: 0, x: 40 }}
               >
               <div
-                className={`life-row${overdue ? ' overdue' : ''}`}
+                className={`life-row wb-row${overdue ? ' overdue' : ''}`}
                 data-task-id={t.id}
                 data-selected={isSelected ? 'true' : undefined}
                 aria-current={isSelected ? 'true' : undefined}
                 tabIndex={0}
-                style={{
-                  cursor: 'pointer',
-                  ...(isSelected ? { boxShadow: 'inset 0 0 0 2px var(--accent)' } : null),
-                }}
                 onClick={(e) => {
                   if (e.target.closest('button, input, a')) return
                   onSelect(t.id)
@@ -314,18 +316,20 @@ function TaskSection({ id, label, items, overdue, selectedId, onSelect, onToggle
                 }}
               >
                 {handle}
-                <button className="life-check" onClick={() => onToggle(t.id)} aria-label="Mark done" />
+                <button className="life-check wb-check" onClick={() => onToggle(t.id)} aria-label="Mark done">
+                  <span className="wb-check-box" aria-hidden="true" />
+                </button>
                 <div className="life-row-title">
                   {t.title}
-                  <div className="meta" style={{ fontSize: 11 }}>added {formatAdded(t.createdAt)}</div>
+                  <span className="wb-meta">added {formatAdded(t.createdAt)}</span>
                 </div>
                 {subs.length > 0 && (
-                  <span className="meta" style={{ fontSize: 12, flexShrink: 0 }} title="Subtasks done">
+                  <span className="wb-subcount" title="Subtasks done">
                     {subs.filter((s) => s.checked).length}/{subs.length}
                   </span>
                 )}
                 {quadrantLabel(t) && (
-                  <span className={quadrantLabel(t).cls} style={{ flexShrink: 0 }}>
+                  <span className="wb-chip" data-tone={quadrantLabel(t).tone}>
                     {quadrantLabel(t).label}
                   </span>
                 )}
@@ -335,7 +339,7 @@ function TaskSection({ id, label, items, overdue, selectedId, onSelect, onToggle
                     {t.dueAt && ` · ${new Date(t.dueAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`}
                   </div>
                 )}
-                <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => onRemove(t.id)}>
+                <button className="life-icon-btn wb-icon" title="Delete" aria-label="Delete" onClick={() => onRemove(t.id)}>
                   🗑️
                 </button>
               </div>
@@ -355,11 +359,12 @@ function DoneTaskSection({ items, onToggle, onRemove }) {
   return (
     <>
       <button
-        className="life-section-label"
-        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+        type="button"
+        className="life-section-label wb-label"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        {open ? '▾' : '▸'} Done ({items.length})
+        {open ? '▾' : '▸'} Done <span className="wb-count">{items.length}</span>
       </button>
       {open && (
         <AnimatePresence initial={false}>
@@ -370,13 +375,13 @@ function DoneTaskSection({ items, onToggle, onRemove }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="life-row done"
+              className="life-row wb-row done"
             >
-              <button className="life-check done" aria-label="Mark not done" onClick={() => onToggle(t.id)}>
-                ✓
+              <button className="life-check wb-check done" aria-label="Mark not done" onClick={() => onToggle(t.id)}>
+                <span className="wb-check-box" aria-hidden="true">✓</span>
               </button>
               <div className="life-row-title">{t.title}</div>
-              <button className="life-icon-btn" title="Delete" aria-label="Delete" onClick={() => onRemove(t.id)}>
+              <button className="life-icon-btn wb-icon" title="Delete" aria-label="Delete" onClick={() => onRemove(t.id)}>
                 🗑️
               </button>
             </motion.div>

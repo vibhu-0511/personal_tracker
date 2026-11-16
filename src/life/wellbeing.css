@@ -1,0 +1,401 @@
+/* Ember look for Tasks, Habits and Growth (E4-06). Tokens only; no colour literals.
+   Rules double a class (.life-row.wb-row) so they win over the legacy rules in styles.css
+   whatever the stylesheet order. Ember-only tokens carry a fallback that exists in every theme. */
+
+/* ── Shared: focus, section label ── */
+.wb-focusable:focus-visible,
+.wb-chip-btn:focus-visible,
+.wb-check:focus-visible,
+.life-row.wb-row:focus-visible,
+.habit-row.wb-row:focus-visible,
+.growth-domain.wb-domain:focus-visible,
+.wb-open:focus-visible,
+.habit-checkin-btn.wb-primary:focus-visible,
+.life-icon-btn.wb-icon:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+
+.life-section-label.wb-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--fs-label, 11px);
+  letter-spacing: var(--label-tracking, 0.08em);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.life-section-label.wb-label:first-child { margin-top: 0; }
+.life-section-label.wb-label[data-tone="danger"] { color: var(--danger); }
+button.life-section-label.wb-label {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.wb-count { font-family: var(--font-data); font-weight: 500; }
+
+/* ── Rows (task rows, done rows, habit rows) ── */
+.life-row.wb-row,
+.habit-row.wb-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  min-height: 52px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 16px);
+  color: var(--text);
+  position: relative;
+}
+.life-row.wb-row { cursor: pointer; }
+.life-row.wb-row.overdue { border-color: var(--danger); }
+.life-row.wb-row[data-selected="true"],
+.habit-row.wb-row[data-selected="true"] {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.life-row.wb-row.done { cursor: default; }
+.life-row.wb-row.done .life-row-title { color: var(--text-secondary); text-decoration: line-through; }
+.life-row.wb-row .life-row-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-body, 15px);
+  overflow-wrap: anywhere;
+}
+.wb-meta {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-data);
+  font-size: var(--fs-xs, 12px);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.life-row.wb-row .life-row-due {
+  font-family: var(--font-data);
+  font-size: var(--fs-xs, 12px);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.life-row.wb-row.overdue .life-row-due { color: var(--danger); }
+.wb-subcount {
+  flex-shrink: 0;
+  font-family: var(--font-data);
+  font-size: var(--fs-xs, 12px);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Check (visual circle inside a larger hit area) ── */
+.life-check.wb-check {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border: 0;
+  background: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.wb-check-box {
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-round, 50%);
+  border: 2px solid var(--text-secondary);
+  color: transparent;
+  font-size: 13px;
+  line-height: 1;
+  transition: background var(--motion-press, 150ms), border-color var(--motion-press, 150ms);
+}
+.life-check.wb-check.done .wb-check-box {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--success-fg, var(--bg));
+}
+
+/* ── Chips ── */
+.wb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-chip, 999px);
+  border: 1px solid transparent;
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-xs, 12px);
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.wb-chip[data-tone="muted"] { color: var(--text-secondary); }
+.wb-chip[data-tone="hot"] {
+  background: var(--danger-dim, var(--surface-raised));
+  color: var(--danger);
+}
+.wb-chip[data-tone="accent"] {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.wb-chip[data-tone="success"] {
+  background: var(--success-dim, var(--surface-raised));
+  color: var(--success);
+  border-color: var(--success);
+}
+.wb-chip-btn {
+  cursor: pointer;
+  transition: background var(--motion-press, 150ms), color var(--motion-press, 150ms);
+}
+.wb-chip-btn[aria-pressed="true"],
+.wb-chip-btn[data-selected="true"] {
+  background: var(--accent-solid, var(--accent));
+  border-color: var(--accent-solid, var(--accent));
+  color: var(--accent-fg, var(--on-accent));
+}
+.wb-chip-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+.wb-chip-row.nowrap { flex-wrap: nowrap; overflow-x: auto; }
+
+/* ── Quick add, inputs ── */
+.life-quick-add.wb-quick { gap: var(--space-2); align-items: center; }
+.wb-quick input,
+.wb-filter,
+.wb-field input,
+.wb-field select,
+.wb-form input,
+.wb-form select {
+  border-radius: var(--radius-control, 10px);
+  background: var(--surface-raised);
+}
+.wb-filter { margin-bottom: var(--space-3); }
+.wb-toggle[aria-pressed="false"] { opacity: 0.45; }
+.wb-toggle[aria-pressed="true"] { opacity: 1; }
+
+/* ── Icon buttons ── */
+.life-icon-btn.wb-icon { border-radius: var(--radius-control, 10px); }
+
+/* ── Inspector fields ── */
+.wb-stack { display: flex; flex-direction: column; gap: var(--space-3); }
+.wb-head { display: flex; align-items: center; gap: var(--space-2); }
+.wb-head .life-section-label { flex: 1; margin: 0; }
+.wb-field { display: flex; flex-direction: column; gap: var(--space-1); }
+.wb-field-label {
+  font-size: var(--fs-label, 11px);
+  letter-spacing: var(--label-tracking, 0.08em);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.wb-field-row { display: flex; gap: var(--space-2); align-items: center; }
+.wb-field-row input { flex: 1; min-width: 0; }
+.wb-field-row input[type="time"] { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.wb-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.wb-sub-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--border);
+}
+.wb-sub-row .wb-sub-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.wb-sub-row[data-checked="true"] .wb-sub-text { text-decoration: line-through; color: var(--text-secondary); }
+.wb-sub-row input[type="checkbox"] { width: 20px; height: 20px; flex-shrink: 0; }
+.wb-small { font-size: var(--fs-label, 11px); color: var(--text-secondary); }
+.wb-num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+/* ── Habit card ── */
+.habit-card.wb-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 16px);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.wb-card .habit-name,
+.wb-row .habit-name { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md, 17px); }
+.wb-card .habit-meta,
+.wb-row .habit-meta,
+.habit-inspector .habit-meta {
+  font-size: var(--fs-xs, 12px);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.wb-card .habit-wallet-amount,
+.habit-inspector .habit-wallet-amount { font-family: var(--font-data); font-weight: 500; font-variant-numeric: tabular-nums; }
+.habit-multiplier-chip.wb-chip { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.habit-trait.wb-chip { background: transparent; border-color: var(--border); color: var(--text-secondary); font-size: var(--fs-label, 11px); }
+.habit-trait.wb-chip.unlocked { border-color: var(--success); color: var(--success); background: var(--success-dim, transparent); }
+.wb-bar {
+  height: 6px;
+  margin-top: var(--space-3);
+  background: var(--border);
+  border-radius: var(--radius-chip, 999px);
+  overflow: hidden;
+}
+.wb-bar-fill {
+  height: 100%;
+  background: var(--success);
+  border-radius: var(--radius-chip, 999px);
+  transition: width 0.4s ease-out;
+}
+.habit-checkin-btn.wb-primary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control, 10px);
+  background: var(--accent-solid, var(--accent));
+  color: var(--accent-fg, var(--on-accent));
+  font-weight: 700;
+  font-size: var(--fs-body, 15px);
+  cursor: pointer;
+}
+.habit-checkin-btn.wb-primary.checked-in {
+  background: var(--surface-raised);
+  border-color: var(--success);
+  color: var(--success);
+}
+.habit-row.wb-row .habit-checkin-btn.wb-primary { width: auto; margin-top: 0; padding: var(--space-2) var(--space-3); }
+.wb-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 44px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.wb-ellipsis { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-habit-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: var(--space-1); }
+.wb-habit-cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--border);
+}
+.wb-habit-cell[data-checked="true"] { background: var(--success); }
+.wb-habit-cell[data-today="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+.wb-swatches { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.wb-swatch {
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 18px;
+  background: var(--surface-raised);
+  border: 2px solid transparent;
+  border-radius: var(--radius-control, 10px);
+  cursor: pointer;
+}
+.wb-swatch.active,
+.wb-swatch[aria-pressed="true"] { border-color: var(--accent); }
+.wb-add-card {
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 16px);
+}
+.wb-add-btn { margin-top: var(--space-3); width: 100%; }
+
+/* ── Growth ── */
+.wb-panel {
+  margin-bottom: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 16px);
+}
+.wb-panel-title { font-family: var(--font-display); font-weight: 500; font-size: var(--fs-md, 17px); margin-bottom: var(--space-3); }
+.wb-domain-line { display: flex; justify-content: space-between; font-size: var(--fs-sm, 13px); margin-bottom: var(--space-1); }
+.growth-domain.wb-domain {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: var(--space-2);
+  margin: calc(var(--space-2) * -1);
+  width: calc(100% + var(--space-4));
+  border: 1px solid transparent;
+  border-radius: var(--radius-control, 10px);
+}
+.growth-domain.wb-domain[data-selected="true"] { border-color: var(--accent); background: var(--accent-dim); }
+.wb-domain .wb-bar { margin-top: 0; }
+.wb-moods { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
+.wb-moods .wb-swatch { flex: 1; font-size: 20px; }
+.wb-mood-strip { display: flex; gap: var(--space-1); margin: var(--space-2) 0; }
+.wb-mood-cell {
+  flex: 1;
+  height: 20px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--success) var(--wb-valence, 50%), var(--danger));
+}
+.wb-big-num { font-family: var(--font-data); font-weight: 500; font-size: var(--fs-lg, 20px); font-variant-numeric: tabular-nums; }
+.wb-line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--fs-sm, 13px);
+  margin-bottom: var(--space-1);
+}
+
+/* ── Hover only for fine pointers ── */
+@media (hover: hover) and (pointer: fine) {
+  .life-row.wb-row:not(.done):hover,
+  .habit-row.wb-row:hover { border-color: var(--text-secondary); }
+  .life-row.wb-row.overdue:hover { border-color: var(--danger); }
+  .wb-chip-btn:not([aria-pressed="true"]):hover { border-color: var(--text-secondary); }
+  .life-check.wb-check:hover .wb-check-box { border-color: var(--accent); }
+  .growth-domain.wb-domain:hover { border-color: var(--text-secondary); }
+}
+
+/* ── 44px targets under coarse pointers ── */
+@media (pointer: coarse) {
+  .life-check.wb-check { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+  .wb-chip-btn { min-height: 44px; padding-inline: var(--space-4); }
+  .life-icon-btn.wb-icon { min-width: 44px; min-height: 44px; }
+  .life-row.wb-row, .habit-row.wb-row { min-height: 44px; }
+  .habit-checkin-btn.wb-primary { min-height: 44px; }
+  .wb-swatch { min-width: 44px; min-height: 44px; }
+  .growth-domain.wb-domain { min-height: 44px; }
+  .wb-open { min-height: 44px; }
+  .wb-sub-row { min-height: 44px; }
+  .wb-sub-row input[type="checkbox"] { width: 28px; height: 28px; }
+  .wb-field input, .wb-field select, .wb-filter, .wb-form input, .wb-form select, .wb-quick input { min-height: 44px; }
+  button.life-section-label.wb-label { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-check-box, .wb-chip-btn, .wb-bar-fill { transition: none; }
+}
+
+/* ── Small layout helpers ── */
+.wb-open-text { flex: 1; min-width: 0; }
+.wb-add-gap { margin-top: var(--space-2); }
+.wb-form select { width: 100%; }
+.wb-domain-item { margin-bottom: var(--space-3); }
+.wb-mood-note { margin-bottom: var(--space-3); }
+.habit-inspector.wb-stack { position: relative; }
