@@ -6,11 +6,15 @@
 // detail Sheet below that. Title and time are drafts that commit on blur / Enter / Save,
 // keyed by reminder id, so a sync refresh that re-renders the same reminder keeps the
 // cursor and the open inspector. `onChange(id, { title?, at? })` is responsible for
-// re-sorting the list by `at`.
+// re-sorting the list by `at`. Time, repeat and snooze go through the LifeData actions
+// (onReschedule(id, at), onRepeat(id, repeat), onSnooze(id, preset)), which own undo.
 import { useState } from 'react'
+import Icon from '../../ui/Icon.jsx'
+import { normalizeRepeat, REPEAT_TYPES, SNOOZE_PRESETS } from '../reminderLogic.js'
 
-const field = { display: 'flex', flexDirection: 'column', gap: 4 }
-const fieldLabel = { fontSize: 12, opacity: 0.7 }
+const REPEAT_LABEL = { none: 'Never', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' }
+const SNOOZE_LABEL = { '1h': 'In 1 hour', tonight: 'Tonight', tomorrow: 'Tomorrow' }
+
 const pad = (n) => String(n).padStart(2, '0')
 
 // ms -> value for <input type="datetime-local"> in the viewer's local time zone.
@@ -27,13 +31,16 @@ export function fromLocalInput(value) {
   return Number.isNaN(ms) ? null : ms
 }
 
-export default function ReminderInspector({ reminder, onChange, onToggle, onDelete, icsHref, onClose }) {
+export default function ReminderInspector({ reminder, onChange, onReschedule, onRepeat, onSnooze, onToggle, onDelete, icsHref, onClose }) {
   // Re-key on the id so drafts reset when the selection moves to another reminder.
   return (
     <ReminderEditor
       key={reminder.id}
       reminder={reminder}
       onChange={onChange}
+      onReschedule={onReschedule}
+      onRepeat={onRepeat}
+      onSnooze={onSnooze}
       onToggle={onToggle}
       onDelete={onDelete}
       icsHref={icsHref}
@@ -42,7 +49,7 @@ export default function ReminderInspector({ reminder, onChange, onToggle, onDele
   )
 }
 
-function ReminderEditor({ reminder, onChange, onToggle, onDelete, icsHref, onClose }) {
+function ReminderEditor({ reminder, onChange, onReschedule, onRepeat, onSnooze, onToggle, onDelete, icsHref, onClose }) {
   const [title, setTitle] = useState(reminder.title)
   const [when, setWhen] = useState(toLocalInput(reminder.at))
 
@@ -55,17 +62,19 @@ function ReminderEditor({ reminder, onChange, onToggle, onDelete, icsHref, onClo
   function commit() {
     const patch = {}
     if (nextTitle && nextTitle !== reminder.title) patch.title = nextTitle
-    if (nextAt != null && when !== savedWhen) patch.at = nextAt
     if (Object.keys(patch).length) onChange(reminder.id, patch)
+    if (nextAt != null && when !== savedWhen) onReschedule(reminder.id, nextAt)
     if (!nextTitle) setTitle(reminder.title)
     else if (nextTitle !== title) setTitle(nextTitle)
     if (nextAt == null) setWhen(savedWhen)
   }
 
+  const repeatType = normalizeRepeat(reminder.repeat).type
+
   return (
-    <div className="reminder-inspector" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div className="life-section-label" style={{ flex: 1, margin: 0 }}>Reminder</div>
+    <div className="reminder-inspector rem-inspector">
+      <div className="rem-insp-head">
+        <div className="life-section-label rem-insp-label">Reminder</div>
         {onClose && (
           <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close inspector">
             Close
@@ -73,8 +82,8 @@ function ReminderEditor({ reminder, onChange, onToggle, onDelete, icsHref, onClo
         )}
       </div>
 
-      <label style={field}>
-        <span style={fieldLabel}>Title</span>
+      <label className="rem-field">
+        <span className="rem-field-label">Title</span>
         <input
           aria-label="Reminder title"
           value={title}
@@ -87,9 +96,10 @@ function ReminderEditor({ reminder, onChange, onToggle, onDelete, icsHref, onClo
         />
       </label>
 
-      <label style={field}>
-        <span style={fieldLabel}>When</span>
+      <label className="rem-field">
+        <span className="rem-field-label">When</span>
         <input
+          className="rem-mono"
           type="datetime-local"
           aria-label="Reminder time"
           value={when}
@@ -101,7 +111,31 @@ function ReminderEditor({ reminder, onChange, onToggle, onDelete, icsHref, onClo
         />
       </label>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <label className="rem-field">
+        <span className="rem-field-label">Repeat</span>
+        <select
+          aria-label="Repeat"
+          value={repeatType}
+          onChange={(e) => onRepeat(reminder.id, { type: e.target.value })}
+        >
+          {REPEAT_TYPES.map((t) => (
+            <option key={t} value={t}>{REPEAT_LABEL[t]}</option>
+          ))}
+        </select>
+      </label>
+
+      <div className="rem-field" role="group" aria-label="Snooze">
+        <span className="rem-field-label">Snooze</span>
+        <div className="rem-snooze">
+          {SNOOZE_PRESETS.map((p) => (
+            <button key={p} className="rem-chip" data-snooze={p} onClick={() => onSnooze(reminder.id, p)}>
+              {SNOOZE_LABEL[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rem-actions">
         <button className="btn btn-primary btn-sm" onClick={commit} disabled={!dirty}>
           Save
         </button>
@@ -110,10 +144,10 @@ function ReminderEditor({ reminder, onChange, onToggle, onDelete, icsHref, onClo
         </button>
         {icsHref && (
           <a className="btn btn-ghost btn-sm" href={icsHref(reminder)} aria-label="Add to Calendar">
-            📅 Add to Calendar
+            <Icon name="calendar" size={16} /> Add to Calendar
           </a>
         )}
-        <button className="btn btn-ghost btn-sm" onClick={() => onDelete(reminder.id)}>
+        <button className="btn btn-ghost btn-sm rem-delete" onClick={() => onDelete(reminder.id)}>
           Delete
         </button>
       </div>
