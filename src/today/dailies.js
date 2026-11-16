@@ -9,6 +9,13 @@ import { loggedDays } from '../money/dayLog.js'
 import { formatRupees } from '../money/format.js'
 
 const DEFAULT_CODE_GOAL = 3
+export const DAILY_IDS = ['habits', 'spend', 'mood', 'code', 'puzzle']
+
+// Daily code goal from settings: a whole number from 1 to 10, default 3.
+export function codeGoalOf(settings = {}) {
+  const n = Math.round(Number(settings?.dailyCodeGoal) || Number(settings?.dailyGoal) || DEFAULT_CODE_GOAL)
+  return Math.min(10, Math.max(1, n))
+}
 const MOOD_LABELS = [[0, 'Awful'], [25, 'Bad'], [50, 'Okay'], [75, 'Good'], [100, 'Great']]
 
 function moodLabel(valence) {
@@ -18,7 +25,8 @@ function moodLabel(valence) {
 }
 
 // data: { habits, expenses, dailyLog, moodLog, progress (code), puzzleProgress, settings, enabled }
-// `enabled` is an optional list of daily ids that count (Settings > Dailies); default all five.
+// Settings: settings.dailyCodeGoal (1 to 10, default 3) and settings.dailies (ids that count,
+// default all five). `enabled` overrides settings.dailies when given.
 export function computeDailies(data = {}, now = Date.now()) {
   const { habits = [], expenses = [], dailyLog = {}, moodLog = [], progress = {}, puzzleProgress = {}, settings = {} } = data
   const key = dayKey(now)
@@ -57,7 +65,7 @@ export function computeDailies(data = {}, now = Date.now()) {
   }
 
   // Code: solved today against the daily goal.
-  const goal = Number(settings.dailyCodeGoal) || Number(settings.dailyGoal) || DEFAULT_CODE_GOAL
+  const goal = codeGoalOf(settings)
   const ring = codeRing(progress, goal, now)
   const codeDaily = {
     id: 'code', label: 'Code',
@@ -78,7 +86,8 @@ export function computeDailies(data = {}, now = Date.now()) {
   }
 
   let items = [habitsDaily, spendDaily, moodDaily, codeDaily, puzzleDaily]
-  if (Array.isArray(data.enabled)) items = items.map((d) => (data.enabled.includes(d.id) ? d : { ...d, counted: false }))
+  const enabled = Array.isArray(data.enabled) ? data.enabled : settings.dailies
+  if (Array.isArray(enabled)) items = items.map((d) => (enabled.includes(d.id) ? d : { ...d, counted: false }))
   const counted = items.filter((d) => d.counted)
   return { items, done: counted.filter((d) => d.done).length, total: counted.length }
 }

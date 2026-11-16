@@ -74,3 +74,25 @@ test('the Lichess daily mark completes the puzzle daily', () => {
   assert.equal(r.items[4].value, 'Solved')
   assert.equal(computeDailies({ dailyLog: { '2026-11-14': { puzzle: true } } }, NOW_MS).items[4].done, false)
 })
+
+test('settings.dailyCodeGoal changes the code daily and is clamped to 1 to 10', () => {
+  const code = (goal) => computeDailies({ ...fixtureDay, settings: { dailyCodeGoal: goal } }, NOW_MS).items[3]
+  assert.equal(code(1).value, '1/1')
+  assert.equal(code(1).done, true)
+  assert.equal(code(5).value, '1/5')
+  assert.equal(code(5).done, false)
+  assert.equal(code(99).value, '1/10')
+  assert.equal(code(0).value, '1/3')
+  assert.equal(computeDailies({ ...fixtureDay, settings: {} }, NOW_MS).items[3].value, '1/3')
+})
+
+test('settings.dailies picks which of the five count', () => {
+  const r = computeDailies({ ...fixtureDay, settings: { dailyCodeGoal: 3, dailies: ['habits', 'mood', 'puzzle'] } }, NOW_MS)
+  assert.deepEqual(r.items.map((d) => d.counted), [true, false, true, false, true])
+  assert.equal(r.total, 3)
+  assert.equal(r.done, 2)
+  const none = computeDailies({ ...fixtureDay, settings: { dailies: [] } }, NOW_MS)
+  assert.equal(none.total, 0)
+  assert.equal(none.done, 0)
+  assert.equal(computeDailies({ ...fixtureDay, settings: { dailies: undefined } }, NOW_MS).total, 5)
+})

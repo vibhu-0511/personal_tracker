@@ -1,0 +1,15 @@
+/* Settings panel (DESIGN 5.9). Tokens only. */
+.settings-sheet { margin-bottom: 12px; }
+.settings-title { margin-bottom: 10px; }
+.settings-sheet input:not([type='checkbox']) { margin-top: 4px; }
+.settings-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.settings-label { margin-top: 14px; margin-bottom: 6px; display: block; }
+.settings-goal input { width: 4.5rem; margin-top: 0; text-align: center; font-family: var(--font-mono, monospace); }
+.settings-dailies { border: 0; padding: 0; margin: 0; min-width: 0; }
+.settings-dailies legend { padding: 0; }
+.settings-check {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 36px; color: var(--text); cursor: pointer;
+}
+.settings-check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+@media (pointer: coarse) { .settings-check { min-height: 44px; } }
