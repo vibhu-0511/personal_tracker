@@ -1392,7 +1392,10 @@
         "src/settings/SettingsPanel.jsx",
         "src/settings/settings.css",
         "src/today/dailies.js",
-        "test/dailies.test.js"
+        "test/dailies.test.js",
+        "src/tabs/Life.jsx",
+        "src/life/life.css",
+        "test/lifeFrame.test.js"
       ],
       "reads": [
         "docs/plan/ember/DESIGN.md",
@@ -1402,7 +1405,7 @@
         "E3-GATE"
       ],
       "acceptance": "node --test test/dailies.test.js passes with new cases: settings.dailyCodeGoal (1 to 10, default 3) and settings.dailies (which of the five count) change the result; the panel has Codeforces handle, Theme, Daily code goal, Dailies and Backup",
-      "notes": " Also pass codeGoal={settings.dailyCodeGoal} to <LogicBuilding> in src/App.jsx (E4-05 added the optional prop, default 3)."
+      "notes": " Also pass codeGoal={settings.dailyCodeGoal} to <LogicBuilding> in src/App.jsx (E4-05 added the optional prop, default 3). From E4-01 report: in the shell, App.jsx renders <SubNav items={LIFE_VIEWS}> above <Life> with no counts and above the Life header (DESIGN 5.2 wants the title first, then the chips with counts: Tasks N, Reminders N, Notes N, Habits, Growth). Fix: render the chips with counts from Life.jsx exported lifeChipItems(counts) below the header (move the SubNav into Life.jsx or render it from Life via a prop; never two chip bars; keep the route/view ids and the E3-13 behaviour: pills change the hash). Add test/lifeFrame.test.js (chip counts, header line, no hex colours in the header CSS) that runs under npm test; e2e/capture.spec.js Life pill tests must keep passing."
     },
     {
       "id": "E4-12",
