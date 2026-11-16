@@ -1,11 +1,14 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import CodeView, { solvedToday } from './CodeView.jsx'
+import CodeView from './CodeView.jsx'
 import Puzzles from './Puzzles.jsx'
 import Exams from './Exams.jsx'
 import { EXAMS } from '../logic/examData.js'
 import { loadPuzzles } from '../puzzles.js'
-import { normalizeAll } from '../logic/puzzleProgress.js'
-import { getProgress, getPuzzleProgress, getExamProgress } from '../store.js'
+import { normalizeAll, dayKey } from '../logic/puzzleProgress.js'
+import { codeRing, codeStreak } from '../logic/stats.js'
+import { getProgress, getPuzzleProgress, getExamProgress, getDailyLog } from '../store.js'
+import Ring from '../ui/Ring.jsx'
+import '../logic/logic.css'
 
 const DsaView = lazy(() => import('./DsaView.jsx'))
 
@@ -25,7 +28,7 @@ const TOTAL_EXAM_TOPICS = EXAMS.reduce(
 
 // Controlled when `view` is passed (with `onViewChange`); otherwise keeps the
 // active view in local state. Unknown view ids fall back to 'code'.
-export default function LogicBuilding({ cfHandle, syncTicks = {}, view: viewProp, onViewChange }) {
+export default function LogicBuilding({ cfHandle, codeGoal, syncTicks = {}, view: viewProp, onViewChange }) {
   const [localView, setLocalView] = useState('code')
   const requested = viewProp !== undefined ? viewProp : localView
   const view = VIEW_IDS.includes(requested) ? requested : 'code'
@@ -34,7 +37,13 @@ export default function LogicBuilding({ cfHandle, syncTicks = {}, view: viewProp
     if (onViewChange) onViewChange(id)
   }
   const codeTick = (syncTicks.Code || 0) + (syncTicks.Today || 0)
-  const [glance, setGlance] = useState({ solvedToday: 0, puzzlesSolved: 0, examPct: 0 })
+  const [glance, setGlance] = useState({
+    ring: codeRing({}, codeGoal),
+    streak: 0,
+    dailySolved: false,
+    puzzlesSolved: 0,
+    examPct: 0,
+  })
   const [puzzleCount, setPuzzleCount] = useState(0)
   const [localTick, setLocalTick] = useState(0)
   const bump = () => setLocalTick((t) => t + 1)
@@ -44,41 +53,52 @@ export default function LogicBuilding({ cfHandle, syncTicks = {}, view: viewProp
   }, [])
 
   useEffect(() => {
-    Promise.all([getProgress(), getPuzzleProgress(), getExamProgress()]).then(
-      ([progress, puzzleProgress, examProgress]) => {
+    Promise.all([getProgress(), getPuzzleProgress(), getExamProgress(), getDailyLog()]).then(
+      ([progress, puzzleProgress, examProgress, dailyLog]) => {
         const puzzlesSolved = Object.keys(normalizeAll(puzzleProgress)).length
         const examDone = Object.values(examProgress).filter(Boolean).length
         setGlance({
-          solvedToday: solvedToday(progress),
+          ring: codeRing(progress, codeGoal),
+          streak: codeStreak(progress).current,
+          dailySolved: !!dailyLog?.[dayKey(Date.now())]?.puzzle,
           puzzlesSolved,
           examPct: TOTAL_EXAM_TOPICS ? Math.round((examDone / TOTAL_EXAM_TOPICS) * 100) : 0,
         })
       }
     )
-  }, [codeTick, syncTicks.Puzzles, syncTicks.Exams, localTick])
+  }, [codeTick, codeGoal, syncTicks.Puzzles, syncTicks.Exams, localTick])
 
   return (
     <div>
-      <div className="stat-row" style={{ marginBottom: 12 }}>
-        <div className="stat-card">
-          <div className="stat-value">{glance.solvedToday}</div>
-          <div className="stat-label">Solved today</div>
+      <header className="logic-head card">
+        <Ring
+          value={glance.ring.pct * 100}
+          size={72}
+          label={`${glance.ring.done} of ${glance.ring.goal} solved today`}
+        >
+          <b className="logic-ring-num">{glance.ring.done}/{glance.ring.goal}</b>
+        </Ring>
+        <div className="logic-head-text">
+          <div className="logic-head-title">Solved today {glance.ring.done}/{glance.ring.goal}</div>
+          <div className="logic-head-line" data-state={glance.dailySolved ? 'solved' : 'open'}>
+            Daily puzzle: {glance.dailySolved ? 'solved' : 'open'}
+          </div>
+          <div className="logic-head-mono">
+            Code streak {glance.streak} {glance.streak === 1 ? 'day' : 'days'}
+          </div>
+          <div className="logic-head-sub meta">
+            {glance.puzzlesSolved}/{puzzleCount} puzzles · {glance.examPct}% exam topics
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{glance.puzzlesSolved}/{puzzleCount}</div>
-          <div className="stat-label">Puzzles solved</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{glance.examPct}%</div>
-          <div className="stat-label">Exam topics</div>
-        </div>
-      </div>
+      </header>
 
-      <div className="agent-bar">
+      <div className="agent-bar logic-chips" role="group" aria-label="Logic sections">
         {VIEWS.map((v) => (
           <button
             key={v.id}
+            type="button"
             className={`agent-pill${view === v.id ? ' active' : ''}`}
+            aria-pressed={view === v.id}
             onClick={() => setView(v.id)}
           >
             <span className="agent-pill-icon">{v.icon}</span>
