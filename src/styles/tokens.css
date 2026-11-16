@@ -92,21 +92,28 @@
   --text: #2b2438;
   --text-secondary: #5f5670;
   --text-tertiary: #706680;
-  --accent: #c2412d;
+  --accent: #a8321f;
   --accent-dim: rgba(214, 64, 43, 0.12);
-  --accent-solid: #d6402b;
+  --accent-solid: #c93a26;
+  --accent-fg: #ffffff;
   --accent-hover: #b8341f;
+  --field-border: #8c7f6c;
   --accent-bright: #ff6b57;
   --radius: 22px;
   --radius-sm: 16px;
   --radius-xs: 14px;
   --hover: rgba(43, 36, 56, 0.06);
   --track: #f2e6d4;
-  --focus-ring: #c2412d;
+  --focus-ring: #a8321f;
   --tile-sec: #5f5670;
   --tile-shadow: 0 2px 0 rgba(120, 80, 30, 0.08), 0 10px 24px rgba(120, 80, 30, 0.07);
   --font-ui: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
   color-scheme: light;
+}
+:root[data-accent="cream"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+:root[data-accent="cream"] textarea,
+:root[data-accent="cream"] select {
+  border-color: var(--field-border);
 }
 :root[data-accent="cream"] body {
   font-family: var(--font-ui);
