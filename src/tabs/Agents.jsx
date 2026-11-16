@@ -3,6 +3,7 @@ import agents from '../agents.json'
 import { apiFetch } from '../api/client.js'
 import { streamAgentReply } from '../agents/stream.js'
 import SubNav from '../ui/SubNav.jsx'
+import '../agents/agents.css'
 
 const AGENT_ICONS = {
   explain: '💡',
@@ -61,33 +62,6 @@ const errorText = (e) => (e && e.status && typeof e.message === 'string' && e.me
 // Statuses where the non-streaming path would fail the same way, so a fallback
 // would only double the request.
 const NO_FALLBACK_STATUS = new Set([401, 403, 429])
-
-// The wide layout (chat + agent list pane) is chosen by the container's own
-// width, so it holds in tab, rail and sidebar shell modes alike.
-const CSS = `
-.agents-screen { container-type: inline-size; container-name: agents; }
-.agents-layout { display: block; }
-.agents-list { display: none; }
-.agents-narrow-nav { display: flex; gap: 6px; align-items: flex-start; }
-.agents-narrow-nav .ui-subnav { flex: 1; min-width: 0; }
-.agents-chat { min-width: 0; }
-.agents-chat .chat-bubble { max-width: min(85%, 72ch); }
-@container agents (min-width: 720px) {
-  .agents-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; align-items: start; }
-  .agents-narrow-nav { display: none; }
-  .agents-list { display: block; position: sticky; top: 0; order: 2; }
-  .agents-chat { order: 1; }
-  .agents-chat .chat-messages { overflow-y: auto; max-height: calc(100dvh - 240px); min-height: 240px; }
-}
-.agents-stop-btn { height: 42px; min-width: 44px; padding: 0 14px; border-radius: 21px; border: 1px solid var(--border-light, var(--border)); background: var(--surface); color: var(--text-primary, inherit); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
-.agents-stop-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.agents-list-heading { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); margin: 0 0 6px 4px; }
-.agents-list-group { margin: 0 0 12px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
-.agents-list-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 12px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; text-align: left; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); }
-@media (hover: hover) and (pointer: fine) { .agents-list-item:hover { border-color: var(--border-light); } }
-.agents-list-item[aria-current] { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
-.agents-list-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-`
 
 export default function Agents() {
   const [agent, setAgent] = useState(() => agentById(savedAgentId) || topicAgents[0] || agents[0])
@@ -272,7 +246,6 @@ export default function Agents() {
 
   return (
     <div className="fade-in agents-screen">
-      <style>{CSS}</style>
       <div className="agents-layout">
         {/* Narrow: topic pills plus a tools select */}
         <div className="agents-narrow-nav">

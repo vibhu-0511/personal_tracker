@@ -1,0 +1,162 @@
+/* Agents tab, Ember look (DESIGN.md 5.8). Tokens only. Restyle of layout and
+   chrome; the global .chat-* / .agent-more-select rules in styles.css are
+   overridden here under the .agents-screen scope. */
+.agents-screen { container-type: inline-size; container-name: agents; }
+.agents-layout { display: block; }
+.agents-list { display: none; }
+.agents-narrow-nav { display: flex; gap: var(--space-2); align-items: flex-start; }
+.agents-narrow-nav .ui-subnav { flex: 1; min-width: 0; gap: var(--space-2); }
+.agents-chat { min-width: 0; }
+
+/* Chips: topic row and More tools menu share one style */
+.agents-screen .ui-subnav-pill,
+.agents-screen .agent-more-select {
+  border-radius: var(--radius-chip);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-family: var(--font-body, inherit);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: background-color var(--motion-press), border-color var(--motion-press), color var(--motion-press);
+}
+.agents-screen .agent-more-select {
+  width: auto;
+  padding: var(--space-2) var(--space-3);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.agents-screen .ui-subnav-pill[aria-current],
+.agents-screen .agent-more-select.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg, var(--on-accent));
+}
+@media (hover: hover) and (pointer: fine) {
+  .agents-screen .ui-subnav-pill:hover,
+  .agents-screen .agent-more-select:hover { border-color: var(--border-light, var(--border)); }
+}
+.agents-screen .agent-more-select:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+
+/* Chat bubbles */
+.agents-chat .chat-messages { gap: var(--space-2); margin-bottom: var(--space-3); }
+.agents-chat .chat-bubble {
+  max-width: min(85%, 72ch);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  font-family: var(--font-body, inherit);
+  font-size: var(--fs-body);
+  color: var(--text);
+}
+.agents-chat .chat-bubble.user {
+  background: var(--surface-raised);
+  border-bottom-right-radius: var(--space-1);
+}
+.agents-chat .chat-bubble.assistant {
+  background: var(--surface);
+  border-bottom-left-radius: var(--space-1);
+}
+.agents-chat .banner-warn {
+  border-radius: var(--radius-control);
+  border-color: var(--danger);
+  font-size: var(--fs-sm);
+}
+
+/* Composer */
+.agents-chat .chat-input-row { gap: var(--space-2); align-items: flex-end; }
+.agents-chat .chat-input-row textarea {
+  flex: 1;
+  min-height: 44px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-family: var(--font-body, inherit);
+  font-size: var(--fs-body);
+}
+.agents-chat .chat-input-row textarea:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+.agents-chat .send-btn {
+  width: 44px;
+  height: 44px;
+  background: var(--accent-solid);
+  color: var(--accent-fg, var(--on-accent));
+  transition: background-color var(--motion-press), transform var(--motion-press);
+}
+.agents-chat .send-btn:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+.agents-stop-btn {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.agents-stop-btn:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+
+/* Wide list pane */
+.agents-list-heading {
+  font-size: var(--fs-label);
+  font-weight: 700;
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-2) var(--space-1);
+}
+.agents-list-group { margin: 0 0 var(--space-3); padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-1); }
+.agents-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  transition: background-color var(--motion-press), border-color var(--motion-press);
+}
+@media (hover: hover) and (pointer: fine) { .agents-list-item:hover { border-color: var(--border-light, var(--border)); } }
+.agents-list-item[aria-current] { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.agents-list-item:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+
+@container agents (min-width: 720px) {
+  .agents-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: var(--space-4); align-items: start; }
+  .agents-narrow-nav { display: none; }
+  .agents-list { display: block; position: sticky; top: 0; order: 2; }
+  .agents-chat { order: 1; }
+  .agents-chat .chat-messages { overflow-y: auto; max-height: calc(100dvh - 240px); min-height: 240px; }
+}
+
+/* Touch targets */
+@media (pointer: coarse) {
+  .agents-screen .ui-subnav-pill,
+  .agents-screen .agent-more-select,
+  .agents-chat .chat-input-row textarea,
+  .agents-chat .send-btn,
+  .agents-stop-btn,
+  .agents-chat .banner-warn .btn { min-height: 44px; }
+  .agents-chat .send-btn, .agents-stop-btn { min-width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agents-screen * { transition: none !important; }
+}
