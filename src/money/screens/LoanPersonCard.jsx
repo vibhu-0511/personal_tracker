@@ -5,6 +5,7 @@ import { LOAN_ACTIONS, computeLoanBalances } from '../logic.js'
 import { formatDate, formatRupees } from '../format.js'
 import { formatTime } from '../../time.js'
 import { deleteWithUndo } from '../../undo.js'
+import './spend.css'
 
 // One person in the Loans list: a selectable row with the net balance (passed in, computed by
 // computeLoanBalances). Selecting it opens LoanPersonDetail, the ledger, in the inspector pane
@@ -12,7 +13,7 @@ import { deleteWithUndo } from '../../undo.js'
 export default function LoanPersonCard({ person, balance, count, selected = false, onSelect }) {
   const owesYou = balance > 0
   return (
-    <div className="card money-person-card" style={{ padding: 0 }} data-selected={selected ? '' : undefined}>
+    <div className="spend-card money-person-card" data-selected={selected ? '' : undefined}>
       <button
         type="button"
         className="money-person-main"
@@ -20,10 +21,10 @@ export default function LoanPersonCard({ person, balance, count, selected = fals
         aria-current={selected ? 'true' : undefined}
       >
         <span className="money-person-text">
-          <span className="h3">{person}</span>
+          <span className="money-person-name">{person}</span>
           <span className="money-small">{count} entr{count === 1 ? 'y' : 'ies'}</span>
         </span>
-        <span className={`money-person-balance ${owesYou ? 'up' : 'down'}`}>
+        <span className="money-person-balance" style={{ color: owesYou ? 'var(--success)' : 'var(--danger)' }}>
           {formatRupees(Math.abs(balance))}
         </span>
         <span className="money-person-chevron" aria-hidden="true">›</span>

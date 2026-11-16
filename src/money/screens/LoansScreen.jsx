@@ -5,6 +5,8 @@ import { formatRupees } from '../format.js'
 import { useInspector } from '../../shell/inspectorContext.js'
 import LoanPersonCard, { LoanPersonDetail } from './LoanPersonCard.jsx'
 import LoanFormSheet from './LoanFormSheet.jsx'
+import EmptyState from '../../ui/EmptyState.jsx'
+import './spend.css'
 
 // Loans view: who owes you, who you owe; a person's ledger opens in the inspector pane / Sheet.
 // Ports Expenses.jsx loans view. Balances come only from computeLoanBalances;
@@ -49,69 +51,62 @@ export default function LoansScreen() {
   }
 
   return (
-    <>
-      <div className="money-stats-row">
-        <div className="stat-card">
-          <div className="stat-value" style={{ fontSize: 20, color: 'var(--success)' }}>
-            {totalOwedToYou > 0 ? formatRupees(totalOwedToYou) : '—'}
+    <div className="spend-screen fade-in">
+      <div className="spend-card">
+        <div className="money-card-cols">
+          <div className="money-card-col">
+            <div className="spend-card-amount" style={{ color: 'var(--success)' }}>
+              {totalOwedToYou > 0 ? formatRupees(totalOwedToYou) : '—'}
+            </div>
+            <div className="spend-eyebrow">Owed to you</div>
           </div>
-          <div className="stat-label">Owed to you</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value" style={{ fontSize: 20, color: 'var(--danger)' }}>
-            {totalYouOwe > 0 ? formatRupees(totalYouOwe) : '—'}
+          <div className="money-card-col">
+            <div className="spend-card-amount" style={{ color: 'var(--danger)' }}>
+              {totalYouOwe > 0 ? formatRupees(totalYouOwe) : '—'}
+            </div>
+            <div className="spend-eyebrow">You owe</div>
           </div>
-          <div className="stat-label">You owe</div>
         </div>
       </div>
 
-      <button
-        className="btn btn-primary btn-sm"
-        style={{ width: '100%', marginBottom: 14 }}
-        onClick={() => setShowForm(true)}
-      >
+      <button type="button" className="money-action money-action-wide" onClick={() => setShowForm(true)}>
         + Log a loan
       </button>
 
       {loans.length > 0 && (
         <input
+          className="spend-search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="🔍 Filter by person..."
-          style={{ marginBottom: 12, fontSize: 13 }}
+          aria-label="Filter by person"
         />
       )}
 
       {shownOwed.length === 0 && shownOwe.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-icon">🤝</div>
-          <div className="empty-text">
-            {loans.length === 0
-              ? 'No loans tracked yet. Not counted in your expenses/income.'
-              : 'No one matches your filter.'}
-          </div>
-        </div>
+        <EmptyState
+          icon="🤝"
+          text={loans.length === 0
+            ? 'No loans tracked yet. Not counted in your expenses/income.'
+            : 'No one matches your filter.'}
+        />
       )}
 
       {shownOwed.length > 0 && (
         <>
-          <div className="section-header">
-            <span className="section-title">Owes you</span>
-          </div>
+          <h3 className="spend-heading">Owes you</h3>
           <div className="money-people">{renderCards(shownOwed)}</div>
         </>
       )}
 
       {shownOwe.length > 0 && (
         <>
-          <div className="section-header" style={{ marginTop: 6 }}>
-            <span className="section-title">You owe</span>
-          </div>
+          <h3 className="spend-heading">You owe</h3>
           <div className="money-people">{renderCards(shownOwe)}</div>
         </>
       )}
 
       <LoanFormSheet open={showForm} onClose={() => setShowForm(false)} />
-    </>
+    </div>
   )
 }
