@@ -1,8 +1,9 @@
 import { useMoney } from '../MoneyContext.jsx'
 import { deleteWithUndo } from '../../undo.js'
 import { formatMonth } from '../format.js'
+import { dateKey } from '../../life/logic.js'
 import EmptyState from '../../ui/EmptyState.jsx'
-import SpendSummary from './SpendSummary.jsx'
+import SpendSummary, { SpendBreakdown } from './SpendSummary.jsx'
 import TxnList, { TxnDetail } from './TxnList.jsx'
 import { useInspector } from '../../shell/inspectorContext.js'
 import './spend.css'
@@ -15,7 +16,7 @@ import './spend.css'
 export default function SpendScreen({ onSelectTxn, selectedId = null }) {
   const {
     expenses, budgets, expensesRef, viewMonth, prevMonth, nextMonth,
-    persistExpenses, openAdd, openEdit, ready, error,
+    persistExpenses, openAdd, dailyLog, logStreak, monthStrip, markNoSpend, openEdit, ready, error,
   } = useMoney()
 
   const { node, open } = useInspector()
@@ -42,7 +43,15 @@ export default function SpendScreen({ onSelectTxn, selectedId = null }) {
       </div>
 
       <div className="spend-layout">
-        <SpendSummary expenses={expenses} budgets={budgets} viewMonth={viewMonth} onAdd={openAdd} />
+        <SpendSummary
+          expenses={expenses}
+          budgets={budgets}
+          viewMonth={viewMonth}
+          onAdd={openAdd}
+          logStreak={logStreak}
+          strip={monthStrip}
+          onNoSpend={() => markNoSpend(dateKey(new Date()))}
+        />
         <TxnList
           expenses={expenses}
           onEdit={openEdit}
@@ -50,6 +59,7 @@ export default function SpendScreen({ onSelectTxn, selectedId = null }) {
           onSelect={handleSelect}
           selectedId={activeId}
         />
+        <SpendBreakdown expenses={expenses} budgets={budgets} viewMonth={viewMonth} />
       </div>
     </div>
   )
