@@ -24,3 +24,4 @@ Standing rule from the owner (2026-11-15): note each decision here, do not wait,
 | D18 | Money Spend: old Income/Expenses/Balance/Savings-rate grid removed (spec has only the month card) | Accept; data helpers untouched; revisit if you miss the stats | Open, default taken | E4-04 |
 | D19 | Reminders week strip (named in the E4-02 title but not described in DESIGN 5.3) not built | Skip; add later only if you want it | Open, default taken | E4-02 |
 | D20 | E4-06 added a Due time field to the task inspector and keeps the time of day when the due date changes (beyond a pure restyle) | Accept: the Today timeline already reads dueAt; revert if you want tasks date-only | Open, default taken | E4-06 |
+| D21 | Total JS is 323.0 of 325 kB after E4-11 | Revisit the budget or trim once E4 restyles finish; further feature code will need a decision | Open, default taken | budgets.json |
