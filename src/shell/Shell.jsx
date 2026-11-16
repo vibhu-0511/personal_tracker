@@ -16,7 +16,8 @@
 // The plus button (Fab) lives here so every tab has exactly one. Props:
 //   onCapture(route)  called with { tab, view } when the plus is tapped; the
 //                     app opens the capture sheet (captureContext.openCapture)
-//   captureOpen       true while a sheet is open; the plus is not rendered then
+//   captureOpen       accepted for callers; the plus stays mounted while a sheet is open
+//                     (so focus can return to it) and shell.css hides it under an open dialog
 import { useLayoutEffect, useRef } from 'react'
 import { useRoute } from '../router.js'
 import { ROUTES } from '../routes.js'
@@ -43,9 +44,7 @@ export default function Shell({ children, inspector = null, toasts = null, actio
         {hasInspector && (
           <aside className="inspector-slot" aria-label="Inspector">{inspector}</aside>
         )}
-        {!captureOpen && (
-          <Fab label="New entry" onClick={() => onCapture?.({ tab: route.tab, view: route.view })} />
-        )}
+        <Fab label="New entry" onClick={() => onCapture?.({ tab: route.tab, view: route.view })} />
         {toasts}
       </div>
     </div>
