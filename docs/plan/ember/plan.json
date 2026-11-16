@@ -1453,7 +1453,8 @@
         "E4-09",
         "E4-10",
         "E4-11",
-        "E4-12"
+        "E4-12",
+        "E4-15"
       ],
       "acceptance": "npm run test:e2e -- --trace off passes: all 17 sub-views plus Today and Agents load at 390, 834, 1194 and 1440 with no horizontal scroll and no console errors; visible text on the ember theme meets 4.5:1 on Today, Reminders, Notes and Spend"
     },
@@ -1946,6 +1947,26 @@
       ],
       "acceptance": "npx playwright test e2e/matrix/phone.spec.js --trace off passes in every project: the test tab bar height and FAB offset follow the --tabbar-h arithmetic finds the button named New entry and keeps both geometric assertions (bottom gap equals max(--tabbar-h, inset) + 12, and it clears the tab bar) unchanged",
       "notes": "Stale after E3-08: the test looked for the removed Money-only Add transaction button. Change only the locator (and the comment); do not relax either assertion."
+    },
+    {
+      "id": "E4-15",
+      "phase": "E4",
+      "wave": 2,
+      "title": "Show the real per-day pattern in the Money logging strip (SegDots takes a pattern)",
+      "size": "S",
+      "writes": [
+        "src/ui/SegDots.jsx",
+        "src/money/screens/SpendSummary.jsx",
+        "test/segDots.test.js"
+      ],
+      "reads": [
+        "src/money/dayLog.js"
+      ],
+      "deps": [
+        "E4-04"
+      ],
+      "acceptance": "node --test test/segDots.test.js passes with new cases: SegDots accepts an optional pattern array of booleans and renders one square per entry filled or empty exactly as given; the existing filled/total API and the aria-label (13 of 15 days logged) still work unchanged; SpendSummary passes monthStrip(expenses, dailyLog) as the pattern; npm test and build green",
+      "notes": "From E4-04 report: SegDots only took a filled count so the strip filled from the left and hid skipped days. Do not change existing SegDots tests, only add."
     }
   ]
 }
