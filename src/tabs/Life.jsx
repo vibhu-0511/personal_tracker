@@ -6,9 +6,27 @@ import TasksView from '../life/screens/Tasks.jsx'
 import RemindersView from '../life/screens/Reminders.jsx'
 import HabitsView from '../life/screens/Habits.jsx'
 import GrowthView from '../life/screens/Growth.jsx'
-import { LIFE_VIEWS, LIFE_GROUPS, DEFAULT_LIFE_VIEW, isLifeView } from '../life/views.js'
+import SubNav from '../ui/SubNav.jsx'
+import { getNotes } from '../store.js'
+import { useHydrate } from '../useHydrate.js'
+import { useStoreKey } from '../useStoreKey.js'
+import { summarizeProgress, readHighWater } from '../today/useProgressSummary.js'
+import '../life/life.css'
+import { LIFE_VIEWS, DEFAULT_LIFE_VIEW, isLifeView } from '../life/views.js'
 
-const activeGroup = (view) => LIFE_GROUPS.find((g) => g.id === LIFE_VIEWS.find((v) => v.id === view)?.group)
+// Chip counts (DESIGN 5.2): Tasks, Reminders and Notes show an open count;
+// Habits and Growth show none. Pure.
+export function lifeChipItems(counts) {
+  return LIFE_VIEWS.map((v) => ({
+    id: v.id, label: v.label, icon: v.icon,
+    count: v.id === 'tasks' ? counts.tasks : v.id === 'reminders' ? counts.reminders : v.id === 'notes' ? counts.notes : null,
+  }))
+}
+
+// Header mono line, e.g. "₹4,820 · LV 7". Pure.
+export function lifeHeaderLine(wallet, level) {
+  return `₹${Math.round(Number(wallet) || 0).toLocaleString('en-IN')} · LV ${level}`
+}
 
 // Uses the app-level LifeDataProvider when the shell mounts one; until then it
 // wraps itself, so there is always exactly one writer.
@@ -42,6 +60,9 @@ function LifeBody({ syncTick, view: viewProp, onViewChange, selectedId, onSelect
     onViewChange?.(id)
   }
   const showPills = !onViewChange
+  const [notes, setNotes] = useState([])
+  const notesVersion = useStoreKey('notes')
+  useHydrate([() => getNotes().then((n) => setNotes(Array.isArray(n) ? n : []))], [syncTick, notesVersion])
   const {
     tasks, reminders, habits, moodLog, now, ready, error,
     updateTasks, updateReminders, updateHabits, updateMoodLog,
@@ -60,53 +81,25 @@ function LifeBody({ syncTick, view: viewProp, onViewChange, selectedId, onSelect
     return <div className="empty-state"><div className="empty-text">Loading…</div></div>
   }
 
-  const group = activeGroup(view)
+  const { level } = summarizeProgress(habits, tasks, now, readHighWater())
+  const counts = {
+    tasks: tasks.filter((t) => !t.done).length,
+    reminders: reminders.filter((r) => !r.done).length,
+    notes: notes.length,
+  }
 
   return (
     <MotionConfig reducedMotion="user">
       <div className="fade-in">
-        <div className="life-stats">
-          <div className="life-stat life-total-wallet">
-            <div className="life-stat-value">₹{Math.round(walletTotal)}</div>
-            <div className="life-stat-label">Wallet</div>
-          </div>
-          <div className="life-stat">
-            <div className="life-stat-value">{tasksDueToday}</div>
-            <div className="life-stat-label">Due today</div>
-          </div>
-          <div className="life-stat">
-            <div className="life-stat-value">{remindersDue}</div>
-            <div className="life-stat-label">Reminders</div>
-          </div>
-        </div>
+        <header className="life-head">
+          <h2 className="life-title">Life</h2>
+          <span className="life-head-line" aria-label={`Wallet and level: ${lifeHeaderLine(walletTotal, level)}`}>
+            {lifeHeaderLine(walletTotal, level)}
+          </span>
+        </header>
 
         {showPills && (
-          <>
-            <div className="agent-bar">
-              {LIFE_GROUPS.map((g) => (
-                <button
-                  key={g.id}
-                  className={`agent-pill${group === g ? ' active' : ''}`}
-                  onClick={() => group !== g && setView(LIFE_VIEWS.find((v) => v.group === g.id).id)}
-                >
-                  <span className="agent-pill-icon">{g.icon}</span>
-                  {g.label}
-                </button>
-              ))}
-            </div>
-            <div className="agent-bar">
-              {LIFE_VIEWS.filter((v) => v.group === group.id).map((v) => (
-                <button
-                  key={v.id}
-                  className={`agent-pill${view === v.id ? ' active' : ''}`}
-                  onClick={() => setView(v.id)}
-                >
-                  <span className="agent-pill-icon">{v.icon}</span>
-                  {v.label}
-                </button>
-              ))}
-            </div>
-          </>
+          <SubNav items={lifeChipItems(counts)} value={view} onChange={setView} label="Life sections" />
         )}
 
         {view === 'tasks' && <TasksView tasks={tasks} onUpdate={updateTasks} now={now} selectedId={selectedId} onSelect={onSelect} />}
