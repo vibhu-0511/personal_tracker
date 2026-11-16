@@ -39,3 +39,18 @@ test('DailyCell done shows a check glyph, open does not', () => {
   assert.match(open, /data-state="open"/)
   assert.doesNotMatch(open, /✓/)
 })
+
+test('SegDots pattern renders squares exactly as given', () => {
+  const pattern = [true, false, true, false, false, true]
+  const html = renderToStaticMarkup(createElement(SegDots, { pattern }))
+  const order = (html.match(/data-filled="(true|false)"/g) || []).map((m) => m.includes('true'))
+  assert.deepEqual(order, pattern)
+  assert.match(html, /aria-label="3 of 6 days logged"/)
+})
+
+test('SegDots pattern wins over filled/total and empty pattern renders none', () => {
+  const html = renderToStaticMarkup(createElement(SegDots, { filled: 5, total: 5, pattern: [false, true] }))
+  assert.equal((html.match(/data-filled=/g) || []).length, 2)
+  assert.match(html, /aria-label="1 of 2 days logged"/)
+  assert.equal((renderToStaticMarkup(createElement(SegDots, { pattern: [] })).match(/data-filled=/g) || []).length, 0)
+})

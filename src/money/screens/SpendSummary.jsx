@@ -52,7 +52,7 @@ export default function SpendSummary({
           <span className="spend-eyebrow">Logged {logStreak} {logStreak === 1 ? 'day' : 'days'} in a row</span>
           <span className="spend-mono">{loggedCount} of {strip.length}</span>
         </div>
-        <SegDots filled={loggedCount} total={strip.length} label={`${loggedCount} of ${strip.length} days logged this month`} className="spend-log-dots" />
+        <SegDots pattern={strip} label={`${loggedCount} of ${strip.length} days logged this month`} className="spend-log-dots" />
       </div>
 
       {!todayLogged && onNoSpend && (
