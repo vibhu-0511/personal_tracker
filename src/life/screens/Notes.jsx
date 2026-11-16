@@ -18,8 +18,9 @@ import { deleteWithUndo } from '../../undo.js'
 import { newId } from '../../id.js'
 import { DndArea, DropList, DropZone, SortableRow, useDragging } from '../../dnd/Dnd.jsx'
 import { placeItem, canNest } from '../../dnd/logic.js'
-import { formatAdded } from '../../time.js'
 import { buildChildMap, sortSiblings, collectDescendantIds, countDescendants } from '../notesTree.js'
+import { deriveNoteTitle } from '../noteTitle.js'
+import '../notes.css'
 import MasterDetail from '../ui/MasterDetail.jsx'
 import NoteInspector, { NOTE_COLORS as COLORS, parseTags } from './NoteInspector.jsx'
 
@@ -49,6 +50,23 @@ function useAppWidth() {
     return () => window.removeEventListener('resize', measure)
   }, [])
   return width
+}
+
+function relativeDay(ts) {
+  const d = new Date(ts)
+  const days = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 86400000)
+  if (days === 0) return 'today'
+  if (days === 1) return 'yesterday'
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+}
+
+function PinIcon() {
+  return (
+    <svg className="note-pin-icon" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Pinned">
+      <title>Pinned</title>
+      <path d="M16 3l5 5-2 1-3 3v3l-2 2-3-3-6 6-1-1 6-6-3-3 2-2h3l3-3z" />
+    </svg>
+  )
 }
 
 function ColorPicker({ value, onChange }) {
@@ -130,7 +148,13 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx, handle })
   const isConfirming = ctx.confirmDeleteId === note.id && !ctx.editorHostsConfirm
   const isSubComposing = ctx.subComposeFor === note.id
   const descCount = ctx.descCount(note.id)
-  const preview = (note.body || '').trim() || '(empty note)'
+  const { title: derivedTitle, excerpt } = deriveNoteTitle(note.body ?? note.text)
+  const title = derivedTitle || '(empty note)'
+  const meta = [
+    (note.tags || []).map((t) => `#${t}`).join(' '),
+    descCount > 0 ? `${descCount} sub-note${descCount !== 1 ? 's' : ''}` : '',
+    relativeDay(note.createdAt),
+  ].filter(Boolean).join(' · ')
 
   return (
     <div style={{ marginLeft: depth * 20 }}>
@@ -138,53 +162,36 @@ function NoteItem({ note, depth, showTree, childMap, expandedIds, ctx, handle })
         className={`note-card${note.pinned ? ' note-pinned' : ''}`}
         data-color={note.color || undefined}
         data-selected={isSelected ? 'true' : undefined}
-        style={isSelected ? { borderColor: 'var(--accent)' } : undefined}
       >
         <div className="note-body" style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
           {handle}
           {showTree && hasChildren && (
             <button
+              className="note-expand"
               onClick={() => ctx.toggleExpand(note.id)}
               aria-label={isExpanded ? 'Collapse sub-notes' : 'Expand sub-notes'}
               aria-expanded={isExpanded}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}
             >
               {isExpanded ? '▾' : '▸'}
             </button>
           )}
+          <span className="note-dot" aria-hidden="true" />
           <button
             type="button"
             className="note-open"
-            aria-label={`Open note: ${preview.split('\n')[0]}`}
+            aria-label={`Open note: ${title}`}
             aria-current={isSelected ? 'true' : undefined}
             onClick={() => ctx.select(note.id)}
-            style={{
-              flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 'none',
-              color: 'inherit', font: 'inherit', padding: 0, cursor: 'pointer',
-              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
-              overflow: 'hidden', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
-            }}
           >
-            {note.pinned && <span title="Pinned">📌 </span>}
-            {preview}
+            <span className="note-title-line">
+              <span className="note-title">{title}</span>
+              {note.pinned && <PinIcon />}
+            </span>
+            {excerpt && <span className="note-excerpt">{excerpt}</span>}
+            <span className="note-meta" style={{ display: 'block' }}>{meta}</span>
           </button>
         </div>
-        <div className="note-footer">
-          <div>
-            <div className="meta">{formatAdded(note.createdAt)}</div>
-            <div className="note-tags">
-              {note.tags.map((t) => (
-                <button
-                  key={t}
-                  className={`chip${ctx.filter.trim().toLowerCase() === t.toLowerCase() ? '' : ' chip-muted'}`}
-                  style={{ cursor: 'pointer', border: 'none' }}
-                  onClick={() => ctx.onTagClick(t)}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="note-row-foot">
           {isConfirming ? (
             <DeleteConfirm
               count={descCount}
@@ -288,6 +295,7 @@ export default function Notes({ syncTick = 0, selectedId, onSelect }) {
   const [tags, setTags] = useState('')
   const [color, setColor] = useState('')
   const [filter, setFilter] = useState('')
+  const [tagFilter, setTagFilter] = useState('')
   const [expandedIds, setExpandedIds] = useState(new Set())
   const [subComposeFor, setSubComposeFor] = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
@@ -402,13 +410,28 @@ export default function Notes({ syncTick = 0, selectedId, onSelect }) {
   const detailInline = width >= DETAIL_INLINE_MIN
 
   const q = filter.trim().toLowerCase()
-  const isFiltering = q.length > 0
+  const tagQ = tagFilter.trim().toLowerCase()
+  const isFiltering = q.length > 0 || tagQ.length > 0
   const filtered = isFiltering
-    ? notes.filter((n) => n.body.toLowerCase().includes(q) || n.tags.some((t) => t.toLowerCase().includes(q)))
+    ? notes.filter(
+        (n) =>
+          (!q || (n.body ?? n.text ?? '').toLowerCase().includes(q) || n.tags.some((t) => t.toLowerCase().includes(q))) &&
+          (!tagQ || n.tags.some((t) => t.toLowerCase() === tagQ)),
+      )
     : notes
 
+  // Tag chips: every tag in use, most used first (case-insensitive, first spelling wins).
+  const tagCounts = new Map()
+  for (const n of notes) {
+    for (const t of n.tags) {
+      const k = t.toLowerCase()
+      const cur = tagCounts.get(k)
+      tagCounts.set(k, { label: cur ? cur.label : t, n: (cur ? cur.n : 0) + 1 })
+    }
+  }
+  const tagChips = [...tagCounts.entries()].sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]))
+
   const ctx = {
-    filter,
     selectedId: selected?.id ?? null,
     select,
     remove,
@@ -418,8 +441,26 @@ export default function Notes({ syncTick = 0, selectedId, onSelect }) {
     confirmDeleteId, setConfirmDeleteId, confirmCascadeDelete,
     subComposeFor, setSubComposeFor, addSubNote,
     toggleExpand,
-    onTagClick: (t) => setFilter((f) => (f.trim().toLowerCase() === t.toLowerCase() ? '' : t)),
     descCount: (id) => countDescendants(id, childMap),
+  }
+
+  // Pinned rows come first (sortSiblings), so the headings sit inline in the one sorted list and
+  // the root DropList keeps a single container id.
+  function sections(sorted, showTree) {
+    const pinned = sorted.filter((n) => n.pinned).length
+    const out = []
+    sorted.forEach((n, i) => {
+      if (i === 0 && pinned > 0) {
+        out.push(<div key="h-pinned" className="notes-section-label">Pinned <span className="count">{pinned}</span></div>)
+      }
+      if (i === pinned) {
+        out.push(<div key="h-recent" className="notes-section-label">Recent <span className="count">{sorted.length - pinned}</span></div>)
+      }
+      out.push(
+        <NoteRow key={n.id} note={n} depth={0} showTree={showTree} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />,
+      )
+    })
+    return out
   }
 
   const list = (
@@ -449,18 +490,28 @@ export default function Notes({ syncTick = 0, selectedId, onSelect }) {
         </button>
       </div>
 
-      {/* Filter */}
+      {/* Search + tag chips */}
       <input
+        className="notes-search"
+        type="search"
+        aria-label="Search notes"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        placeholder="🔍 Filter notes..."
-        style={{ marginBottom: 12 }}
+        placeholder="Search notes"
       />
-
-      <div className="section-header">
-        <span className="section-title">
-          {(isFiltering ? filtered.length : notes.length)} note{(isFiltering ? filtered.length : notes.length) !== 1 ? 's' : ''}
-        </span>
+      <div className="notes-chips" role="group" aria-label="Filter by tag">
+        <button type="button" className="notes-chip" aria-pressed={!tagQ} onClick={() => setTagFilter('')}>All</button>
+        {tagChips.map(([k, { label }]) => (
+          <button
+            key={k}
+            type="button"
+            className="notes-chip"
+            aria-pressed={tagQ === k}
+            onClick={() => setTagFilter(tagQ === k ? '' : label)}
+          >
+            #{label}
+          </button>
+        ))}
       </div>
 
       <DndArea onMove={onMove}>
@@ -471,9 +522,7 @@ export default function Notes({ syncTick = 0, selectedId, onSelect }) {
               <div className="empty-text">No notes match your filter.</div>
             </div>
           ) : (
-            sortSiblings(filtered).map((n) => (
-              <NoteRow key={n.id} note={n} depth={0} showTree={false} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
-            ))
+            sections(sortSiblings(filtered), false)
           )
         ) : notes.length === 0 ? (
           <div className="empty-state">
@@ -482,9 +531,7 @@ export default function Notes({ syncTick = 0, selectedId, onSelect }) {
           </div>
         ) : (
           <DropList id="root" type="note" items={sortSiblings(childMap[null] || []).map((n) => n.id)}>
-            {sortSiblings(childMap[null] || []).map((n) => (
-              <NoteRow key={n.id} note={n} depth={0} showTree={true} childMap={childMap} expandedIds={expandedIds} ctx={ctx} />
-            ))}
+            {sections(sortSiblings(childMap[null] || []), true)}
           </DropList>
         )}
       </DndArea>
