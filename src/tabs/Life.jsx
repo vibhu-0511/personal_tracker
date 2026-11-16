@@ -33,10 +33,10 @@ export function lifeHeaderLine(wallet, level) {
 //
 // Props (all optional):
 //   syncTick                 bumps when a remote sync lands
-//   view, onViewChange       the active sub-view id, owned by the router. When
-//                            onViewChange is supplied the internal pill bar is
-//                            hidden (the shell's SubNav replaces it); without it
-//                            Life keeps its own state and pill bar.
+//   view, onViewChange       the active sub-view id, owned by the router (pills
+//                            call onViewChange, which changes the hash). Without
+//                            them Life keeps its own state. Life renders the one
+//                            chip bar, below the header, with counts.
 //   selectedId, onSelect     selected row id for Tasks / Reminders / Notes,
 //                            owned by the router (route param). Left undefined,
 //                            each screen keeps its own selection.
@@ -59,7 +59,6 @@ function LifeBody({ syncTick, view: viewProp, onViewChange, selectedId, onSelect
     if (viewProp === undefined) setLocalView(id)
     onViewChange?.(id)
   }
-  const showPills = !onViewChange
   const [notes, setNotes] = useState([])
   const notesVersion = useStoreKey('notes')
   useHydrate([() => getNotes().then((n) => setNotes(Array.isArray(n) ? n : []))], [syncTick, notesVersion])
@@ -98,9 +97,7 @@ function LifeBody({ syncTick, view: viewProp, onViewChange, selectedId, onSelect
           </span>
         </header>
 
-        {showPills && (
-          <SubNav items={lifeChipItems(counts)} value={view} onChange={setView} label="Life sections" />
-        )}
+        <SubNav items={lifeChipItems(counts)} value={view} onChange={setView} label="Life sections" />
 
         {view === 'tasks' && <TasksView tasks={tasks} onUpdate={updateTasks} now={now} selectedId={selectedId} onSelect={onSelect} />}
         {view === 'reminders' && <RemindersView reminders={reminders} onUpdate={updateReminders} now={now} selectedId={selectedId} onSelect={onSelect} />}

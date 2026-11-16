@@ -5,12 +5,9 @@ import {
 } from './store.js'
 import { configureSynced, useSyncStatus } from './useSynced.js'
 import { createRemoteSync, bootSync, bumpTicks, allTabs, syncBannerText } from './sync/appSubscriptions.js'
-import BackupPanel from './backup/BackupPanel.jsx'
 import { supabase } from './supabaseClient.js'
 import ToastHost from './Toast.jsx'
 import Shell from './shell/Shell.jsx'
-import SubNav from './ui/SubNav.jsx'
-import { LIFE_VIEWS } from './life/views.js'
 import { useShortcuts } from './shell/useShortcuts.js'
 import { captureCommands, registry } from './shell/commands.js'
 import { useRoute, useSubView, navigate } from './router.js'
@@ -30,6 +27,7 @@ const Agents = lazy(() => import('./tabs/Agents.jsx'))
 const Expenses = lazy(() => import('./tabs/Expenses.jsx'))
 const Invest = lazy(() => import('./tabs/Invest.jsx'))
 const Life = lazy(() => import('./tabs/Life.jsx'))
+const SettingsPanel = lazy(() => import('./settings/SettingsPanel.jsx'))
 
 // Top-level tabs in nav order. `id` is the component-state / syncTicks id,
 // `route` the URL slug in routes.js. The Home id is not `Today` because Today
@@ -91,7 +89,6 @@ export default function App() {
   const [lifeView, setLifeView] = useSubView('life', 'tasks')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settings, setSettings] = useState({ cfHandle: '', theme: 'ember' })
-  const [draftHandle, setDraftHandle] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [storageOk, setStorageOk] = useState(true)
   const [syncTicks, setSyncTicks] = useState({})
@@ -173,7 +170,6 @@ export default function App() {
 
     const applySettings = (s, { first = false } = {}) => {
       setSettings(s)
-      setDraftHandle(s.cfHandle)
       applyTheme(s.theme)
       if (first && !s.cfHandle) setShowSettings(true)
     }
@@ -232,8 +228,7 @@ export default function App() {
     }
   }, [userId])
 
-  async function save() {
-    const handle = draftHandle.trim()
+  async function save(handle) {
     const next = { ...settings, cfHandle: handle }
     await saveSettings(next)
     setSettings(next)
@@ -244,6 +239,12 @@ export default function App() {
     const next = { ...settings, theme: themeId }
     setSettings(next)
     applyTheme(themeId)
+    await saveSettings(next)
+  }
+
+  async function patchSettings(patch) {
+    const next = { ...settings, ...patch }
+    setSettings(next)
     await saveSettings(next)
   }
 
@@ -343,50 +344,24 @@ export default function App() {
         )}
 
         {showSettings && (
-          <div className="card settings-panel" style={{ marginBottom: 12 }}>
-            <div className="h3" style={{ marginBottom: 10 }}>Settings</div>
-            <label className="meta" htmlFor="cf">Codeforces handle</label>
-            <input
-              id="cf"
-              value={draftHandle}
-              onChange={(e) => setDraftHandle(e.target.value)}
-              placeholder="your_cf_handle"
-              style={{ marginTop: 4 }}
-              onKeyDown={(e) => e.key === 'Enter' && save()}
+          <Suspense fallback={null}>
+            <SettingsPanel
+              settings={settings}
+              themes={THEMES}
+              onSaveHandle={save}
+              onTheme={setTheme}
+              onPatch={patchSettings}
+              onClose={() => setShowSettings(false)}
             />
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button className="btn btn-primary btn-sm" onClick={save}>Save</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowSettings(false)}>Cancel</button>
-            </div>
-
-            <div className="meta" style={{ marginTop: 14, marginBottom: 6 }}>Theme</div>
-            <div className="theme-swatches">
-              {THEMES.map((t) => (
-                <button
-                  key={t.id}
-                  className={`theme-swatch${settings.theme === t.id ? ' active' : ''}`}
-                  style={{ background: t.color }}
-                  onClick={() => setTheme(t.id)}
-                  aria-label={t.label}
-                  title={t.label}
-                />
-              ))}
-            </div>
-
-            <div className="meta" style={{ marginTop: 14, marginBottom: 6 }}>Backup</div>
-            <BackupPanel />
-          </div>
+          </Suspense>
         )}
 
         <Suspense fallback={<div className="loading"><span className="loading-dot" /><span className="loading-dot" /><span className="loading-dot" /></div>}>
           {route.tab === 'today' && <Home syncTick={syncTicks.Home || 0} />}
           {route.tab === 'life' && (
-            <>
-              <SubNav items={LIFE_VIEWS} value={lifeView} onChange={setLifeView} label="Life sections" />
-              <Life syncTick={syncTicks.Life || 0} view={lifeView} onViewChange={setLifeView} />
-            </>
+            <Life syncTick={syncTicks.Life || 0} view={lifeView} onViewChange={setLifeView} />
           )}
-          {route.tab === 'logic' && <LogicBuilding cfHandle={settings.cfHandle} syncTicks={syncTicks} />}
+          {route.tab === 'logic' && <LogicBuilding cfHandle={settings.cfHandle} codeGoal={settings.dailyCodeGoal} syncTicks={syncTicks} />}
           {route.tab === 'money' && <Expenses syncTick={syncTicks.Expenses || 0} />}
           {route.tab === 'invest' && <Invest syncTick={syncTicks.Invest || 0} />}
           {route.tab === 'agents' && <Agents />}
