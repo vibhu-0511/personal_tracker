@@ -1135,7 +1135,7 @@
     {
       "id": "E3-GATE",
       "phase": "E3",
-      "wave": 7,
+      "wave": 8,
       "title": "Phase gate: plus button and capture",
       "size": "S",
       "writes": [
@@ -1148,7 +1148,8 @@
         "E3-10",
         "E3-11",
         "E3-12",
-        "E3-13"
+        "E3-13",
+        "E3-14"
       ],
       "acceptance": "npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report states the tap count to log an expense on a phone and attaches capture screenshots at 390 and 1194; stop for owner sign-off",
       "gate": true
@@ -1924,6 +1925,25 @@
       ],
       "acceptance": "npx playwright test e2e/capture.spec.js --trace off: the deep link #/life/reminders renders the Reminders view; tapping the Reminders or Notes pill changes the hash; the plus then opens on Reminder or Note; node --test test/lifeRoute.test.js passes; npm test and build green",
       "notes": "E3-10 found: App.jsx:380 renders <Life syncTick=.../> without view, onViewChange or selectedId although src/tabs/Life.jsx supports them. Wire them to the route (see how other tabs do it)."
+    },
+    {
+      "id": "E3-14",
+      "phase": "E3",
+      "wave": 7,
+      "title": "Point the phone matrix FAB-offset check at the global plus button",
+      "size": "S",
+      "writes": [
+        "e2e/matrix/phone.spec.js"
+      ],
+      "reads": [
+        "src/ui/fab.css",
+        "src/shell/Shell.jsx"
+      ],
+      "deps": [
+        "E3-12"
+      ],
+      "acceptance": "npx playwright test e2e/matrix/phone.spec.js --trace off passes in every project: the test tab bar height and FAB offset follow the --tabbar-h arithmetic finds the button named New entry and keeps both geometric assertions (bottom gap equals max(--tabbar-h, inset) + 12, and it clears the tab bar) unchanged",
+      "notes": "Stale after E3-08: the test looked for the removed Money-only Add transaction button. Change only the locator (and the comment); do not relax either assertion."
     }
   ]
 }

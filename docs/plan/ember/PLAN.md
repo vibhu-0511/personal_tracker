@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 33 waves · 82 tasks · widest wave 7 tasks in parallel**
+**6 phases · 34 waves · 83 tasks · widest wave 7 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -190,7 +190,7 @@ Replace the top of Today with the Ember layout: header with ring, five dailies, 
 
 One plus button on every tab that opens a capture sheet: type a sentence, check the chips, save. Covers expense, income, note, reminder, task, habit check-in, solve and mood.
 
-14 tasks across 7 waves.
+15 tasks across 8 waves.
 
 **Exit criteria**
 - an expense can be logged from any tab without visiting Money
@@ -246,7 +246,13 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E3-GATE` | Phase gate: plus button and capture | S | `docs/plan/ember/reports/E3-gate.md` | E3-10, E3-11, E3-12, E3-13 | npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report states the tap count to log an expense on a phone and attaches capture screenshots at 390 and 1194; stop for owner sign-off |
+| `E3-14` | Point the phone matrix FAB-offset check at the global plus button | S | `e2e/matrix/phone.spec.js` | E3-12 | npx playwright test e2e/matrix/phone.spec.js --trace off passes in every project: the test tab bar height and FAB offset follow the --tabbar-h arithmetic finds the button named New entry and keeps both geometric assertions (bottom gap equals max(--tabbar-h, inset) + 12, and it clears the tab bar) unchanged |
+
+### E3 · Wave 8 — 1 in parallel
+
+| Task | Title | Size | Writes | Depends on | Acceptance |
+|---|---|---|---|---|---|
+| `E3-GATE` | Phase gate: plus button and capture | S | `docs/plan/ember/reports/E3-gate.md` | E3-10, E3-11, E3-12, E3-13, E3-14 | npm test, npm run lint, npm run build, npm run size and npm run test:e2e -- --trace off green; report states the tap count to log an expense on a phone and attaches capture screenshots at 390 and 1194; stop for owner sign-off |
 
 ## E4 · Screens in the Ember look
 
