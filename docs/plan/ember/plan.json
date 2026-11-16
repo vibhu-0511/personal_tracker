@@ -1378,7 +1378,8 @@
       "deps": [
         "E4-05"
       ],
-      "acceptance": "npm test and npm run build green; problem rows show rating and tags in the mono style; exam percentages never exceed 100; keyboard j, k, x, s still work in Code"
+      "acceptance": "npm test and npm run build green; problem rows show rating and tags in the mono style; exam percentages never exceed 100; keyboard j, k, x, s still work in Code",
+      "notes": " DESIGN 5.6 problem rows (name, mono rating, up to three tag chips, solved or skipped badge) live in CodeView.jsx/code.css: restyle them here (E4-05 could not)."
     },
     {
       "id": "E4-11",
@@ -1400,7 +1401,8 @@
       "deps": [
         "E3-GATE"
       ],
-      "acceptance": "node --test test/dailies.test.js passes with new cases: settings.dailyCodeGoal (1 to 10, default 3) and settings.dailies (which of the five count) change the result; the panel has Codeforces handle, Theme, Daily code goal, Dailies and Backup"
+      "acceptance": "node --test test/dailies.test.js passes with new cases: settings.dailyCodeGoal (1 to 10, default 3) and settings.dailies (which of the five count) change the result; the panel has Codeforces handle, Theme, Daily code goal, Dailies and Backup",
+      "notes": " Also pass codeGoal={settings.dailyCodeGoal} to <LogicBuilding> in src/App.jsx (E4-05 added the optional prop, default 3)."
     },
     {
       "id": "E4-12",
