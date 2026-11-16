@@ -201,7 +201,7 @@ test('Shell renders one Fab with a label, wired to onCapture with { tab, view }'
   assert.match(SHELL_JSX, /from '\.\.\/ui\/Fab\.jsx'/)
   assert.match(SHELL_JSX, /<Fab\s+label="[^"]+"/)
   assert.match(SHELL_JSX, /onCapture\?\.\(\{\s*tab: route\.tab,\s*view: route\.view\s*\}\)/)
-  assert.match(SHELL_JSX, /!captureOpen\s*&&/, 'plus is hidden while a sheet is open')
+  assert.doesNotMatch(SHELL_JSX, /!captureOpen\s*&&/, 'plus stays mounted while a sheet is open so focus can return to it')
 })
 
 test('page keeps bottom padding that clears the plus, in every layout', () => {
