@@ -139,7 +139,7 @@ export function ProblemInspector({ problem, state, tagCounts, rating, weak, onMa
     <>
       <h3 className="code-insp-title">{problem.name}</h3>
       <div className="code-insp-meta">
-        {problem.rating != null && <span>Rating {problem.rating}</span>}
+        {problem.rating != null && <span>Rating <span className="code-row-rating">{problem.rating}</span></span>}
         {status && <span className={`status-badge ${status}`}>{status}</span>}
       </div>
       <div>
@@ -467,15 +467,19 @@ export default function CodeView({ cfHandle, syncTick = 0, onChange, fetcher = f
                   <span className="code-row-main">
                     <span className="code-row-name">{p.name}</span>
                     <span className="code-row-meta">
-                      {p.rating}
-                      <span style={{ opacity: 0.3 }}>·</span>
+                      {p.rating != null && <span className="code-row-rating">{p.rating}</span>}
                       {p.tags.slice(0, 3).map((t) => (
-                        <span className="chip chip-muted" key={t}>{t}</span>
+                        <span className="chip chip-muted code-row-tag" key={t}>{t}</span>
                       ))}
                     </span>
                   </span>
                   <span className="code-row-end">
-                    {state && <span className={`status-badge ${state.status}`}>{state.status}</span>}
+                    {state && (
+                      <span className={`status-badge code-badge ${state.status}`}>
+                        <span aria-hidden="true">{state.status === 'solved' ? '✓' : '–'}</span>
+                        {' '}{state.status}
+                      </span>
+                    )}
                   </span>
                 </button>
               )

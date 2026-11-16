@@ -98,3 +98,24 @@
   font-size: 32px;
   margin-bottom: 8px;
 }
+
+/* E4-10: card and chip styles only, tokens only (holds under cream). */
+.exams-summary,
+.exams-section-card,
+.exams-inspector-card,
+.exams-material { border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+.exams-section-row { border-radius: var(--radius-sm); }
+.exams-section-meter { background: var(--track); }
+.exams-summary-head .meta,
+.exams-section-main .meta { font-variant-numeric: tabular-nums; }
+.exams-view .agent-pill:focus-visible,
+.exams-view .exam-section-header:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (pointer: coarse) {
+  .exams-view .agent-pill,
+  .exams-view .exam-section-header,
+  .exams-view .exam-topic-row,
+  .exams-note-form .btn,
+  .exams-note-form input,
+  .exams-note-form select,
+  .note-footer .btn { min-height: 44px; }
+}

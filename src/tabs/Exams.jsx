@@ -83,7 +83,7 @@ export default function Exams({ syncTick = 0, onChange }) {
 
   // Percentages come from examTotals (known topics only), so they never pass 100.
   const ep = examTotals(progress, [exam])
-  const pct = ep.pct
+  const pct = Math.max(0, Math.min(100, ep.pct))
   const activeSection = exam.sections.find((s) => s.name === selected) || exam.sections[0]
 
   function pickExam(ex) {
@@ -164,7 +164,7 @@ export default function Exams({ syncTick = 0, onChange }) {
   const sectionsList = split
     ? exam.sections.map((section) => {
         const done = sectionProgress(exam.id, section)
-        const sectionPct = section.topics.length ? Math.round((done / section.topics.length) * 100) : 0
+        const sectionPct = section.topics.length ? Math.min(100, Math.round((done / section.topics.length) * 100)) : 0
         const isActive = section.name === activeSection.name
         return (
           <button
