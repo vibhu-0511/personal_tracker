@@ -129,3 +129,69 @@
   .money-cat-grid,
   .money-people { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ── Ember 5.5: Budgets, Goals and Loans share the Spend card, heading and chip styles
+   (screens/spend.css: spend-card, spend-heading, spend-eyebrow, spend-month). Tokens only. ── */
+.money-card-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 12px; }
+.money-card-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.money-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.money-action {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-xs, 8px);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.money-action-wide { width: 100%; }
+.money-action:focus-visible,
+.money-budget-set:focus-visible,
+.money-chip:focus-visible,
+.money-budget-input:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+.spend-card.money-budget-card { padding: 12px 16px; }
+.money-budget-row { display: flex; align-items: center; gap: 12px; }
+.money-budget-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.money-budget-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap; }
+.money-budget-edit { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.money-budget-input { width: 80px; padding: 4px 6px; font-size: 12px; text-align: right; }
+.money-budget-btn { padding: 2px 8px; font-size: 11px; }
+.money-budget-set {
+  min-height: 44px;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-data, ui-monospace, monospace);
+  font-size: 12px;
+  cursor: pointer;
+}
+.money-person-name { font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
+.spend-card.money-person-card { padding: 0; }
+.money-chip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+.money-chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+}
+.money-chip[data-active] { background: var(--accent-dim); color: var(--accent); }
+.money-chip[data-tone="income"][data-active] { background: var(--success-dim); color: var(--success); }
+@media (pointer: coarse) {
+  .money-chip { min-height: 44px; }
+  .money-budget-btn { min-height: 44px; min-width: 44px; }
+  .money-budget-input { min-height: 44px; }
+}

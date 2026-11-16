@@ -95,26 +95,22 @@ function TxnForm({ request }) {
       </div>
 
       {!editId && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <div className="money-chip-grid">
           <button
-            className={`chip${txnType === 'expense' ? '' : ' chip-muted'}`}
-            style={{ cursor: 'pointer', border: 'none', flex: 1, textAlign: 'center', padding: 8 }}
+            type="button"
+            className="money-chip"
+            data-active={txnType === 'expense' ? '' : undefined}
+            aria-pressed={txnType === 'expense'}
             onClick={() => setTxnType('expense')}
           >
             Expense
           </button>
           <button
-            className={`chip${txnType === 'income' ? '' : ' chip-muted'}`}
-            style={{
-              cursor: 'pointer',
-              border: 'none',
-              flex: 1,
-              textAlign: 'center',
-              padding: 8,
-              ...(txnType === 'income'
-                ? { background: 'var(--success-dim)', color: 'var(--success)' }
-                : {}),
-            }}
+            type="button"
+            className="money-chip"
+            data-tone="income"
+            data-active={txnType === 'income' ? '' : undefined}
+            aria-pressed={txnType === 'income'}
             onClick={() => setTxnType('income')}
           >
             Income

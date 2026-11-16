@@ -77,12 +77,14 @@ function LoanForm({ onClose }) {
         style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', marginBottom: 10 }}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
+      <div className="money-chip-grid">
         {LOAN_ACTIONS.map((a) => (
           <button
             key={a.id}
-            className={`chip${direction === a.id ? '' : ' chip-muted'}`}
-            style={{ cursor: 'pointer', border: 'none', padding: 8, textAlign: 'center' }}
+            type="button"
+            className="money-chip"
+            data-active={direction === a.id ? '' : undefined}
+            aria-pressed={direction === a.id}
             onClick={() => setDirection(a.id)}
           >
             {a.label}

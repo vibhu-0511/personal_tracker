@@ -8,6 +8,9 @@ import { placeItem } from '../../dnd/logic.js'
 import { DndArea, DropList, SortableRow } from '../../dnd/Dnd.jsx'
 import { useInspector } from '../../shell/inspectorContext.js'
 import GoalFormSheet from './GoalFormSheet.jsx'
+import EmptyState from '../../ui/EmptyState.jsx'
+import Bar from '../../ui/Bar.jsx'
+import './spend.css'
 
 // Savings goals: create, drag to reorder, and a detail (add funds, delete with undo) that opens
 // through useInspector(): the right-hand pane from 1024px, the Sheet below. Ports Expenses.jsx
@@ -18,18 +21,8 @@ function goalPct(g) {
   return g.target > 0 ? Math.round((g.saved / g.target) * 100) : 0
 }
 
-function ProgressBar({ pct, done }) {
-  return (
-    <div className="exam-progress-bar" style={{ height: 8 }}>
-      <div
-        className="exam-progress-fill"
-        style={{
-          width: `${Math.max(0, Math.min(100, pct))}%`,
-          background: done ? 'var(--success)' : 'var(--accent)',
-        }}
-      />
-    </div>
-  )
+function ProgressBar({ pct, done, name }) {
+  return <Bar value={pct} tone={done ? 'success' : 'default'} label={`${name} ${pct}% saved`} />
 }
 
 // Inspector body for one goal. Reads the live record by id and closes itself when it is deleted.
@@ -77,7 +70,7 @@ export function GoalDetail({ id }) {
         <div className="money-small">{formatRupees(g.saved)} / {formatRupees(g.target)}</div>
         <div className="money-small">{done ? 'Done!' : `${formatRupees(g.target - g.saved)} left`}</div>
       </div>
-      <ProgressBar pct={pct} done={done} />
+      <ProgressBar pct={pct} done={done} name={g.name} />
       <div className="money-detail-fund">
         <input
           type="number"
@@ -110,10 +103,10 @@ export default function GoalsScreen() {
   const selectedId = node?.type === GoalDetail ? node.props.id : null
 
   return (
-    <>
-      <div className="section-header">
-        <span className="section-title">Savings Goals</span>
-        <button className="btn btn-sm btn-primary" onClick={() => setShowForm(true)}>
+    <div className="spend-screen fade-in">
+      <div className="money-head">
+        <h3 className="spend-heading">Savings Goals</h3>
+        <button type="button" className="money-action" onClick={() => setShowForm(true)}>
           + Goal
         </button>
       </div>
@@ -121,10 +114,7 @@ export default function GoalsScreen() {
       <GoalFormSheet open={showForm} onClose={() => setShowForm(false)} />
 
       {goals.length === 0 && !showForm && (
-        <div className="empty-state">
-          <div className="empty-icon">🎯</div>
-          <div className="empty-text">No goals yet. Set a savings target to start tracking.</div>
-        </div>
+        <EmptyState icon="🎯" text="No goals yet. Set a savings target to start tracking." />
       )}
 
       <DndArea onMove={({ id, overId, after }) => persistGoals(placeItem(goalsRef.current, id, overId, { after }))}>
@@ -136,7 +126,7 @@ export default function GoalsScreen() {
             return (
               <SortableRow key={g.id} id={g.id} type="goal">
                 {(handle) => (
-                  <div className="card money-goal-card" data-selected={selected ? '' : undefined}>
+                  <div className="spend-card money-goal-card" data-selected={selected ? '' : undefined}>
                     <div className="money-goal-head">
                       {handle}
                       <button
@@ -157,7 +147,7 @@ export default function GoalsScreen() {
                         </span>
                       </button>
                     </div>
-                    <ProgressBar pct={pct} done={done} />
+                    <ProgressBar pct={pct} done={done} name={g.name} />
                   </div>
                 )}
               </SortableRow>
@@ -165,6 +155,6 @@ export default function GoalsScreen() {
           })}
         </DropList>
       </DndArea>
-    </>
+    </div>
   )
 }

@@ -4,6 +4,8 @@ import { CATEGORIES, MAX_AMOUNT } from '../categories.js'
 import { formatMonth, formatRupees } from '../format.js'
 import { budgetStatus, categoryBreakdown, categoryBudgetStatus, totalBudget } from '../logic.js'
 import EmptyState from '../../ui/EmptyState.jsx'
+import Bar from '../../ui/Bar.jsx'
+import './spend.css'
 
 // Money > Budgets: per-category monthly limits with inline edit.
 // Ports Expenses.jsx budget view (:725-862) and handlers (:292-310).
@@ -15,6 +17,10 @@ const OVER_PCT = 100
 
 export function barColor(pct) {
   return pct > OVER_PCT ? 'var(--danger)' : pct > WARN_PCT ? 'var(--warn)' : 'var(--success)'
+}
+
+export function barTone(pct) {
+  return pct > OVER_PCT ? 'danger' : pct > WARN_PCT ? 'warn' : 'success'
 }
 
 function validAmount(raw) {
@@ -65,44 +71,33 @@ export default function BudgetsScreen() {
   const canSave = validAmount(amount) !== null && !saving
 
   return (
-    <div className="fade-in">
-      <div className="money-month-stepper">
-        <button type="button" className="btn btn-ghost btn-sm" onClick={prevMonth} aria-label="Previous month">
-          ◀
-        </button>
-        <span className="h3">{formatMonth(viewMonth)}</span>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={nextMonth} aria-label="Next month">
-          ▶
-        </button>
+    <div className="spend-screen fade-in">
+      <div className="spend-month">
+        <button type="button" className="spend-month-btn" onClick={prevMonth} aria-label="Previous month">◀</button>
+        <h2 className="spend-month-label">{formatMonth(viewMonth)}</h2>
+        <button type="button" className="spend-month-btn" onClick={nextMonth} aria-label="Next month">▶</button>
       </div>
 
-      <div className="money-stats-row">
-        <div className="stat-card">
-          <div className="stat-value" style={{ fontSize: 20, color: 'var(--accent)' }}>
-            {formatRupees(total.totalBudget)}
+      <div className="spend-card">
+        <div className="money-card-cols">
+          <div className="money-card-col">
+            <div className="spend-card-amount">{formatRupees(spent)}</div>
+            <div className="spend-eyebrow">Spent</div>
           </div>
-          <div className="stat-label">Budget</div>
-        </div>
-        <div className="stat-card">
-          <div
-            className="stat-value"
-            style={{ fontSize: 20, color: total.over ? 'var(--danger)' : 'var(--warn)' }}
-          >
-            {formatRupees(spent)}
+          <div className="money-card-col">
+            <div className="spend-card-amount">{formatRupees(total.totalBudget)}</div>
+            <div className="spend-eyebrow">Budget</div>
           </div>
-          <div className="stat-label">Spent</div>
-        </div>
-        <div className="stat-card">
-          <div className={`stat-value ${total.remaining >= 0 ? 'up' : 'down'}`} style={{ fontSize: 20 }}>
-            {formatRupees(Math.abs(total.remaining))}
+          <div className="money-card-col">
+            <div className="spend-card-amount" style={{ color: total.remaining >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+              {formatRupees(Math.abs(total.remaining))}
+            </div>
+            <div className="spend-eyebrow">{total.remaining >= 0 ? 'Left' : 'Over'}</div>
           </div>
-          <div className="stat-label">{total.remaining >= 0 ? 'Left' : 'Over'}</div>
         </div>
       </div>
 
-      <div className="section-header">
-        <span className="section-title">Category Budgets</span>
-      </div>
+      <h3 className="spend-heading">Category Budgets</h3>
 
       <div className="money-cat-grid">
       {CATEGORIES.map((cat) => {
@@ -115,21 +110,14 @@ export default function BudgetsScreen() {
           : null
 
         return (
-          <div key={cat.id} className="card" style={{ padding: '10px 14px', marginBottom: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 18 }}>{cat.emoji}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: 13,
-                    marginBottom: status.hasBudget ? 4 : 0,
-                  }}
-                >
-                  <span style={{ fontWeight: 600 }}>{cat.label}</span>
+          <div key={cat.id} className="spend-card money-budget-card">
+            <div className="money-budget-row">
+              <span className="spend-txn-emoji" aria-hidden="true">{cat.emoji}</span>
+              <div className="money-budget-body">
+                <div className="money-budget-head">
+                  <span className="spend-cat-name">{cat.label}</span>
                   {isEditing ? (
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <div className="money-budget-edit">
                       <input
                         type="number"
                         inputMode="decimal"
@@ -138,7 +126,7 @@ export default function BudgetsScreen() {
                         placeholder="₹"
                         max={MAX_AMOUNT}
                         aria-label={`${cat.label} monthly budget`}
-                        style={{ width: 80, padding: '2px 6px', fontSize: 12, textAlign: 'right' }}
+                        className="money-budget-input"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') saveBudgetFor(cat.id)
@@ -147,8 +135,7 @@ export default function BudgetsScreen() {
                       />
                       <button
                         type="button"
-                        className="btn btn-primary btn-sm"
-                        style={{ padding: '2px 8px', fontSize: 11 }}
+                        className="btn btn-primary btn-sm money-budget-btn"
                         onClick={() => saveBudgetFor(cat.id)}
                         disabled={!canSave}
                         aria-label="Save budget"
@@ -158,8 +145,7 @@ export default function BudgetsScreen() {
                       {status.hasBudget && (
                         <button
                           type="button"
-                          className="btn btn-danger-ghost btn-sm"
-                          style={{ padding: '2px 8px', fontSize: 11 }}
+                          className="btn btn-danger-ghost btn-sm money-budget-btn"
                           onClick={() => removeBudgetFor(cat.id)}
                         >
                           Remove
@@ -167,8 +153,7 @@ export default function BudgetsScreen() {
                       )}
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm"
-                        style={{ padding: '2px 8px', fontSize: 11 }}
+                        className="btn btn-ghost btn-sm money-budget-btn"
                         onClick={() => setEditCat(null)}
                         aria-label="Cancel"
                       >
@@ -178,8 +163,7 @@ export default function BudgetsScreen() {
                   ) : (
                     <button
                       type="button"
-                      className="meta"
-                      style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, font: 'inherit' }}
+                      className="money-budget-set"
                       onClick={() => startEdit(cat.id, budget)}
                     >
                       {status.hasBudget
@@ -189,19 +173,14 @@ export default function BudgetsScreen() {
                   )}
                 </div>
                 {status.hasBudget && (
-                  <div className="exam-progress-bar">
-                    <div
-                      className="exam-progress-fill"
-                      style={{ width: `${Math.min(100, status.pct)}%`, background: barColor(status.pct) }}
-                    />
-                  </div>
+                  <Bar
+                    value={Math.min(100, status.pct)}
+                    tone={barTone(status.pct)}
+                    label={`${cat.label} ${status.pct}% of budget used`}
+                  />
                 )}
                 {warning && (
-                  <div
-                    className="meta"
-                    role="status"
-                    style={{ marginTop: 4, fontSize: 11, color: barColor(status.pct) }}
-                  >
+                  <div className="spend-mono" role="status" style={{ color: barColor(status.pct) }}>
                     ⚠️ {warning}
                   </div>
                 )}
