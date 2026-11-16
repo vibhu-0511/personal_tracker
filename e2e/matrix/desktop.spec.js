@@ -8,6 +8,7 @@ import {
   TAB_LABELS, onlyProjects, openApp, nav, navItems, appWidth, modeForWidth, boxOf,
   expectNoHorizontalScroll, inputModel, focusRing, backgroundOf, tokenColor,
 } from '../helpers/layout.js'
+import { SCREENS, openScreen } from '../helpers/contrast.js'
 
 onlyProjects(test, ['desktop-chrome'])
 
@@ -120,4 +121,23 @@ test.describe('desktop 1440x900: Today (Ember)', () => {
     await expect(nextUp(page).getByRole('heading')).toHaveText('Call mom')
     await expectNoHorizontalScroll(page)
   })
+})
+
+// Every restyled screen (Today, Agents, Settings panel and the 17 sub-views) in this layout,
+// on the fixed sample day. The full per-screen load/contrast matrix lives in
+// e2e/ember-screens.spec.js; these assert what is specific to this shell.
+test.describe('desktop: every screen', () => {
+  test.use({ kvSeed: { ...KV_SEED, ...KV_EMBER_DAY, settings: { ...KV_SEED.settings, theme: 'ember' } } })
+  test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(NOW) })
+
+  for (const screen of SCREENS) {
+    test(`${screen.name}: sidebar and a fine pointer, no horizontal scroll`, async ({ page }) => {
+      await openScreen(page, screen)
+      expect(modeForWidth(await appWidth(page))).toBe('sidebar')
+      expect(await inputModel(page)).toEqual({ hoverFine: true, coarse: false })
+      expect((await navItems(page)).map((i) => i.label)).toEqual(TAB_LABELS)
+      await expectNoHorizontalScroll(page)
+      await expect(page.getByRole('button', { name: 'New entry' })).toHaveCount(1)
+    })
+  }
 })
