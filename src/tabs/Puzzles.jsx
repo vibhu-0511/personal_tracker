@@ -43,7 +43,12 @@ export const PuzzleRow = memo(function PuzzleRow({ puzzle, solved, solvedAt, sel
         />
       }
       title={title}
-      sub={`${source ? `${category} · ${source}` : category}${solved && solvedAt != null ? ` · solved ${dayKey(solvedAt)}` : ''}`}
+      sub={
+        <>
+          {source ? `${category} · ${source}` : category}
+          {solved && solvedAt != null && <span className="pz-solved-date"> · solved {dayKey(solvedAt)}</span>}
+        </>
+      }
       trail={<Chip tone={DIFF_TONE[difficulty] || 'muted'}>{difficulty}</Chip>}
     />
   )
@@ -99,7 +104,7 @@ function PuzzleDetail({ puzzle, solved, solvedAt, onToggleSolved, onClose }) {
         >
           {solved ? '✓ Solved' : '☐ Mark solved'}
         </button>
-        {solved && solvedAt != null && <span className="meta">Solved {dayKey(solvedAt)}</span>}
+        {solved && solvedAt != null && <span className="meta pz-solved-date">Solved {dayKey(solvedAt)}</span>}
         {url && (
           <a href={url} target="_blank" rel="noreferrer" className="btn btn-sm pz-link">
             Open source →
@@ -130,11 +135,11 @@ function LichessDaily({ state, onRetry, markedToday, onMark }) {
   const p = state.data
   const themes = Array.isArray(p.themes) ? p.themes.slice(0, 3).join(', ') : ''
   return (
-    <div className="puzzle-card">
-      <div className="puzzle-icon">♟️</div>
+    <div className="pz-daily" data-solved={markedToday ? '' : undefined}>
+      <div className="pz-daily-icon" aria-hidden="true">♟️</div>
       <div className="pz-grow">
-        <a className="puzzle-link" href={p.url} target="_blank" rel="noreferrer">Daily Chess Puzzle</a>
-        <div className="meta">Rating {p.rating}{themes ? ` · ${themes}` : ''}</div>
+        <a className="pz-daily-link" href={p.url} target="_blank" rel="noreferrer">Daily Chess Puzzle</a>
+        <div className="pz-daily-meta">Rating {p.rating}{themes ? ` · ${themes}` : ''}</div>
       </div>
       <button
         type="button"

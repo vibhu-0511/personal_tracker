@@ -71,3 +71,29 @@
   text-align: center;
   color: var(--text-secondary);
 }
+
+/* Header: solved-today ring, daily puzzle status, code streak (E4-05, DESIGN 5.6) */
+.logic-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.logic-ring-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 16px;
+  color: var(--text);
+}
+.logic-head-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.logic-head-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.logic-head-line { font-size: 13px; color: var(--text-secondary); }
+.logic-head-line[data-state="solved"] { color: var(--success); font-weight: 600; }
+.logic-head-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: var(--text);
+}
+.logic-chips { margin-bottom: 12px; }
+@media (pointer: coarse) {
+  .logic-chips .agent-pill { min-height: 44px; }
+}

@@ -81,3 +81,37 @@
   gap: 8px;
   justify-content: center;
 }
+
+/* Lichess daily card, restyled (E4-05). Behaviour unchanged. */
+.pz-daily {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--text);
+}
+.pz-daily[data-solved] { border-color: var(--success); }
+.pz-daily-icon { font-size: 24px; }
+.pz-daily-link { color: var(--text); font-weight: 600; text-decoration: none; }
+.pz-daily-link:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .pz-daily-link:hover { text-decoration: underline; }
+}
+.pz-daily-meta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.pz-solved-date {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--success);
+}
+@media (pointer: coarse) {
+  .pz-daily .btn,
+  .pz-detail-actions .btn,
+  .pz-filters select { min-height: 44px; }
+}
