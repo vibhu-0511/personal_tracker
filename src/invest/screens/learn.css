@@ -40,3 +40,43 @@
   .learn-detail { min-width: 0; }
   .learn-module { margin-top: 0; }
 }
+
+/* Ember restyle (E4-08). Lesson content keeps its layout; tokens and radii only. */
+.learn-progress { border-radius: var(--radius-card, var(--radius)); }
+.learn-progress-head .meta { font-family: var(--font-data, ui-monospace, monospace); font-variant-numeric: tabular-nums; }
+.learn-progress .exam-progress-bar { background: var(--surface-raised, var(--border)); border-radius: var(--radius-chip, 999px); }
+.learn-progress .exam-progress-fill { border-radius: var(--radius-chip, 999px); }
+.learn-phase-name { font-size: 11px; letter-spacing: 0.08em; }
+.learn-module-title { font-family: var(--font-display, inherit); }
+.learn-phase-mods .invest-mod-btn {
+  min-width: 0;
+  border-radius: var(--radius-control, var(--radius-xs));
+  background: var(--surface);
+  transition: background-color 150ms, border-color 150ms;
+}
+.learn-phase-mods .invest-mod-btn .meta { margin-left: auto; font-family: var(--font-data, ui-monospace, monospace); font-variant-numeric: tabular-nums; font-size: 12px; }
+.learn-phase-mods .invest-mod-btn:focus-visible,
+.learn-module .invest-opt:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; }
+.learn-module .invest-opt { border-radius: var(--radius-control, var(--radius-xs)); transition: border-color 150ms; }
+.learn-module .invest-content .card { border-radius: var(--radius-card, var(--radius)); }
+.learn-module .invest-content .eg { font-family: var(--font-data, ui-monospace, monospace); }
+.learn-module .invest-content table { font-variant-numeric: tabular-nums; }
+.learn-gloss-term { font-family: var(--font-display, inherit); }
+@media (pointer: coarse) {
+  .learn-phase-mods .invest-mod-btn,
+  .learn-module .invest-opt,
+  .learn-nav .btn { min-height: 44px; }
+  .learn-module .exam-topic-row { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .learn-phase-mods .invest-mod-btn, .learn-module .invest-opt { transition: none; }
+}
+
+/* Research: checklist tables and link rows */
+.invest-checklist { font-variant-numeric: tabular-nums; }
+.invest-checklist th { letter-spacing: 0.08em; }
+.invest-shell .card a { color: var(--accent); }
+.invest-shell .card a:focus-visible { outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: 2px; border-radius: var(--radius-control, 4px); }
+@media (pointer: coarse) {
+  .invest-shell .card a { display: inline-block; min-height: 44px; line-height: 44px; }
+}

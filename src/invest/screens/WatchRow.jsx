@@ -3,6 +3,8 @@ import Spark from '../../ui/Spark.jsx'
 import './watch.css'
 
 const signed = (n, digits = 2) => `${n >= 0 ? '+' : ''}${n.toFixed(digits)}`
+// Arrow so direction never relies on colour alone (DESIGN.md 5.7).
+const arrow = (n) => (n >= 0 ? '▲' : '▼')
 
 function screenerUrlFor(item) {
   return item.type === 'stock'
@@ -33,10 +35,10 @@ export default function WatchRow({ item, quote, nav, selected = false, onSelect 
         <div className="watch-row-head">
           <div className="watch-row-id">
             <div className="h3 watch-row-title">{item.name}</div>
-            <div className="meta">
-              {item.type === 'stock' && item.symbol}
+            <div className="meta watch-row-meta">
+              {item.type === 'stock' && <span className="watch-row-symbol">{item.symbol}</span>}
               {item.type === 'mf' && 'Mutual Fund'}
-              {item.type === 'ipo' && `IPO · ${item.ipo?.open || '?'} – ${item.ipo?.close || '?'}`}
+              {item.type === 'ipo' && <>IPO · <span className="watch-row-symbol">{item.ipo?.open || '?'} – {item.ipo?.close || '?'}</span></>}
             </div>
           </div>
 
@@ -49,7 +51,7 @@ export default function WatchRow({ item, quote, nav, selected = false, onSelect 
                   <>
                     <div className="watch-row-price-main">{quote.price != null ? `₹${quote.price.toFixed(2)}` : '—'}</div>
                     {quote.changePct != null && (
-                      <div className={`watch-row-sub ${quote.changePct >= 0 ? 'up' : 'down'}`}>{signed(quote.changePct)}%</div>
+                      <div className={`watch-row-sub ${quote.changePct >= 0 ? 'up' : 'down'}`}><span aria-hidden="true">{arrow(quote.changePct)} </span>{signed(quote.changePct)}%</div>
                     )}
                     <RowSpark closes={quote.closes} />
                   </>
