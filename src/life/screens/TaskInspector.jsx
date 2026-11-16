@@ -12,9 +12,21 @@ import { useState } from 'react'
 import { SortableRow, DropList } from '../../dnd/Dnd.jsx'
 import { formatAdded } from '../../time.js'
 import { newId } from '../../id.js'
+import '../wellbeing.css'
 
-const field = { display: 'flex', flexDirection: 'column', gap: 4 }
-const fieldLabel = { fontSize: 12, opacity: 0.7 }
+// dueAt is epoch ms; the time field shows its local HH:MM and writes it back onto the due date.
+function timeValue(dueAt) {
+  if (dueAt == null) return ''
+  const d = new Date(dueAt)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function atOnDay(dayKey, hhmm) {
+  const [y, m, d] = dayKey.split('-').map(Number)
+  const [h, mi] = hhmm.split(':').map(Number)
+  return new Date(y, m - 1, d, h, mi).getTime()
+}
 
 export default function TaskInspector({
   task, onChange, onToggle, onDelete, onSubtasks, onRemoveSubtask, onClose,
@@ -53,7 +65,23 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
     const due = value || null
     if (due === (task.due || null)) return
     // Clearing the date also clears the time of day that hung off it.
-    onChange(task.id, due ? { due } : { due: null, dueAt: null })
+    if (!due) {
+      onChange(task.id, { due: null, dueAt: null })
+      return
+    }
+    // A new day keeps the time of day the task already had.
+    const t = timeValue(task.dueAt)
+    onChange(task.id, t ? { due, dueAt: atOnDay(due, t) } : { due })
+  }
+
+  function commitTime(value) {
+    if (!task.due) return
+    if (!value) {
+      if (task.dueAt != null) onChange(task.id, { dueAt: null })
+      return
+    }
+    const dueAt = atOnDay(task.due, value)
+    if (dueAt !== task.dueAt) onChange(task.id, { dueAt })
   }
 
   function addSub() {
@@ -66,9 +94,9 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
   const doneCount = subtasks.filter((s) => s.checked).length
 
   return (
-    <div className="task-inspector" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div className="life-section-label" style={{ flex: 1, margin: 0 }}>Task</div>
+    <div className="task-inspector wb-stack">
+      <div className="wb-head">
+        <div className="life-section-label wb-label">Task</div>
         {onClose && (
           <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close inspector">
             Close
@@ -76,8 +104,8 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
         )}
       </div>
 
-      <label style={field}>
-        <span style={fieldLabel}>Title</span>
+      <label className="wb-field">
+        <span className="wb-field-label">Title</span>
         <input
           aria-label="Task title"
           value={title}
@@ -90,15 +118,14 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
         />
       </label>
 
-      <label style={field}>
-        <span style={fieldLabel}>Due</span>
-        <div style={{ display: 'flex', gap: 8 }}>
+      <label className="wb-field">
+        <span className="wb-field-label">Due</span>
+        <div className="wb-field-row">
           <input
             type="date"
             aria-label="Due date"
             value={task.due || ''}
             onChange={(e) => commitDue(e.target.value)}
-            style={{ flex: 1 }}
           />
           {task.due && (
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => commitDue('')}>
@@ -108,11 +135,29 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
         </div>
       </label>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <label className="wb-field">
+        <span className="wb-field-label">Time of day</span>
+        <div className="wb-field-row">
+          <input
+            type="time"
+            aria-label="Due time"
+            value={timeValue(task.dueAt)}
+            disabled={!task.due}
+            onChange={(e) => commitTime(e.target.value)}
+          />
+          {task.dueAt != null && task.due && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => commitTime('')}>
+              Clear time
+            </button>
+          )}
+        </div>
+        {!task.due && <span className="wb-small">Pick a due date first.</span>}
+      </label>
+
+      <div className="wb-chip-row">
         <button
           type="button"
-          className={`chip${task.urgent ? '' : ' chip-muted'}`}
-          style={{ cursor: 'pointer', border: 'none' }}
+          className="wb-chip wb-chip-btn"
           aria-pressed={Boolean(task.urgent)}
           onClick={() => onChange(task.id, { urgent: !task.urgent })}
         >
@@ -120,8 +165,7 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
         </button>
         <button
           type="button"
-          className={`chip${task.important ? '' : ' chip-muted'}`}
-          style={{ cursor: 'pointer', border: 'none' }}
+          className="wb-chip wb-chip-btn"
           aria-pressed={Boolean(task.important)}
           onClick={() => onChange(task.id, { important: !task.important })}
         >
@@ -130,14 +174,14 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
       </div>
 
       <div>
-        <div className="life-section-label">
+        <div className="life-section-label wb-label">
           Subtasks{subtasks.length > 0 && ` (${doneCount}/${subtasks.length})`}
         </div>
         <DropList id={`sub:${task.id}`} type="sub" items={subtasks.map((s) => s.id)}>
           {subtasks.map((s) => (
             <SortableRow key={s.id} id={s.id} type="sub">
               {(handle) => (
-                <div className="exam-topic-row">
+                <div className="exam-topic-row wb-sub-row" data-checked={s.checked ? 'true' : 'false'}>
                   {handle}
                   <input
                     type="checkbox"
@@ -147,12 +191,12 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
                       onSubtasks(task.id, subtasks.map((x) => (x.id === s.id ? { ...x, checked: !x.checked } : x)))
                     }
                   />
-                  <span style={{ flex: 1, textDecoration: s.checked ? 'line-through' : 'none', opacity: s.checked ? 0.5 : 1 }}>
+                  <span className="wb-sub-text">
                     {s.text}
-                    <span className="meta" style={{ fontSize: 11, marginLeft: 6 }}>{formatAdded(s.createdAt)}</span>
+                    <span className="wb-meta">{formatAdded(s.createdAt)}</span>
                   </span>
                   <button
-                    className="life-icon-btn"
+                    className="life-icon-btn wb-icon"
                     title="Delete item"
                     aria-label={`Delete subtask: ${s.text}`}
                     onClick={() => onRemoveSubtask(task.id, s.id)}
@@ -164,13 +208,12 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
             </SortableRow>
           ))}
         </DropList>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <div className="wb-field-row wb-field">
           <input
             aria-label="New subtask"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Add item..."
-            style={{ flex: 1 }}
+            placeholder="Add item.."
             onKeyDown={(e) => e.key === 'Enter' && addSub()}
           />
           <button className="btn btn-primary btn-sm" onClick={addSub} disabled={!draft.trim()}>
@@ -179,7 +222,7 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="wb-actions">
         <button className="btn btn-primary btn-sm" onClick={() => onToggle(task.id)}>
           {task.done ? 'Mark not done' : 'Mark done'}
         </button>
@@ -187,7 +230,7 @@ function TaskEditor({ task, onChange, onToggle, onDelete, onSubtasks, onRemoveSu
           Delete
         </button>
       </div>
-      <div className="meta" style={{ fontSize: 11 }}>added {formatAdded(task.createdAt)}</div>
+      <div className="wb-small">added {formatAdded(task.createdAt)}</div>
     </div>
   )
 }

@@ -11,6 +11,8 @@ import {
 } from '../logic.js'
 import MasterDetail from '../ui/MasterDetail.jsx'
 import GrowthInspector from './GrowthInspector.jsx'
+import '../life.css'
+import '../wellbeing.css'
 
 // Same 1024px container threshold as Habits.jsx and life.css `@container app`.
 const INSPECTOR_MIN = 1024
@@ -49,35 +51,30 @@ export default function GrowthView({ habits, moodLog, onMoodLog, now }) {
 
   const body = (
     <div>
-      <div className="card" style={{ marginBottom: 12 }}>
-        <div className="h3" style={{ marginBottom: 10 }}>Growth</div>
+      <div className="wb-panel">
+        <div className="wb-panel-title">Growth</div>
         {DOMAINS.map((d) => {
           const bar = (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+              <div className="wb-domain-line">
                 <span>{d.label}</span>
-                <span className="meta">{stats[d.id]}</span>
+                <span className="wb-num wb-small">{stats[d.id]}</span>
               </div>
-              <div className="habit-health-bar">
-                <div className="habit-health-fill" style={{ width: `${stats[d.id]}%` }} />
+              <div className="habit-health-bar wb-bar">
+                <div className="habit-health-fill wb-bar-fill" style={{ width: `${stats[d.id]}%` }} />
               </div>
             </>
           )
           return (
-            <div key={d.id} style={{ marginBottom: 10 }}>
+            <div key={d.id} className="wb-domain-item">
               {wide ? (
                 <button
                   type="button"
-                  className={`growth-domain${selected === d.id ? ' selected' : ''}`}
+                  className={`growth-domain wb-domain${selected === d.id ? ' selected' : ''}`}
                   data-selected={selected === d.id ? 'true' : 'false'}
                   aria-pressed={selected === d.id}
                   aria-label={`Show ${d.label} breakdown`}
                   onClick={() => setSelectedDomain(selected === d.id ? null : d.id)}
-                  style={{
-                    display: 'block', width: '100%', textAlign: 'left', background: 'none', color: 'inherit',
-                    font: 'inherit', cursor: 'pointer', padding: 6, margin: -6, borderRadius: 8,
-                    border: `1px solid ${selected === d.id ? 'var(--accent)' : 'transparent'}`,
-                  }}
                 >
                   {bar}
                 </button>
@@ -87,16 +84,16 @@ export default function GrowthView({ habits, moodLog, onMoodLog, now }) {
         })}
       </div>
 
-      <div className="card" style={{ marginBottom: 12 }}>
-        <div className="h3" style={{ marginBottom: 10 }}>Titles</div>
+      <div className="wb-panel">
+        <div className="wb-panel-title">Titles</div>
         {DOMAINS.map((d) => (
-          <div key={d.id} style={{ marginBottom: 8 }}>
-            <div className="meta" style={{ marginBottom: 4 }}>{d.label}</div>
+          <div key={d.id} className="wb-domain-item">
+            <div className="wb-field-label">{d.label}</div>
             <div className="habit-traits">
               {TITLES.filter((t) => t.domain === d.id).map((t) => {
                 const unlocked = titles.includes(t)
                 return (
-                  <span key={t.at} className={`habit-trait${unlocked ? ' unlocked' : ''}`}>
+                  <span key={t.at} className={`habit-trait wb-chip${unlocked ? ' unlocked' : ''}`}>
                     {unlocked ? '✓ ' : '🔒 '}{t.label}
                   </span>
                 )
@@ -106,17 +103,19 @@ export default function GrowthView({ habits, moodLog, onMoodLog, now }) {
         ))}
       </div>
 
-      <div className="card">
-        <div className="h3" style={{ marginBottom: 4 }}>How are you feeling today?</div>
-        <div className="meta" style={{ marginBottom: 10 }}>
+      <div className="wb-panel">
+        <div className="wb-panel-title">How are you feeling today?</div>
+        <div className="meta wb-mood-note">
           {todayEntry?.source === 'logged' ? 'Logged' : "Guessed from today's check-ins — tap to correct it"}
         </div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        <div className="wb-moods">
           {MANUAL_MOODS.map((m) => (
             <button
               key={m.value}
-              className={`theme-swatch${todayEntry?.valence === m.value ? ' active' : ''}`}
-              style={{ fontSize: 20, background: 'var(--surface-raised)', flex: 1 }}
+              type="button"
+              className={`wb-swatch${todayEntry?.valence === m.value ? ' active' : ''}`}
+              aria-pressed={todayEntry?.valence === m.value}
+              aria-label={`Feeling ${m.value} out of 100`}
               onClick={() => pickMood(m.value)}
             >
               {m.emoji}
@@ -129,17 +128,13 @@ export default function GrowthView({ habits, moodLog, onMoodLog, now }) {
         ) : (
           <>
             <div className="meta">Last {summary.days} day{summary.days > 1 ? 's' : ''}</div>
-            <div style={{ display: 'flex', gap: 4, margin: '8px 0' }}>
+            <div className="wb-mood-strip">
               {summary.entries.map((e) => (
                 <div
                   key={e.date}
                   title={`${e.date}: ${e.valence}`}
-                  style={{
-                    flex: 1,
-                    height: 20,
-                    borderRadius: 3,
-                    background: `hsl(${(e.valence / 100) * 120}, 55%, 45%)`,
-                  }}
+                  className="wb-mood-cell"
+                  style={{ '--wb-valence': `${e.valence}%` }}
                 />
               ))}
             </div>
