@@ -172,18 +172,25 @@ curl "http://localhost:5173/api/ics?title=Gym&start=2026-09-15T17:00:00%2B05:30"
   - `CommandPalette.jsx`, `commands.js`, `searchIndex.js` — Cmd/Ctrl+K palette, command
     registry, fuzzy filter.
   - `useShortcuts.js` — global keyboard shortcuts.
-- `src/today/` — the Today home (bento grid): `TodayHome.jsx`, `useTodayData.js`,
-  `useProgressSummary.js`, nine tiles in `tiles/` (streak, wallet, pets, code, watch,
-  tasks, spend, mood, tutor). `src/tabs/Home.jsx` is the thin tab wrapper.
+- `src/today/` — the Today home: `TodayHome.jsx` (header, dailies strip, next up, timeline,
+  then the kept tiles), `dailies.js` (pure maths for the five dailies), `useDailies.js`,
+  `timeline.js`, `celebrate.js`, `useTodayData.js`, `useProgressSummary.js`, and the tile
+  components in `tiles/`. `src/tabs/Home.jsx` is the thin tab wrapper.
+- `src/capture/` — the global capture sheet opened by the plus button and by N:
+  `CaptureSheet.jsx`, `parse.js` (typed text to chips), `submit.js` (writes the entry),
+  `panels/` (habit, solve and mood), `editors/` (amount, category, when, repeat, person).
 - `src/tabs/` — the other tab screens. `Life.jsx` (tasks, reminders, notes, habits,
   growth) renders the screens in `src/life/screens/`; its pure math (streaks, wallet, pet
   state, quick-add parsing, selectors, view registry) lives in `src/life/`. Money is
   `src/money/`, Invest is `src/invest/`.
 - `src/ui/` — shared presentational components (Tile, Row, Pill, Chip, Ring, Bar, Spark,
-  SubNav, Kbd, ...), with a gallery page (`gallery.html`).
-- `src/styles.css` — legacy global styles and the accent theme blocks. `src/styles/` holds
-  the shell-era CSS (`tokens.css`, `shell.css`, `nav.css`, `inspector.css`, ...).
-  `tokens.css` is imported after `styles.css`, so its tokens and the cream overrides win.
+  SubNav, Kbd, Fab, DailyCell, SegDots, TimelineRow, NextUpCard, ...), the line icons in
+  `icons.js`, and a gallery page (`gallery.html`).
+- `src/styles.css` — legacy global styles and the older accent theme blocks. `src/styles/`
+  holds the shell-era CSS (`tokens.css`, `shell.css`, `nav.css`, `inspector.css`, ...),
+  `ember.css` (the ember theme tokens, `:root[data-accent="ember"]`) and `fonts.css`
+  (the self-hosted `@font-face` rules). `tokens.css` is imported after `styles.css`, so its
+  tokens and the cream overrides win.
 - `src/store.js` — IndexedDB wrappers, synced to Supabase (`src/supabaseClient.js`,
   `src/sync/logic.js`, `src/sync/engine.js`). Local-first: reads/writes never block on network.
   `src/sync/router.js` sends each key to the v1 engine (default) or the v2 engine
@@ -227,26 +234,58 @@ Handled in `src/shell/useShortcuts.js` and `src/shell/commands.js`.
 |---|---|
 | Cmd/Ctrl+K | Toggle the command palette |
 | Cmd/Ctrl+1 to 6 | Go to Today, Life, Logic, Money, Invest, Agents (nav order) |
-| N | Run the `new` command, if a screen registered one |
+| N | Run the `new` command if a screen registered one; otherwise open the capture sheet |
 | X | Run the `complete` command, if a screen registered one |
 
 Cmd/Ctrl chords work everywhere, including inside text fields. N and X are ignored while
 typing in an input, textarea, select or contenteditable, while a modal `<dialog>` is open,
 and with Alt or Shift held. They are disabled when the `shortcuts` field in settings is
 `false`; there is no toggle for it in the settings panel yet. Screens register commands
-with `useCommand(id, label, fn)`. Today only the Life Tasks screen registers one
-(`complete`, when a not-yet-done task is selected); nothing registers `new` yet, so N does
-nothing.
+with `useCommand(id, label, fn)`. Only the Life Tasks screen registers one (`complete`,
+when a not-yet-done task is selected); nothing registers `new`, so N opens the capture sheet
+on the current screen's default type (see "Ember redesign").
+
+## Ember redesign
+
+The app was restyled to the Ember direction in `docs/plan/ember/DESIGN.md` (owner choices
+and defaults taken are in `docs/plan/ember/DECISIONS.md`). What is in the code:
+
+- **Today** is now a header (date, streak, "done/5" ring), a strip of five dailies (Habits,
+  Spend, Mood, Code, Puzzle), an overdue chip when something is overdue, a next-up card, a
+  timeline of today's reminders, timed tasks, expenses and notes, and the kept tiles. The
+  old Tasks, Code, Spend and Mood tiles are gone from Today.
+- **Dailies** are computed in `src/today/dailies.js` from the new synced key `dailyLog`
+  and the existing data. Settings has a daily code goal (1 to 10) and a choice of which
+  dailies count.
+- **Global plus and capture.** A plus button on every tab (aria-label "New entry") opens
+  one capture sheet with seven types: Expense, Note, Reminder, Task, Habit, Solve, Mood.
+  Typed text is parsed into editable chips ("450 coffee with raj"); saving shows a toast
+  with Undo. The default type depends on the screen. The sheet is loaded lazily.
+- **Keyboard.** N opens the capture sheet (not while typing in a field or with a dialog
+  open). The command palette also has the seven new-entry commands.
+- **Ember theme.** `ember` is a new theme and the default for new installs (`getSettings`
+  in `src/store.js`). The seven earlier themes are kept, and a theme already saved in
+  settings is not changed.
+- **Fonts are self-hosted.** Space Grotesk, Inter and JetBrains Mono come from the
+  `@fontsource-variable/*` packages, declared in `src/styles/fonts.css` (latin subset,
+  woff2), so no font request goes to a third party and the service worker precaches the
+  files. `public/dsa/mastery-map.html` is a separate static page that still references
+  Google Fonts (decision D3).
+- **Not verified on a device.** The Playwright projects are Chromium emulations. Safe areas,
+  the plus button over the tab bar, the capture sheet with the keyboard open, offline start
+  and Add to Home Screen on a real iPhone or iPad have not been tested. The owner's
+  checklist is `docs/qa/ember-device-checklist.md`.
 
 ## Themes
 
-Seven accent themes, picked with the swatches in the settings panel (gear in the top bar)
+Eight accent themes, picked with the swatches in the settings panel (gear in the top bar)
 and stored in `settings.theme`, which syncs with the rest of settings. `applyTheme` in
 `src/App.jsx` sets `data-accent` on `<html>` and updates `<meta name="theme-color">`.
 
 | Theme | Family |
 |---|---|
-| Ocean (default) | dark |
+| Ember (default for new installs) | dark, flame accent |
+| Ocean | dark |
 | Forest | dark |
 | Sunset | dark |
 | Grape | dark |
@@ -254,8 +293,8 @@ and stored in `settings.theme`, which syncs with the rest of settings. `applyThe
 | Sky | light |
 | Cream | light, with its own surface set, larger radii and a rounded font |
 
-The accent blocks are in `src/styles.css`; the light-family and cream overrides are in
-`src/styles/tokens.css`.
+The accent blocks are in `src/styles.css`; the ember block is in `src/styles/ember.css`; the light-family and cream
+overrides are in `src/styles/tokens.css`.
 
 ## Breakpoints
 
