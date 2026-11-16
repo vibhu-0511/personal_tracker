@@ -1487,7 +1487,7 @@
     {
       "id": "E4-U1",
       "phase": "E4",
-      "wave": 5,
+      "wave": 6,
       "title": "Owner: run the device checklist on your iPhone and iPad",
       "size": "S",
       "writes": [
@@ -1499,7 +1499,12 @@
       ],
       "deps": [
         "E4-13",
-        "E4-14"
+        "E4-14",
+        "E4-18",
+        "E4-19",
+        "E4-20",
+        "E4-21",
+        "E4-22"
       ],
       "acceptance": "docs/plan/ember/reports/E4-device-check.md exists with every item in docs/qa/ember-device-checklist.md marked pass or fail, the device and iOS version, and a note for each fail",
       "owner": "user"
@@ -1507,7 +1512,7 @@
     {
       "id": "E4-GATE",
       "phase": "E4",
-      "wave": 6,
+      "wave": 7,
       "title": "Phase gate: screens",
       "size": "S",
       "writes": [
@@ -2012,6 +2017,108 @@
       ],
       "acceptance": "node --test test/todayHeaderZero.test.js passes: with dailies total 0 the header renders without NaN or Infinity, no ring or an empty ring with the label None enabled, and no division by zero in the source; npm test and build green",
       "notes": "From E4-11 report: unticking all five dailies in Settings makes total 0. Check src/today/TodayHeader.jsx (ring 3/5) and any reader of dailies.total in the Today code; if a file outside the write list divides by total, report it."
+    },
+    {
+      "phase": "E4",
+      "wave": 5,
+      "size": "S",
+      "deps": [
+        "E4-13"
+      ],
+      "id": "E4-18",
+      "title": "Remove the external Google Fonts request from the DSA mastery map page",
+      "writes": [
+        "public/dsa/mastery-map.html",
+        "test/dsaNoExternalFonts.test.js"
+      ],
+      "reads": [
+        "src/styles/fonts.css"
+      ],
+      "acceptance": "node --test test/dsaNoExternalFonts.test.js passes: public/dsa/mastery-map.html makes no request to fonts.googleapis.com or fonts.gstatic.com (system font stack with the same look as far as practical); the Logic DSA screens in e2e/ember-screens.spec.js and the matrix pass and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green",
+      "notes": "E4-13 found public/dsa/mastery-map.html:11 loads https://fonts.googleapis.com/css2?... (console error and hermetic non-localhost request failure on Logic: DSA). Resolves decision D3. It is an embedded static page: change only the font links and the font-family declarations; do not touch its logic or data."
+    },
+    {
+      "phase": "E4",
+      "wave": 5,
+      "size": "S",
+      "deps": [
+        "E4-13"
+      ],
+      "id": "E4-19",
+      "title": "Ember contrast: placeholder colour, primary button text, form-field borders",
+      "writes": [
+        "src/styles/ember.css",
+        "src/styles.css",
+        "test/emberContrast.test.js"
+      ],
+      "reads": [
+        "e2e/helpers/contrast.js",
+        "src/styles/tokens.css"
+      ],
+      "acceptance": "node --test test/emberContrast.test.js passes: ember --on-accent resolves to --accent-fg (>= 4.5:1 on --accent); a ::placeholder rule gives placeholders >= 4.5:1 on their field backgrounds (var(--text-secondary) or stronger); form-field border or fill reaches >= 3:1 against the surface behind it under ember and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green",
+      "notes": "E4-13 items 2, 4 and 5: no ::placeholder rule in src/styles.css:274 (browser default #757575 is 4.25:1 on #0a0c10 and 3.49:1 on #1d212c); .btn-primary uses --on-accent which is white (2.35:1) on #ff8a3d, so set --on-accent: var(--accent-fg) in ember.css; ember --border #262b37 is 1.2-1.4:1 against surfaces for inputs (Settings, Spend, Notes, Tasks, Reminders, Exams, Puzzles, Agents), give form fields a visible border colour token (for example --field-border) at >= 3:1. Only touch ember-scoped tokens (:root[data-accent=ember]) and the shared field rules in styles.css; keep test/legacyColours.test.js green (no hard-coded colours); other themes must look unchanged."
+    },
+    {
+      "phase": "E4",
+      "wave": 5,
+      "size": "S",
+      "deps": [
+        "E4-13"
+      ],
+      "id": "E4-20",
+      "title": "Cream contrast: accent on tinted fills, primary tl-btn, form-field borders",
+      "writes": [
+        "src/styles/tokens.css",
+        "test/creamContrast.test.js"
+      ],
+      "reads": [
+        "e2e/helpers/contrast.js",
+        "src/styles/ember.css"
+      ],
+      "acceptance": "node --test test/creamContrast.test.js passes: under cream, --accent on --accent-dim, --success and muted chip text on their fills reach >= 4.5:1, accent-fg/on-accent on --accent reaches >= 4.5:1, and form-field border or fill reaches >= 3:1 against the surface and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green",
+      "notes": "E4-13 item 6: cream --accent #c2412d on tinted --accent-dim gives 3.65-4.34:1 (agent-pill.active, spend-filter, notes-chip, money-action, nav-label current tab, habit-multiplier-chip, ui-chip muted/success); .tl-btn[data-primary] #fff6e9 on #d6402b is 4.24:1; cream form borders #f0e3d0 are 1.13-1.26:1. Adjust only the cream block(s) in tokens.css (a darker accent text token or a lighter tint), other themes untouched."
+    },
+    {
+      "phase": "E4",
+      "wave": 5,
+      "size": "S",
+      "deps": [
+        "E4-13"
+      ],
+      "id": "E4-21",
+      "title": "Contrast fixes in the Tutor tile and Life wellbeing toggles",
+      "writes": [
+        "src/today/tiles/tiles-b.css",
+        "src/life/wellbeing.css",
+        "test/tileContrast.test.js"
+      ],
+      "reads": [
+        "e2e/helpers/contrast.js",
+        "src/styles/ember.css"
+      ],
+      "acceptance": "node --test test/tileContrast.test.js passes: .tb-ask-btn text uses --accent-fg with a fallback that exists in every theme (>= 4.5:1 on its fill in ember and cream), .tb-ask-input placeholder >= 4.5:1 on its fill, .wb-toggle[aria-pressed=false] no longer relies on opacity 0.45 (>= 4.5:1 in ember and cream) and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green",
+      "notes": "E4-13 items 3 and 7: tiles-b.css:99-106 .tb-ask-btn uses color: var(--on-accent, #fff) (2.35:1 on the ember accent); .tb-ask-input placeholder 2.5:1 on #2f3a4c; wellbeing.css:189 .wb-toggle[aria-pressed=false] opacity 0.45 gives 3.99:1 ember and 2.65:1 cream. Use tokens only, no colour literals (use var(--accent-fg, var(--on-accent)) style fallbacks). Pressed state must not rely on colour alone."
+    },
+    {
+      "phase": "E4",
+      "wave": 5,
+      "size": "S",
+      "deps": [
+        "E4-13"
+      ],
+      "id": "E4-22",
+      "title": "Touch targets: Notes and Spend filter chips, Settings swatches and goal buttons",
+      "writes": [
+        "src/life/notes.css",
+        "src/money/screens/spend.css",
+        "src/settings/settings.css",
+        "test/touchTargets.test.js"
+      ],
+      "reads": [
+        "e2e/ember-screens.spec.js"
+      ],
+      "acceptance": "node --test test/touchTargets.test.js passes (static CSS check): under (pointer: coarse) .notes-chip, .spend-filter, .theme-swatch and the daily code goal +/- buttons have min-width and min-height 44px; the 44px target tests in e2e/ember-screens.spec.js and the matrix pass for Notes, Spend and Settings and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green",
+      "notes": "E4-13 item 8: button.notes-chip All is 41x44, button.spend-filter All is 43x44, Settings .theme-swatch buttons are 28x28, and the Lower/Raise daily code goal buttons are 32x44 and 35x44. Fix only under @media (pointer: coarse) unless a fine-pointer size is also below 24px."
     }
   ]
 }

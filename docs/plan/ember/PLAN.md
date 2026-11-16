@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 35 waves · 86 tasks · widest wave 8 tasks in parallel**
+**6 phases · 36 waves · 91 tasks · widest wave 8 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -258,7 +258,7 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 
 Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, including reminders with snooze and repeat, notes with titles, and the expense logging strip.
 
-19 tasks across 6 waves.
+24 tasks across 7 waves.
 
 **Exit criteria**
 - all sub-views pass the device matrix
@@ -303,13 +303,23 @@ Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, inclu
 |---|---|---|---|---|---|
 | `E4-13` | Extend the device matrix to every sub-view and add a contrast check | M | `e2e/ember-screens.spec.js`<br>`e2e/helpers/contrast.js`<br>`e2e/matrix/phone.spec.js`<br>`e2e/matrix/ipad-portrait.spec.js`<br>`e2e/matrix/ipad-landscape.spec.js`<br>`e2e/matrix/desktop.spec.js` | E4-01, E4-02, E4-03, E4-06, E4-07, E4-08, E4-09, E4-10, E4-11, E4-12, E4-15, E4-16, E4-17 | npm run test:e2e -- --trace off passes: all 17 sub-views plus Today and Agents load at 390, 834, 1194 and 1440 with no horizontal scroll and no console errors; visible text on the ember theme meets 4.5:1 on Today, Reminders, Notes and Spend |
 
-### E4 · Wave 5 — 1 in parallel
+### E4 · Wave 5 — 5 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E4-U1` 👤 | Owner: run the device checklist on your iPhone and iPad | S | `docs/plan/ember/reports/E4-device-check.md` | E4-13, E4-14 | docs/plan/ember/reports/E4-device-check.md exists with every item in docs/qa/ember-device-checklist.md marked pass or fail, the device and iOS version, and a note for each fail |
+| `E4-18` | Remove the external Google Fonts request from the DSA mastery map page | S | `public/dsa/mastery-map.html`<br>`test/dsaNoExternalFonts.test.js` | E4-13 | node --test test/dsaNoExternalFonts.test.js passes: public/dsa/mastery-map.html makes no request to fonts.googleapis.com or fonts.gstatic.com (system font stack with the same look as far as practical); the Logic DSA screens in e2e/ember-screens.spec.js and the matrix pass and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green |
+| `E4-19` | Ember contrast: placeholder colour, primary button text, form-field borders | S | `src/styles/ember.css`<br>`src/styles.css`<br>`test/emberContrast.test.js` | E4-13 | node --test test/emberContrast.test.js passes: ember --on-accent resolves to --accent-fg (>= 4.5:1 on --accent); a ::placeholder rule gives placeholders >= 4.5:1 on their field backgrounds (var(--text-secondary) or stronger); form-field border or fill reaches >= 3:1 against the surface behind it under ember and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green |
+| `E4-20` | Cream contrast: accent on tinted fills, primary tl-btn, form-field borders | S | `src/styles/tokens.css`<br>`test/creamContrast.test.js` | E4-13 | node --test test/creamContrast.test.js passes: under cream, --accent on --accent-dim, --success and muted chip text on their fills reach >= 4.5:1, accent-fg/on-accent on --accent reaches >= 4.5:1, and form-field border or fill reaches >= 3:1 against the surface and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green |
+| `E4-21` | Contrast fixes in the Tutor tile and Life wellbeing toggles | S | `src/today/tiles/tiles-b.css`<br>`src/life/wellbeing.css`<br>`test/tileContrast.test.js` | E4-13 | node --test test/tileContrast.test.js passes: .tb-ask-btn text uses --accent-fg with a fallback that exists in every theme (>= 4.5:1 on its fill in ember and cream), .tb-ask-input placeholder >= 4.5:1 on its fill, .wb-toggle[aria-pressed=false] no longer relies on opacity 0.45 (>= 4.5:1 in ember and cream) and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green |
+| `E4-22` | Touch targets: Notes and Spend filter chips, Settings swatches and goal buttons | S | `src/life/notes.css`<br>`src/money/screens/spend.css`<br>`src/settings/settings.css`<br>`test/touchTargets.test.js` | E4-13 | node --test test/touchTargets.test.js passes (static CSS check): under (pointer: coarse) .notes-chip, .spend-filter, .theme-swatch and the daily code goal +/- buttons have min-width and min-height 44px; the 44px target tests in e2e/ember-screens.spec.js and the matrix pass for Notes, Spend and Settings and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green |
 
 ### E4 · Wave 6 — 1 in parallel
+
+| Task | Title | Size | Writes | Depends on | Acceptance |
+|---|---|---|---|---|---|
+| `E4-U1` 👤 | Owner: run the device checklist on your iPhone and iPad | S | `docs/plan/ember/reports/E4-device-check.md` | E4-13, E4-14, E4-18, E4-19, E4-20, E4-21, E4-22 | docs/plan/ember/reports/E4-device-check.md exists with every item in docs/qa/ember-device-checklist.md marked pass or fail, the device and iOS version, and a note for each fail |
+
+### E4 · Wave 7 — 1 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
