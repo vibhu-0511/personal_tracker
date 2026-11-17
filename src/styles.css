@@ -279,10 +279,11 @@ input, textarea, select {
   font-size: 15px;
   background: var(--bg);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--field-border, var(--border));
   transition: border-color 0.2s;
   outline: none;
 }
+input::placeholder, textarea::placeholder { color: var(--text-secondary); opacity: 1; }
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent);
 }

@@ -60,6 +60,8 @@
   --accent: #ff8a3d;
   --accent-solid: #ff8a3d;
   --accent-fg: #1d0d02;
+  --on-accent: var(--accent-fg);
+  --field-border: #6b7488;
   --accent-dim: rgba(255, 138, 61, 0.12);
   --note: #6ea8fe;
   --success: #4ade80;
