@@ -26,6 +26,7 @@
   flex-shrink: 0;
   cursor: pointer;
 }
+.agents-screen .agent-more-select:not(.active) { border-color: var(--field-border, var(--border)); }
 .agents-screen .ui-subnav-pill[aria-current],
 .agents-screen .agent-more-select.active {
   background: var(--accent);
@@ -73,7 +74,7 @@
   min-height: 44px;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-control);
-  border: 1px solid var(--border);
+  border: 1px solid var(--field-border, var(--border));
   background: var(--surface-raised);
   color: var(--text);
   font-family: var(--font-body, inherit);

@@ -53,8 +53,8 @@
   /* status colours darkened for light surfaces (>= 4.5:1) */
   --success: #136d42;
   --success-dim: rgba(19, 109, 66, 0.14);
-  --warn: #8a5a00;
-  --warn-dim: rgba(138, 90, 0, 0.14);
+  --warn: #704b00;
+  --warn-dim: rgba(112, 75, 0, 0.14);
   --danger: #b4281d;
   --danger-dim: rgba(180, 40, 29, 0.14);
 
