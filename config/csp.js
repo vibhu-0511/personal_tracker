@@ -52,9 +52,9 @@ export function buildDsaPolicy({ supabaseHost = SUPABASE_HOST } = {}) {
   return render({
     'default-src': ["'self'"],
     'script-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
-    'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+    'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'data:', 'blob:'],
-    'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+    'font-src': ["'self'", 'data:'],
     'connect-src': ["'self'", `https://${supabaseHost}`, `wss://${supabaseHost}`],
     'worker-src': ["'self'", 'blob:'],
     'object-src': ["'none'"],

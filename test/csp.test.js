@@ -70,12 +70,12 @@ test('index.html has no inline script, so script-src self is enough', () => {
   }
 })
 
-test('dsa policy: inline scripts, jsDelivr and Google Fonts allowed', () => {
+test('dsa policy: inline scripts, jsDelivr and Google Fonts absent', () => {
   assert.ok(dsa['script-src'].includes("'unsafe-inline'"))
   assert.ok(dsa['script-src'].includes('https://cdn.jsdelivr.net'))
-  assert.ok(dsa['style-src'].includes('https://fonts.googleapis.com'))
+  assert.ok(!dsa['style-src'].includes('https://fonts.googleapis.com'))
   assert.ok(dsa['style-src'].includes("'unsafe-inline'"))
-  assert.ok(dsa['font-src'].includes('https://fonts.gstatic.com'))
+  assert.ok(!dsa['font-src'].includes('https://fonts.gstatic.com'))
   assert.ok(dsa['connect-src'].includes(`https://${SUPABASE_HOST}`))
   assert.ok(dsa['connect-src'].includes(`wss://${SUPABASE_HOST}`))
   assert.deepEqual(dsa['object-src'], ["'none'"])
@@ -86,7 +86,8 @@ test('dsa policy: inline scripts, jsDelivr and Google Fonts allowed', () => {
 test('dsa page really uses what its policy allows', () => {
   const html = read('../public/dsa/mastery-map.html')
   assert.doesNotMatch(html, /<script[^>]*src=["'][^"']*cdn\.jsdelivr\.net/)
-  assert.match(html, /https:\/\/fonts\.googleapis\.com\//)
+  assert.doesNotMatch(html, /fonts\.googleapis\.com/)
+  assert.doesNotMatch(html, /fonts\.gstatic\.com/)
   assert.match(html, new RegExp(SUPABASE_HOST.replace(/\./g, '\\.')))
 })
 
