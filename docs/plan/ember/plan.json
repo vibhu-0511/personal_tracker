@@ -2029,13 +2029,16 @@
       "title": "Remove the external Google Fonts request from the DSA mastery map page",
       "writes": [
         "public/dsa/mastery-map.html",
-        "test/dsaNoExternalFonts.test.js"
+        "test/dsaNoExternalFonts.test.js",
+        "config/csp.js",
+        "vercel.json",
+        "test/csp.test.js"
       ],
       "reads": [
         "src/styles/fonts.css"
       ],
       "acceptance": "node --test test/dsaNoExternalFonts.test.js passes: public/dsa/mastery-map.html makes no request to fonts.googleapis.com or fonts.gstatic.com (system font stack with the same look as far as practical); the Logic DSA screens in e2e/ember-screens.spec.js and the matrix pass and npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off shows no failing test that belongs to this task; npm test and npm run build green",
-      "notes": "E4-13 found public/dsa/mastery-map.html:11 loads https://fonts.googleapis.com/css2?... (console error and hermetic non-localhost request failure on Logic: DSA). Resolves decision D3. It is an embedded static page: change only the font links and the font-family declarations; do not touch its logic or data."
+      "notes": "E4-13 found public/dsa/mastery-map.html:11 loads https://fonts.googleapis.com/css2?... (console error and hermetic non-localhost request failure on Logic: DSA). Resolves decision D3. It is an embedded static page: change only the font links and the font-family declarations; do not touch its logic or data. Owner approved tightening the policy: the DSA page no longer uses Google Fonts, so remove https://fonts.googleapis.com from the DSA style-src and https://fonts.gstatic.com from the DSA font-src in config/csp.js, regenerate/update vercel.json so it equals config/csp.js output (test/csp.test.js checks this), and update test/csp.test.js: the dsa policy test must stop asserting the fonts hosts (assert they are absent) and the page-usage test must stop matching fonts.googleapis.com (assert the page has no external font request). Main app policy unchanged unless it also lists the fonts hosts without using them (report, do not change). Nothing else in the CSP changes."
     },
     {
       "phase": "E4",
