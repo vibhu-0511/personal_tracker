@@ -4,7 +4,7 @@
 
 **Decision:** Direction A (Ember) from docs/designs/app-directions.html, chosen 2026-11-15: dark timeline Today, five dailies, one floating plus that opens a typed capture sheet, six labelled tabs kept. Design spec: docs/plan/ember/DESIGN.md.
 
-**6 phases · 36 waves · 91 tasks · widest wave 8 tasks in parallel**
+**6 phases · 37 waves · 92 tasks · widest wave 8 tasks in parallel**
 
 **3 tasks are yours** (marked 👤): `E4-U1`, `E5-U1`, `E5-U2`
 
@@ -258,7 +258,7 @@ One plus button on every tab that opens a capture sheet: type a sentence, check 
 
 Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, including reminders with snooze and repeat, notes with titles, and the expense logging strip.
 
-24 tasks across 7 waves.
+25 tasks across 8 waves.
 
 **Exit criteria**
 - all sub-views pass the device matrix
@@ -317,9 +317,15 @@ Bring Life, Money, Logic, Invest, Agents and Settings to the Ember design, inclu
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
-| `E4-U1` 👤 | Owner: run the device checklist on your iPhone and iPad | S | `docs/plan/ember/reports/E4-device-check.md` | E4-13, E4-14, E4-18, E4-19, E4-20, E4-21, E4-22 | docs/plan/ember/reports/E4-device-check.md exists with every item in docs/qa/ember-device-checklist.md marked pass or fail, the device and iOS version, and a note for each fail |
+| `E4-23` | Last contrast fixes: Agents composer border and the light-family warn colour | S | `src/agents/agents.css`<br>`src/styles/tokens.css`<br>`test/residualContrast.test.js` | E4-18, E4-19, E4-20, E4-21, E4-22 | node --test test/residualContrast.test.js passes: the Agents composer textarea border uses the form-field border token (var(--field-border, var(--border)) or a stronger token) so it reaches >= 3:1 against the surface in ember and cream; the light-family (sky and cream) --warn reaches >= 4.5:1 on its own tint over the Today mood tile fill (#d1dec8 for cream) and on the cream surface; npx playwright test e2e/ember-screens.spec.js e2e/matrix --trace off -g WCAG shows 0 failures; npm test and build green |
 
 ### E4 · Wave 7 — 1 in parallel
+
+| Task | Title | Size | Writes | Depends on | Acceptance |
+|---|---|---|---|---|---|
+| `E4-U1` 👤 | Owner: run the device checklist on your iPhone and iPad | S | `docs/plan/ember/reports/E4-device-check.md` | E4-13, E4-14, E4-18, E4-19, E4-20, E4-21, E4-22, E4-23 | docs/plan/ember/reports/E4-device-check.md exists with every item in docs/qa/ember-device-checklist.md marked pass or fail, the device and iOS version, and a note for each fail |
+
+### E4 · Wave 8 — 1 in parallel
 
 | Task | Title | Size | Writes | Depends on | Acceptance |
 |---|---|---|---|---|---|
